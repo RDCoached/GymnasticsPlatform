@@ -24,6 +24,17 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _container.StartAsync();
+
+        // Create database schema once for all tests
+        var options = new DbContextOptionsBuilder<AuthDbContext>()
+            .UseNpgsql(ConnectionString)
+            .Options;
+
+        var tenantContext = Substitute.For<ITenantContext>();
+        tenantContext.TenantId.Returns(Guid.NewGuid());
+
+        await using var db = new AuthDbContext(options, tenantContext);
+        await db.Database.EnsureCreatedAsync();
     }
 
     public async Task DisposeAsync()
@@ -44,11 +55,11 @@ public sealed class AuthDbContextTests : IAsyncLifetime
 
     private string ConnectionString => _fixture.ConnectionString;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        // Ensure database is migrated before each test
-        await using var db = CreateDbContext(CreateTenantContext(Guid.NewGuid()));
-        await db.Database.EnsureCreatedAsync(); // Use EnsureCreated instead of Migrate for tests
+        // Schema is created once in DatabaseFixture
+        // No per-test initialization needed
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
