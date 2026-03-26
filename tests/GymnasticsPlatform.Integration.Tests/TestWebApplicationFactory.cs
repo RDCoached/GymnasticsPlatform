@@ -11,8 +11,7 @@ namespace GymnasticsPlatform.Integration.Tests;
 
 public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("gymnastics_test")
         .WithUsername("test_user")
         .WithPassword("test_password")
