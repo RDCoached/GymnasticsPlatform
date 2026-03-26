@@ -64,18 +64,19 @@ public sealed class AuthDbContextTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        // Clean up database by truncating all tables
+        // Clean up database by deleting all data
+        // Using DELETE instead of TRUNCATE to avoid permission issues
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = "TRUNCATE TABLE \"UserProfiles\" RESTART IDENTITY CASCADE";
+        command.CommandText = "DELETE FROM \"UserProfiles\"";
         try
         {
             await command.ExecuteNonQueryAsync();
         }
         catch (PostgresException ex) when (ex.SqlState == "42P01")
         {
-            // Table doesn't exist - ignore (happens on first test)
+            // Table doesn't exist - ignore (should not happen after fixture initialization)
         }
     }
 
