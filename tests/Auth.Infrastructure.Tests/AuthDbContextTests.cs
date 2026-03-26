@@ -9,6 +9,11 @@ using Testcontainers.PostgreSql;
 
 namespace Auth.Infrastructure.Tests;
 
+[CollectionDefinition("Database collection")]
+public sealed class DatabaseCollection : ICollectionFixture<DatabaseFixture>
+{
+}
+
 public sealed class DatabaseFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine")
@@ -27,7 +32,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
     }
 }
 
-public sealed class AuthDbContextTests : IClassFixture<DatabaseFixture>, IAsyncLifetime
+[Collection("Database collection")]
+public sealed class AuthDbContextTests : IAsyncLifetime
 {
     private readonly DatabaseFixture _fixture;
     private readonly string _testDatabaseName;
