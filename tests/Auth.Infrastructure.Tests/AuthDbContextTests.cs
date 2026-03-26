@@ -3,17 +3,18 @@ using Auth.Infrastructure.Persistence;
 using Common.Core;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using NSubstitute;
 using Testcontainers.PostgreSql;
 
 namespace Auth.Infrastructure.Tests;
 
-public sealed class AuthDbContextTests : IAsyncLifetime
+public sealed class DatabaseFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine")
         .Build();
 
-    private string ConnectionString => _container.GetConnectionString();
+    public string ConnectionString => _container.GetConnectionString();
 
     public async Task InitializeAsync()
     {
@@ -23,6 +24,50 @@ public sealed class AuthDbContextTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _container.DisposeAsync();
+    }
+}
+
+public sealed class AuthDbContextTests : IClassFixture<DatabaseFixture>, IAsyncLifetime
+{
+    private readonly DatabaseFixture _fixture;
+    private readonly string _testDatabaseName;
+
+    public AuthDbContextTests(DatabaseFixture fixture)
+    {
+        _fixture = fixture;
+        _testDatabaseName = $"test_{Guid.NewGuid():N}";
+    }
+
+    private string ConnectionString
+    {
+        get
+        {
+            var builder = new NpgsqlConnectionStringBuilder(_fixture.ConnectionString)
+            {
+                Database = _testDatabaseName
+            };
+            return builder.ConnectionString;
+        }
+    }
+
+    public async Task InitializeAsync()
+    {
+        // Create isolated database for this test
+        await using var connection = new NpgsqlConnection(_fixture.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"CREATE DATABASE \"{_testDatabaseName}\"";
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        // Drop the test database after test completes
+        await using var connection = new NpgsqlConnection(_fixture.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"DROP DATABASE IF EXISTS \"{_testDatabaseName}\" WITH (FORCE)";
+        await command.ExecuteNonQueryAsync();
     }
 
     [Fact]
