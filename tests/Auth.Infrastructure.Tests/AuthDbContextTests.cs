@@ -36,43 +36,28 @@ public sealed class DatabaseFixture : IAsyncLifetime
 public sealed class AuthDbContextTests : IAsyncLifetime
 {
     private readonly DatabaseFixture _fixture;
-    private readonly string _testDatabaseName;
 
     public AuthDbContextTests(DatabaseFixture fixture)
     {
         _fixture = fixture;
-        _testDatabaseName = $"test_{Guid.NewGuid():N}";
     }
 
-    private string ConnectionString
-    {
-        get
-        {
-            var builder = new NpgsqlConnectionStringBuilder(_fixture.ConnectionString)
-            {
-                Database = _testDatabaseName
-            };
-            return builder.ConnectionString;
-        }
-    }
+    private string ConnectionString => _fixture.ConnectionString;
 
     public async Task InitializeAsync()
     {
-        // Create isolated database for this test
-        await using var connection = new NpgsqlConnection(_fixture.ConnectionString);
-        await connection.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"CREATE DATABASE \"{_testDatabaseName}\"";
-        await command.ExecuteNonQueryAsync();
+        // Ensure database is migrated
+        await using var db = CreateDbContext(CreateTenantContext(Guid.NewGuid()));
+        await db.Database.MigrateAsync();
     }
 
     public async Task DisposeAsync()
     {
-        // Drop the test database after test completes
-        await using var connection = new NpgsqlConnection(_fixture.ConnectionString);
+        // Clean up database by truncating all tables
+        await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = $"DROP DATABASE IF EXISTS \"{_testDatabaseName}\" WITH (FORCE)";
+        command.CommandText = "TRUNCATE TABLE \"UserProfiles\" CASCADE";
         await command.ExecuteNonQueryAsync();
     }
 
