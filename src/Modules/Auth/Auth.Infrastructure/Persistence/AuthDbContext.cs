@@ -8,7 +8,12 @@ public sealed class AuthDbContext(
     DbContextOptions<AuthDbContext> options,
     ITenantContext tenantContext) : DbContext(options)
 {
+    private readonly ITenantContext _tenantContext = tenantContext;
+
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+
+    // Expose tenant ID as a property for query filter evaluation
+    private Guid CurrentTenantId => _tenantContext.TenantId ?? throw new InvalidOperationException("TenantId is required");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -17,6 +22,7 @@ public sealed class AuthDbContext(
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AuthDbContext).Assembly);
 
         // Apply global query filter for multi-tenancy
+        // The filter references the DbContext instance (this), so it evaluates dynamically per instance
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(IMultiTenant).IsAssignableFrom(entityType.ClrType))
@@ -24,12 +30,12 @@ public sealed class AuthDbContext(
                 var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
                 var property = System.Linq.Expressions.Expression.Property(parameter, nameof(IMultiTenant.TenantId));
 
-                // Build expression: e.TenantId == tenantContext.TenantId.Value
-                var contextParameter = System.Linq.Expressions.Expression.Constant(tenantContext);
-                var tenantIdProperty = System.Linq.Expressions.Expression.Property(contextParameter, nameof(ITenantContext.TenantId));
-                var tenantIdValue = System.Linq.Expressions.Expression.Property(tenantIdProperty, nameof(Nullable<Guid>.Value));
+                // Build expression: e.TenantId == this.CurrentTenantId
+                // Capture 'this' so the tenant ID is evaluated per DbContext instance
+                var dbContextParameter = System.Linq.Expressions.Expression.Constant(this);
+                var currentTenantIdProperty = System.Linq.Expressions.Expression.Property(dbContextParameter, nameof(CurrentTenantId));
 
-                var equals = System.Linq.Expressions.Expression.Equal(property, tenantIdValue);
+                var equals = System.Linq.Expressions.Expression.Equal(property, currentTenantIdProperty);
                 var lambda = System.Linq.Expressions.Expression.Lambda(equals, parameter);
 
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
@@ -43,10 +49,10 @@ public sealed class AuthDbContext(
         foreach (var entry in ChangeTracker.Entries<IMultiTenant>()
             .Where(e => e.State == EntityState.Added))
         {
-            if (tenantContext.TenantId is null)
+            if (_tenantContext.TenantId is null)
                 throw new InvalidOperationException("TenantId is required for creating multi-tenant entities");
 
-            entry.Property(nameof(IMultiTenant.TenantId)).CurrentValue = tenantContext.TenantId.Value;
+            entry.Property(nameof(IMultiTenant.TenantId)).CurrentValue = _tenantContext.TenantId.Value;
         }
 
         return base.SaveChangesAsync(cancellationToken);
