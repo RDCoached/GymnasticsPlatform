@@ -86,7 +86,6 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenantId = Guid.NewGuid();
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
-        await db.Database.MigrateAsync();
 
         var userProfile = UserProfile.Create(
             Guid.Empty, // Will be overwritten
@@ -109,7 +108,6 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         // Arrange
         var tenantContext = CreateTenantContext(null);
         await using var db = CreateDbContext(tenantContext);
-        await db.Database.MigrateAsync();
 
         var userProfile = UserProfile.Create(
             Guid.Empty,
@@ -137,7 +135,6 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant1Context = CreateTenantContext(tenant1Id);
         await using (var db = CreateDbContext(tenant1Context))
         {
-            await db.Database.MigrateAsync();
 
             var user1 = UserProfile.Create(tenant1Id, "user1", "user1@tenant1.com", "User 1", DateTimeOffset.UtcNow);
             var user2 = UserProfile.Create(tenant1Id, "user2", "user2@tenant1.com", "User 2", DateTimeOffset.UtcNow);
@@ -193,7 +190,6 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant1Context = CreateTenantContext(tenant1Id);
         await using (var db = CreateDbContext(tenant1Context))
         {
-            await db.Database.MigrateAsync();
 
             var user = UserProfile.Create(tenant1Id, "user1", "user1@tenant1.com", "User 1", DateTimeOffset.UtcNow);
             db.UserProfiles.Add(user);
@@ -233,7 +229,6 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant1Context = CreateTenantContext(tenant1Id);
         await using (var db = CreateDbContext(tenant1Context))
         {
-            await db.Database.MigrateAsync();
             var user = UserProfile.Create(tenant1Id, "user1", "test@example.com", "Tenant 1 User", DateTimeOffset.UtcNow);
             db.UserProfiles.Add(user);
             await db.SaveChangesAsync();
@@ -283,7 +278,6 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant1Context = CreateTenantContext(tenant1Id);
         await using (var db = CreateDbContext(tenant1Context))
         {
-            await db.Database.MigrateAsync();
             for (int i = 0; i < 3; i++)
             {
                 var user = UserProfile.Create(tenant1Id, $"user{i}", $"user{i}@tenant1.com", $"User {i}", DateTimeOffset.UtcNow);
