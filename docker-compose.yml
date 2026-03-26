@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gymnastics-postgres
+    environment:
+      POSTGRES_DB: gymnastics
+      POSTGRES_USER: gymadmin
+      POSTGRES_PASSWORD: local_dev_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymadmin -d gymnastics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    container_name: gymnastics-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/gymnastics
+      KC_DB_USERNAME: gymadmin
+      KC_DB_PASSWORD: local_dev_123
+      KC_DB_SCHEMA: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  adminer:
+    image: adminer:latest
+    container_name: gymnastics-adminer
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+
+  # Grafana LGTM Stack (Loki, Grafana, Tempo, Mimir)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gymnastics-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
+
+  loki:
+    image: grafana/loki:latest
+    container_name: gymnastics-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: gymnastics-tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    command: -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - ./docker/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo_data:/var/tempo
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gymnastics-prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+volumes:
+  postgres_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+  prometheus_data:

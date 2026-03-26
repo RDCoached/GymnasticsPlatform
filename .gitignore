@@ -1,0 +1,96 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio / Rider cache/options
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+coverage-results/
+coverage-report/
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Docker
+.dockerignore
+
+# Local Development
+*.local.*
+appsettings.Development.json
+appsettings.*.local.json
+.env
+.env.local
+
+# Node.js (for frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Migrations (keep the folder but ignore auto-generated files if needed)
+# Uncomment if you want to exclude migrations from version control
+# **/Migrations/*
+
+# Rider
+.idea/
+*.DotSettings.user
+
+# JetBrains Rider
+.idea/
+.idea_modules/
+
+# ReSharper
+_ReSharper*/
+*.ReSharper.user
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*

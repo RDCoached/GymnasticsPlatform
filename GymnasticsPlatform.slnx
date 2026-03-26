@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GymnasticsPlatform.Api/GymnasticsPlatform.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Auth/">
+    <Project Path="src/Modules/Auth/Auth.Api/Auth.Api.csproj" />
+    <Project Path="src/Modules/Auth/Auth.Application/Auth.Application.csproj" />
+    <Project Path="src/Modules/Auth/Auth.Domain/Auth.Domain.csproj" />
+    <Project Path="src/Modules/Auth/Auth.Infrastructure/Auth.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Sessions/">
+    <Project Path="src/Modules/Sessions/Sessions.Api/Sessions.Api.csproj" />
+    <Project Path="src/Modules/Sessions/Sessions.Application/Sessions.Application.csproj" />
+    <Project Path="src/Modules/Sessions/Sessions.Domain/Sessions.Domain.csproj" />
+    <Project Path="src/Modules/Sessions/Sessions.Infrastructure/Sessions.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Common/">
+    <Project Path="src/Common/Common.Core/Common.Core.csproj" />
+    <Project Path="src/Common/Common.Contracts/Common.Contracts.csproj" />
+  </Folder>
+</Solution>
