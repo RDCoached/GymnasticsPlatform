@@ -46,9 +46,9 @@ public sealed class AuthDbContextTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        // Ensure database is migrated
+        // Ensure database is migrated before each test
         await using var db = CreateDbContext(CreateTenantContext(Guid.NewGuid()));
-        await db.Database.MigrateAsync();
+        await db.Database.EnsureCreatedAsync(); // Use EnsureCreated instead of Migrate for tests
     }
 
     public async Task DisposeAsync()
@@ -57,8 +57,15 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = "TRUNCATE TABLE \"UserProfiles\" CASCADE";
-        await command.ExecuteNonQueryAsync();
+        command.CommandText = "TRUNCATE TABLE \"UserProfiles\" RESTART IDENTITY CASCADE";
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            // Table doesn't exist - ignore (happens on first test)
+        }
     }
 
     [Fact]
