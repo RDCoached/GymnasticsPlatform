@@ -42,12 +42,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.Authority = keycloakConfig["Authority"];
         options.Audience = keycloakConfig["Audience"];
         options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
+        options.MapInboundClaims = false; // Preserve original JWT claim names
+
+        var validIssuers = keycloakConfig.GetSection("ValidIssuers").Get<string[]>();
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
-            ValidateIssuerSigningKey = true
+            ValidateIssuerSigningKey = true,
+            ValidIssuers = validIssuers
         };
     });
 
@@ -144,6 +149,7 @@ app.MapGet("/api/auth/me", (ITenantContext tenantContext, HttpContext httpContex
     {
         userId = user.FindFirst("sub")?.Value,
         email = user.FindFirst("email")?.Value,
+        name = user.FindFirst("name")?.Value,
         tenantId = tenantContext.TenantId,
         roles = user.FindAll("roles").Select(c => c.Value).ToArray()
     });

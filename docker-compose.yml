@@ -28,12 +28,6 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_RELATIVE_PATH: /
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
-      KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"
     command: start-dev --import-realm
     ports:
@@ -74,6 +68,8 @@ services:
       - Authentication__Keycloak__Authority=http://keycloak:8080/realms/gymnastics
       - Authentication__Keycloak__Audience=gymnastics-api
       - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/realms/gymnastics
+      - Authentication__Keycloak__ValidIssuers__1=http://localhost:8080/realms/gymnastics
       - Observability__OtlpEndpoint=http://tempo:4318
       - OTEL_LOG_LEVEL=debug
       - Logging__LogLevel__OpenTelemetry=Debug
