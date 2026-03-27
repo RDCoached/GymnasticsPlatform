@@ -8,6 +8,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Common.Core;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,16 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add OpenAPI
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = "Gymnastics Platform API";
+        document.Info.Version = "v1";
+        document.Info.Description = "Multi-tenant gymnastics platform API with Keycloak authentication";
+        return Task.CompletedTask;
+    });
+});
 
 // Add Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -43,6 +53,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3001",  // user-portal
+                "http://localhost:3002")  // admin-portal
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 // Add OpenTelemetry
 var observabilityConfig = builder.Configuration.GetSection("Observability");
 var serviceName = observabilityConfig["ServiceName"] ?? "gymnastics-api";
@@ -51,26 +75,37 @@ var serviceVersion = observabilityConfig["ServiceVersion"] ?? "1.0.0";
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource
         .AddService(serviceName, serviceVersion))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddOtlpExporter(options =>
-        {
-            options.Endpoint = new Uri(observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318");
-        }))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddConsoleExporter()
+            .AddOtlpExporter(options =>
+            {
+                var endpoint = observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318";
+                options.Endpoint = new Uri(endpoint);
+                options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+                options.ExportProcessorType = OpenTelemetry.ExportProcessorType.Simple;
+            });
+    })
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
         {
-            options.Endpoint = new Uri(observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318");
+            var endpoint = observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318";
+            options.Endpoint = new Uri(endpoint);
+            options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
         }));
 
 builder.Logging.AddOpenTelemetry(logging =>
 {
     logging.AddOtlpExporter(options =>
     {
-        options.Endpoint = new Uri(observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318");
+        var endpoint = observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318";
+        options.Endpoint = new Uri(endpoint);
+        options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
     });
 });
 
@@ -85,11 +120,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline
+app.MapOpenApi();
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -27,20 +25,26 @@ services:
       KC_DB_USERNAME: gymadmin
       KC_DB_PASSWORD: local_dev_123
       KC_DB_SCHEMA: keycloak
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HTTP_PORT: 8080
-      KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
-      KC_HTTP_ENABLED: true
-    command: start-dev
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_RELATIVE_PATH: /
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+    command: start-dev --import-realm
     ports:
       - "8080:8080"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -55,6 +59,65 @@ services:
       ADMINER_DEFAULT_SERVER: postgres
     depends_on:
       - postgres
+
+  api:
+    build:
+      context: .
+      dockerfile: src/GymnasticsPlatform.Api/Dockerfile
+    container_name: gymnastics-api
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=gymnastics;Username=gymadmin;Password=local_dev_123;Include Error Detail=true
+      - Authentication__Keycloak__Authority=http://keycloak:8080/realms/gymnastics
+      - Authentication__Keycloak__Audience=gymnastics-api
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Observability__OtlpEndpoint=http://tempo:4318
+      - OTEL_LOG_LEVEL=debug
+      - Logging__LogLevel__OpenTelemetry=Debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  user-portal:
+    image: node:25-alpine
+    container_name: gymnastics-user-portal
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./frontend/user-portal:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - keycloak
+
+  admin-portal:
+    image: node:25-alpine
+    container_name: gymnastics-admin-portal
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./frontend/admin-portal:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - keycloak
 
   # Grafana LGTM Stack (Loki, Grafana, Tempo, Mimir)
   grafana:
@@ -71,7 +134,6 @@ services:
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
-      - tempo
       - prometheus
 
   loki:
@@ -84,16 +146,19 @@ services:
       - loki_data:/loki
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.3.1
     container_name: gymnastics-tempo
     ports:
       - "3200:3200"   # Tempo HTTP
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
-    command: -config.file=/etc/tempo/tempo.yaml
+    command:
+      - "-config.file=/etc/tempo/tempo.yaml"
     volumes:
       - ./docker/tempo/tempo.yaml:/etc/tempo/tempo.yaml
       - tempo_data:/var/tempo
+    environment:
+      - TEMPO_METRICS_GENERATOR_ENABLED=false
 
   prometheus:
     image: prom/prometheus:latest

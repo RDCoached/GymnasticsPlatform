@@ -1,0 +1,193 @@
+{
+  "realm": "gymnastics",
+  "enabled": true,
+  "displayName": "Gymnastics Platform",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Regular user role"
+      },
+      {
+        "name": "organization_owner",
+        "description": "Organization owner role"
+      },
+      {
+        "name": "platform_admin",
+        "description": "Platform administrator role"
+      }
+    ]
+  },
+  "clientScopes": [
+    {
+      "name": "tenant_id",
+      "description": "Tenant ID claim for multi-tenancy",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "tenant-id-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "gymnastics-api",
+      "name": "Gymnastics Platform API",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600"
+      }
+    },
+    {
+      "clientId": "user-portal",
+      "name": "User Portal",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "rootUrl": "http://localhost:3001",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:3001/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3001"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "tenant_id"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3001/*"
+      }
+    },
+    {
+      "clientId": "admin-portal",
+      "name": "Admin Portal",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "rootUrl": "http://localhost:3002",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:3002/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3002"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "tenant_id"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3002/*"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "user@tenanta.com",
+      "email": "user@tenanta.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test123!",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "tenant_id": ["a1111111-1111-1111-1111-111111111111"]
+      },
+      "realmRoles": ["user"],
+      "requiredActions": []
+    },
+    {
+      "username": "owner@tenantb.com",
+      "email": "owner@tenantb.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test123!",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "tenant_id": ["b2222222-2222-2222-2222-222222222222"]
+      },
+      "realmRoles": ["organization_owner"],
+      "requiredActions": []
+    },
+    {
+      "username": "admin@platform.com",
+      "email": "admin@platform.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["platform_admin"],
+      "requiredActions": []
+    }
+  ]
+}
