@@ -27,25 +27,41 @@
   </Folder>
   <Folder Name="/frontend/" />
   <Folder Name="/frontend/user-portal/">
+    <File Path="frontend/user-portal/README.md" />
     <File Path="frontend/user-portal/package.json" />
+    <File Path="frontend/user-portal/package-lock.json" />
     <File Path="frontend/user-portal/tsconfig.json" />
+    <File Path="frontend/user-portal/tsconfig.app.json" />
+    <File Path="frontend/user-portal/tsconfig.node.json" />
     <File Path="frontend/user-portal/vite.config.ts" />
+    <File Path="frontend/user-portal/eslint.config.js" />
     <File Path="frontend/user-portal/index.html" />
     <File Path="frontend/user-portal/src/main.tsx" />
     <File Path="frontend/user-portal/src/App.tsx" />
     <File Path="frontend/user-portal/src/App.css" />
     <File Path="frontend/user-portal/src/index.css" />
     <File Path="frontend/user-portal/src/keycloak.ts" />
+    <File Path="frontend/user-portal/src/assets/hero.png" />
+    <File Path="frontend/user-portal/src/assets/react.svg" />
+    <File Path="frontend/user-portal/src/assets/vite.svg" />
   </Folder>
   <Folder Name="/frontend/admin-portal/">
+    <File Path="frontend/admin-portal/README.md" />
     <File Path="frontend/admin-portal/package.json" />
+    <File Path="frontend/admin-portal/package-lock.json" />
     <File Path="frontend/admin-portal/tsconfig.json" />
+    <File Path="frontend/admin-portal/tsconfig.app.json" />
+    <File Path="frontend/admin-portal/tsconfig.node.json" />
     <File Path="frontend/admin-portal/vite.config.ts" />
+    <File Path="frontend/admin-portal/eslint.config.js" />
     <File Path="frontend/admin-portal/index.html" />
     <File Path="frontend/admin-portal/src/main.tsx" />
     <File Path="frontend/admin-portal/src/App.tsx" />
     <File Path="frontend/admin-portal/src/App.css" />
     <File Path="frontend/admin-portal/src/index.css" />
     <File Path="frontend/admin-portal/src/keycloak.ts" />
+    <File Path="frontend/admin-portal/src/assets/hero.png" />
+    <File Path="frontend/admin-portal/src/assets/react.svg" />
+    <File Path="frontend/admin-portal/src/assets/vite.svg" />
   </Folder>
 </Solution>
