@@ -25,28 +25,27 @@
     <Project Path="tests/Common.Core.Tests/Common.Core.Tests.csproj" />
     <Project Path="tests/GymnasticsPlatform.Integration.Tests/GymnasticsPlatform.Integration.Tests.csproj" />
   </Folder>
-  <Folder Name="/frontend/">
-    <Folder Name="user-portal">
-      <File Path="frontend/user-portal/package.json" />
-      <File Path="frontend/user-portal/tsconfig.json" />
-      <File Path="frontend/user-portal/vite.config.ts" />
-      <File Path="frontend/user-portal/index.html" />
-      <File Path="frontend/user-portal/src/main.tsx" />
-      <File Path="frontend/user-portal/src/App.tsx" />
-      <File Path="frontend/user-portal/src/App.css" />
-      <File Path="frontend/user-portal/src/index.css" />
-      <File Path="frontend/user-portal/src/keycloak.ts" />
-    </Folder>
-    <Folder Name="admin-portal">
-      <File Path="frontend/admin-portal/package.json" />
-      <File Path="frontend/admin-portal/tsconfig.json" />
-      <File Path="frontend/admin-portal/vite.config.ts" />
-      <File Path="frontend/admin-portal/index.html" />
-      <File Path="frontend/admin-portal/src/main.tsx" />
-      <File Path="frontend/admin-portal/src/App.tsx" />
-      <File Path="frontend/admin-portal/src/App.css" />
-      <File Path="frontend/admin-portal/src/index.css" />
-      <File Path="frontend/admin-portal/src/keycloak.ts" />
-    </Folder>
+  <Folder Name="/frontend/" />
+  <Folder Name="/frontend/user-portal/">
+    <File Path="frontend/user-portal/package.json" />
+    <File Path="frontend/user-portal/tsconfig.json" />
+    <File Path="frontend/user-portal/vite.config.ts" />
+    <File Path="frontend/user-portal/index.html" />
+    <File Path="frontend/user-portal/src/main.tsx" />
+    <File Path="frontend/user-portal/src/App.tsx" />
+    <File Path="frontend/user-portal/src/App.css" />
+    <File Path="frontend/user-portal/src/index.css" />
+    <File Path="frontend/user-portal/src/keycloak.ts" />
+  </Folder>
+  <Folder Name="/frontend/admin-portal/">
+    <File Path="frontend/admin-portal/package.json" />
+    <File Path="frontend/admin-portal/tsconfig.json" />
+    <File Path="frontend/admin-portal/vite.config.ts" />
+    <File Path="frontend/admin-portal/index.html" />
+    <File Path="frontend/admin-portal/src/main.tsx" />
+    <File Path="frontend/admin-portal/src/App.tsx" />
+    <File Path="frontend/admin-portal/src/App.css" />
+    <File Path="frontend/admin-portal/src/index.css" />
+    <File Path="frontend/admin-portal/src/keycloak.ts" />
   </Folder>
 </Solution>
