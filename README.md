@@ -124,26 +124,20 @@ This will:
 
 ### Frontend Tests
 
-**User Portal:**
-```bash
-cd frontend/user-portal
-npm test                # Run tests in watch mode
-npm run test:ci         # Run tests once (for CI)
-npm run test:coverage   # Run tests with coverage report
-```
+Frontend testing infrastructure (Vitest + React Testing Library) is pending setup.
 
-**Admin Portal:**
+**Available scripts:**
 ```bash
-cd frontend/admin-portal
-npm test                # Run tests in watch mode
-npm run test:ci         # Run tests once (for CI)
-npm run test:coverage   # Run tests with coverage report
+cd frontend/user-portal  # or admin-portal
+npm run lint            # Run ESLint
+npm run build           # Build for production
 ```
 
 ### Coverage Requirements
 - Backend: Minimum 80% line coverage (enforced in CI)
 - CRAP analysis for identifying high-risk code
 - Reports uploaded to Codecov on CI builds
+- Frontend: Testing infrastructure pending
 
 ## Project Structure
 
