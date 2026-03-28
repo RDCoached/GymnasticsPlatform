@@ -103,6 +103,11 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         return CreateAuthenticatedClient(userId, OnboardingTenantId);
     }
 
+    public void ResetMockServices()
+    {
+        _mockKeycloakService.Reset();
+    }
+
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
@@ -110,6 +115,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 
     public new async Task DisposeAsync()
     {
+        _mockKeycloakService.Reset();
         await _dbContainer.DisposeAsync();
         await base.DisposeAsync();
     }

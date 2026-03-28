@@ -12,6 +12,7 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
     public async Task RefreshToken_ValidToken_ReturnsNewTokens()
     {
         // Arrange
+        factory.ResetMockServices(); // Reset state from previous tests
         var client = factory.CreateClient();
         var email = $"refreshtest-{Guid.NewGuid()}@example.com";
 
@@ -20,14 +21,19 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
             Email: email,
             Password: "Test123!",
             FullName: "Refresh Test");
-        await client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.EnsureSuccessStatusCode();
+
         factory.MockKeycloakService.VerifyEmail(email);
 
         var loginRequest = new LoginRequest(
             Email: email,
             Password: "Test123!");
         var loginResponse = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.EnsureSuccessStatusCode();
+
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        loginResult.Should().NotBeNull();
 
         var refreshRequest = new RefreshTokenRequest(
             RefreshToken: loginResult!.RefreshToken);
@@ -54,6 +60,7 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
     public async Task RefreshToken_InvalidToken_ReturnsUnauthorized()
     {
         // Arrange
+        factory.ResetMockServices();
         var client = factory.CreateClient();
         var refreshRequest = new RefreshTokenRequest(
             RefreshToken: "invalid-refresh-token");
@@ -69,6 +76,7 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
     public async Task RefreshToken_EmptyToken_ReturnsBadRequest()
     {
         // Arrange
+        factory.ResetMockServices();
         var client = factory.CreateClient();
         var refreshRequest = new RefreshTokenRequest(
             RefreshToken: "");
@@ -84,6 +92,7 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
     public async Task RefreshToken_UsedTokenTwice_SecondRequestFails()
     {
         // Arrange
+        factory.ResetMockServices();
         var client = factory.CreateClient();
         var email = $"twicetest-{Guid.NewGuid()}@example.com";
 
@@ -92,14 +101,19 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
             Email: email,
             Password: "Test123!",
             FullName: "Twice Test");
-        await client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.EnsureSuccessStatusCode();
+
         factory.MockKeycloakService.VerifyEmail(email);
 
         var loginRequest = new LoginRequest(
             Email: email,
             Password: "Test123!");
         var loginResponse = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        loginResponse.EnsureSuccessStatusCode();
+
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        loginResult.Should().NotBeNull();
 
         var refreshRequest = new RefreshTokenRequest(
             RefreshToken: loginResult!.RefreshToken);

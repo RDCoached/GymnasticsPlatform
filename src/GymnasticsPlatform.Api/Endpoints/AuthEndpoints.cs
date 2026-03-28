@@ -151,8 +151,9 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var tokenResponse = authResult.Value!;
 
-        // Get or create user profile
+        // Get or create user profile (ignore tenant filter since login is anonymous)
         var userProfile = await db.UserProfiles
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
 
         if (userProfile is not null)
