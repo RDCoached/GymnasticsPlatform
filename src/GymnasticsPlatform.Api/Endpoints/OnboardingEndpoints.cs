@@ -1,3 +1,4 @@
+using Auth.Application.Services;
 using Auth.Domain.Entities;
 using Auth.Infrastructure.Persistence;
 using Common.Core;
@@ -66,6 +67,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         AuthDbContext db,
         HttpContext httpContext,
         TimeProvider clock,
+        IKeycloakAdminService keycloakAdmin,
         CancellationToken ct)
     {
         var userId = httpContext.User.FindFirst("sub")?.Value;
@@ -91,6 +93,18 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
         await db.SaveChangesAsync(ct);
 
+        // Update tenant_id in Keycloak
+        try
+        {
+            await keycloakAdmin.UpdateUserTenantIdAsync(userId, club.TenantId, ct);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the request - user can retry or admin can fix manually
+            // In production, consider a background job for retries
+            Console.WriteLine($"Warning: Failed to update Keycloak tenant_id for user {userId}: {ex.Message}");
+        }
+
         return Results.Ok(new OnboardingCompleteResponse(
             TenantId: club.TenantId,
             Role: "organization_owner",
@@ -104,6 +118,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         AuthDbContext db,
         HttpContext httpContext,
         TimeProvider clock,
+        IKeycloakAdminService keycloakAdmin,
         CancellationToken ct)
     {
         var userId = httpContext.User.FindFirst("sub")?.Value;
@@ -147,6 +162,16 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
         await db.SaveChangesAsync(ct);
 
+        // Update tenant_id in Keycloak
+        try
+        {
+            await keycloakAdmin.UpdateUserTenantIdAsync(userId, club.TenantId, ct);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to update Keycloak tenant_id for user {userId}: {ex.Message}");
+        }
+
         return Results.Ok(new OnboardingCompleteResponse(
             TenantId: club.TenantId,
             Role: "member",
@@ -158,6 +183,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         ITenantContext tenantContext,
         AuthDbContext db,
         HttpContext httpContext,
+        IKeycloakAdminService keycloakAdmin,
         CancellationToken ct)
     {
         var userId = httpContext.User.FindFirst("sub")?.Value;
@@ -181,6 +207,16 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Update tenant_id in Keycloak
+        try
+        {
+            await keycloakAdmin.UpdateUserTenantIdAsync(userId, newTenantId, ct);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to update Keycloak tenant_id for user {userId}: {ex.Message}");
+        }
 
         return Results.Ok(new OnboardingCompleteResponse(
             TenantId: newTenantId,
