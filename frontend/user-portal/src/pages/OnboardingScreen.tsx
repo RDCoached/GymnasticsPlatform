@@ -20,10 +20,17 @@ export function OnboardingScreen() {
 
   const handleIndividualMode = async () => {
     try {
+      // Get token from localStorage (email/password) or Keycloak (Google OAuth)
+      const token = localStorage.getItem('accessToken') || keycloak.token;
+
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/onboarding/individual`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${keycloak.token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });

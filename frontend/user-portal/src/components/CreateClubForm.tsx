@@ -25,10 +25,17 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
     setIsSubmitting(true);
 
     try {
+      // Get token from localStorage (email/password) or Keycloak (Google OAuth)
+      const token = localStorage.getItem('accessToken') || keycloak.token;
+
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/onboarding/create-club`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${keycloak.token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name: clubName }),
