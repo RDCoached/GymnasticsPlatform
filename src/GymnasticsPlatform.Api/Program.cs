@@ -19,6 +19,9 @@ builder.Services.AddHttpContextAccessor();
 // Add Tenant Context
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 
+// Add TimeProvider
+builder.Services.AddSingleton(TimeProvider.System);
+
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
