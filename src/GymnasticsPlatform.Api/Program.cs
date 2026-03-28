@@ -11,6 +11,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Common.Core;
 using Scalar.AspNetCore;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +66,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Add Exception Handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -137,6 +145,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline
+app.UseExceptionHandler();
+
 app.MapOpenApi();
 
 if (app.Environment.IsDevelopment())

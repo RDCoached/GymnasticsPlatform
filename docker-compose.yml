@@ -54,6 +54,18 @@ services:
     depends_on:
       - postgres
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: gymnastics-mailhog
+    ports:
+      - "1025:1025"   # SMTP server
+      - "8025:8025"   # Web UI
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   api:
     build:
       context: .
