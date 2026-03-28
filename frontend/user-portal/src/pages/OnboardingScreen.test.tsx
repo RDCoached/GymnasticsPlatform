@@ -2,19 +2,21 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OnboardingScreen } from './OnboardingScreen';
 import { useKeycloak } from '@react-keycloak/web';
-import { useOnboardingComplete } from '../hooks/useOnboardingComplete';
+import { useNavigate } from 'react-router-dom';
 
 vi.mock('@react-keycloak/web');
-vi.mock('../hooks/useOnboardingComplete');
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(),
+}));
 vi.mock('../components/CreateClubForm', () => ({
-  CreateClubForm: ({ onComplete }: any) => (
+  CreateClubForm: ({ onComplete }: { onComplete: () => void }) => (
     <div data-testid="create-club-form">
       <button onClick={onComplete}>Complete Create Club</button>
     </div>
   ),
 }));
 vi.mock('../components/JoinClubForm', () => ({
-  JoinClubForm: ({ onComplete }: any) => (
+  JoinClubForm: ({ onComplete }: { onComplete: () => void }) => (
     <div data-testid="join-club-form">
       <button onClick={onComplete}>Complete Join Club</button>
     </div>
@@ -25,7 +27,7 @@ const API_BASE_URL = 'http://localhost:5001';
 
 describe('OnboardingScreen', () => {
   const mockToken = 'mock-jwt-token';
-  const mockComplete = vi.fn();
+  const mockNavigate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,11 +35,8 @@ describe('OnboardingScreen', () => {
       keycloak: {
         token: mockToken,
       },
-    } as any);
-    vi.mocked(useOnboardingComplete).mockReturnValue({
-      complete: mockComplete,
-      isLoading: false,
-    });
+    } as never);
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
     global.fetch = vi.fn();
   });
 
@@ -88,7 +87,7 @@ describe('OnboardingScreen', () => {
     expect(screen.queryByTestId('create-club-form')).not.toBeInTheDocument();
   });
 
-  it('should call API and complete when Individual Mode is clicked', async () => {
+  it('should call API and navigate to dashboard when Individual Mode is clicked', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ tenantId: 'individual-tenant-id', role: 'individual' }),
@@ -112,22 +111,10 @@ describe('OnboardingScreen', () => {
       );
     });
 
-    expect(mockComplete).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('should show loading state when onboarding is completing', () => {
-    vi.mocked(useOnboardingComplete).mockReturnValue({
-      complete: mockComplete,
-      isLoading: true,
-    });
-
-    render(<OnboardingScreen />);
-
-    expect(screen.getByRole('heading', { name: /setting up your account/i })).toBeInTheDocument();
-    expect(screen.getByText(/please wait while we complete your setup/i)).toBeInTheDocument();
-  });
-
-  it('should not call complete when individual mode API call fails', async () => {
+  it('should not navigate when individual mode API call fails', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     window.alert = vi.fn();
 
@@ -145,13 +132,13 @@ describe('OnboardingScreen', () => {
       expect(window.alert).toHaveBeenCalledWith('Failed to complete onboarding. Please try again.');
     });
 
-    expect(mockComplete).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(consoleErrorSpy).toHaveBeenCalled();
 
     consoleErrorSpy.mockRestore();
   });
 
-  it('should pass complete function to CreateClubForm', () => {
+  it('should navigate to dashboard when CreateClubForm completes', () => {
     render(<OnboardingScreen />);
 
     const createButton = screen.getByRole('button', { name: /create club/i });
@@ -160,10 +147,10 @@ describe('OnboardingScreen', () => {
     const completeButton = screen.getByRole('button', { name: /complete create club/i });
     fireEvent.click(completeButton);
 
-    expect(mockComplete).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('should pass complete function to JoinClubForm', () => {
+  it('should navigate to dashboard when JoinClubForm completes', () => {
     render(<OnboardingScreen />);
 
     const joinButton = screen.getByRole('button', { name: /join club/i });
@@ -172,6 +159,6 @@ describe('OnboardingScreen', () => {
     const completeButton = screen.getByRole('button', { name: /complete join club/i });
     fireEvent.click(completeButton);
 
-    expect(mockComplete).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 });

@@ -21,7 +21,7 @@ describe('OnboardingGuard', () => {
     vi.mocked(useKeycloak).mockReturnValue({
       keycloak: { authenticated: true },
       initialized: true,
-    } as any);
+    } as never);
 
     vi.mocked(useOnboardingStatus).mockReturnValue({
       isOnboarding: false,
@@ -42,7 +42,7 @@ describe('OnboardingGuard', () => {
     vi.mocked(useKeycloak).mockReturnValue({
       keycloak: { authenticated: true },
       initialized: true,
-    } as any);
+    } as never);
 
     vi.mocked(useOnboardingStatus).mockReturnValue({
       isOnboarding: true,
@@ -62,7 +62,7 @@ describe('OnboardingGuard', () => {
     vi.mocked(useKeycloak).mockReturnValue({
       keycloak: { authenticated: true },
       initialized: true,
-    } as any);
+    } as never);
 
     vi.mocked(useOnboardingStatus).mockReturnValue({
       isOnboarding: true,
@@ -82,7 +82,7 @@ describe('OnboardingGuard', () => {
     vi.mocked(useKeycloak).mockReturnValue({
       keycloak: { authenticated: false },
       initialized: false,
-    } as any);
+    } as never);
 
     vi.mocked(useOnboardingStatus).mockReturnValue({
       isOnboarding: true,
@@ -102,7 +102,7 @@ describe('OnboardingGuard', () => {
     vi.mocked(useKeycloak).mockReturnValue({
       keycloak: { authenticated: false },
       initialized: true,
-    } as any);
+    } as never);
 
     vi.mocked(useOnboardingStatus).mockReturnValue({
       isOnboarding: true,

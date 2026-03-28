@@ -17,7 +17,7 @@ describe('CreateClubForm', () => {
       keycloak: {
         token: mockToken,
       },
-    } as any);
+    } as never);
     global.fetch = vi.fn();
   });
 
@@ -104,7 +104,7 @@ describe('CreateClubForm', () => {
       } as Response);
     });
 
-    vi.mocked(global.fetch).mockReturnValueOnce(requestPromise as any);
+    vi.mocked(global.fetch).mockReturnValueOnce(requestPromise as never);
 
     render(<CreateClubForm onComplete={mockOnComplete} />);
 

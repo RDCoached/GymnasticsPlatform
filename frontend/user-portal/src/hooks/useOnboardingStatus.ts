@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
-import { ONBOARDING_TENANT_ID } from '../constants';
 
 interface OnboardingStatusResponse {
   completed: boolean;
