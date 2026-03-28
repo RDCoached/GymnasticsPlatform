@@ -29,6 +29,11 @@ A modular monolith application for gymnastics session planning with multi-tenanc
 - **Local Dev**: Grafana LGTM stack (Loki, Grafana, Tempo, Prometheus)
 - **Production**: Azure Application Insights (same instrumentation)
 
+## Documentation
+
+- [Onboarding Flow Implementation](docs/ONBOARDING_FLOW.md) - Complete guide to the user onboarding system, tenant assignment, and Keycloak integration
+- [Keycloak Setup](KEYCLOAK_SETUP.md) - Keycloak configuration, Google OAuth setup, and JWT authentication
+
 ## Quick Start
 
 ### Prerequisites
@@ -46,7 +51,7 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### 2. Run API
+### 2. Run Backend API
 
 ```bash
 dotnet run --project src/GymnasticsPlatform.Api
@@ -54,7 +59,25 @@ dotnet run --project src/GymnasticsPlatform.Api
 
 API will be available at: http://localhost:5001
 
-### 3. Verify Setup
+### 3. Run Frontend Applications
+
+**User Portal:**
+```bash
+cd frontend/user-portal
+npm install
+npm run dev
+```
+User Portal will be available at: http://localhost:3001
+
+**Admin Portal:**
+```bash
+cd frontend/admin-portal
+npm install
+npm run dev
+```
+Admin Portal will be available at: http://localhost:3002
+
+### 4. Verify Setup
 
 **Health Check:**
 ```bash
@@ -69,12 +92,26 @@ curl http://localhost:5001/api/auth/me \
 
 ## Testing & Code Coverage
 
-### Run Tests
+### Backend Tests
+
+**Run all backend tests:**
 ```bash
 dotnet test
 ```
 
-### Run Tests with Coverage Report
+**Run specific test project:**
+```bash
+# Domain tests
+dotnet test tests/Auth.Domain.Tests
+
+# Integration tests (uses TestContainers for real PostgreSQL)
+dotnet test tests/GymnasticsPlatform.Integration.Tests
+
+# Application tests
+dotnet test tests/Auth.Application.Tests
+```
+
+**Run tests with coverage report:**
 ```bash
 ./scripts/test-with-coverage.sh
 ```
@@ -85,8 +122,26 @@ This will:
 - Display coverage summary
 - Open the HTML report (macOS)
 
+### Frontend Tests
+
+**User Portal:**
+```bash
+cd frontend/user-portal
+npm test                # Run tests in watch mode
+npm run test:ci         # Run tests once (for CI)
+npm run test:coverage   # Run tests with coverage report
+```
+
+**Admin Portal:**
+```bash
+cd frontend/admin-portal
+npm test                # Run tests in watch mode
+npm run test:ci         # Run tests once (for CI)
+npm run test:coverage   # Run tests with coverage report
+```
+
 ### Coverage Requirements
-- Minimum 80% line coverage (enforced in CI)
+- Backend: Minimum 80% line coverage (enforced in CI)
 - CRAP analysis for identifying high-risk code
 - Reports uploaded to Codecov on CI builds
 
