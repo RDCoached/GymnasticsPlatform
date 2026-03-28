@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CreateClubForm } from '../components/CreateClubForm';
 import { JoinClubForm } from '../components/JoinClubForm';
-import { useOnboardingComplete } from '../hooks/useOnboardingComplete';
 import { useKeycloak } from '@react-keycloak/web';
 import { API_BASE_URL } from '../constants';
 
@@ -9,8 +9,13 @@ type OnboardingMode = 'select' | 'create-club' | 'join-club';
 
 export function OnboardingScreen() {
   const [mode, setMode] = useState<OnboardingMode>('select');
-  const { complete, isLoading } = useOnboardingComplete();
+  const navigate = useNavigate();
   const { keycloak } = useKeycloak();
+
+  const handleOnboardingComplete = () => {
+    // Navigate to dashboard - middleware will pick up new tenant from database
+    navigate('/dashboard');
+  };
 
   const handleIndividualMode = async () => {
     try {
@@ -26,24 +31,13 @@ export function OnboardingScreen() {
         throw new Error('Failed to choose individual mode');
       }
 
-      // Trigger automatic re-authentication
-      await complete();
+      // Navigate to dashboard - next request will pick up new tenant
+      handleOnboardingComplete();
     } catch (error) {
       console.error('Error choosing individual mode:', error);
       alert('Failed to complete onboarding. Please try again.');
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="onboarding-container">
-        <div className="loading-message">
-          <h2>Setting up your account...</h2>
-          <p>Please wait while we complete your setup.</p>
-        </div>
-      </div>
-    );
-  }
 
   if (mode === 'create-club') {
     return (
@@ -51,7 +45,7 @@ export function OnboardingScreen() {
         <button onClick={() => setMode('select')} className="back-button">
           ← Back
         </button>
-        <CreateClubForm onComplete={complete} />
+        <CreateClubForm onComplete={handleOnboardingComplete} />
       </div>
     );
   }
@@ -62,7 +56,7 @@ export function OnboardingScreen() {
         <button onClick={() => setMode('select')} className="back-button">
           ← Back
         </button>
-        <JoinClubForm onComplete={complete} />
+        <JoinClubForm onComplete={handleOnboardingComplete} />
       </div>
     );
   }

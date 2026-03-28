@@ -4,7 +4,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import { API_BASE_URL } from '../constants';
 
 interface CreateClubFormProps {
-  onComplete: () => Promise<void>;
+  onComplete: () => void;
 }
 
 export function CreateClubForm({ onComplete }: CreateClubFormProps) {
@@ -39,8 +39,8 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
         throw new Error(errorData.title || 'Failed to create club');
       }
 
-      // Trigger automatic re-authentication
-      await onComplete();
+      // Navigate to dashboard - next request will pick up new tenant from database
+      onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create club');
       setIsSubmitting(false);

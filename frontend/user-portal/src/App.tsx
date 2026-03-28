@@ -29,14 +29,15 @@ function App() {
       <Routes>
         <Route path="/onboarding" element={<OnboardingScreen />} />
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <OnboardingGuard>
               <Dashboard />
             </OnboardingGuard>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

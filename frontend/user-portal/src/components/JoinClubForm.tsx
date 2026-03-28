@@ -4,7 +4,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import { API_BASE_URL } from '../constants';
 
 interface JoinClubFormProps {
-  onComplete: () => Promise<void>;
+  onComplete: () => void;
 }
 
 export function JoinClubForm({ onComplete }: JoinClubFormProps) {
@@ -39,8 +39,8 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
         throw new Error(errorData.title || 'Invalid invite code');
       }
 
-      // Trigger automatic re-authentication
-      await onComplete();
+      // Navigate to dashboard - next request will pick up new tenant from database
+      onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join club');
       setIsSubmitting(false);
