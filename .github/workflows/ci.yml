@@ -38,6 +38,10 @@ jobs:
       working-directory: frontend/${{ matrix.app }}
       run: npm run lint || true
 
+    - name: Run tests
+      working-directory: frontend/${{ matrix.app }}
+      run: npm run test:ci
+
     - name: Build
       working-directory: frontend/${{ matrix.app }}
       run: npm run build

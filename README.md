@@ -124,20 +124,31 @@ This will:
 
 ### Frontend Tests
 
-Frontend testing infrastructure (Vitest + React Testing Library) is pending setup.
+Both portals use Vitest + React Testing Library + Happy-DOM.
 
-**Available scripts:**
+**User Portal:**
 ```bash
-cd frontend/user-portal  # or admin-portal
-npm run lint            # Run ESLint
-npm run build           # Build for production
+cd frontend/user-portal
+npm test                # Run tests in watch mode
+npm run test:ci         # Run tests once (CI mode)
+npm run test:coverage   # Run with coverage report
+npm run test:ui         # Run with Vitest UI
+```
+
+**Admin Portal:**
+```bash
+cd frontend/admin-portal
+npm test                # Run tests in watch mode
+npm run test:ci         # Run tests once (CI mode)
+npm run test:coverage   # Run with coverage report
+npm run test:ui         # Run with Vitest UI
 ```
 
 ### Coverage Requirements
-- Backend: Minimum 80% line coverage (enforced in CI)
+- Backend: Minimum 50% line coverage (enforced in CI, will increase to 80% with strict TDD)
 - CRAP analysis for identifying high-risk code
 - Reports uploaded to Codecov on CI builds
-- Frontend: Testing infrastructure pending
+- Frontend: Testing infrastructure ready, coverage enforcement pending
 
 ## Project Structure
 
