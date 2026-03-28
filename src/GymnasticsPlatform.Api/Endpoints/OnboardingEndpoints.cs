@@ -129,9 +129,9 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         if (tenantId != OnboardingTenantId)
             return Results.Problem("User is not in onboarding tenant", statusCode: 400);
 
-        // Find invite by code
+        // Find invite by code (ignore query filters - user is in onboarding tenant)
         var invite = await db.ClubInvites
-            .Include(i => i.ClubId)
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(i => i.Code == request.InviteCode, ct);
 
         if (invite is null)
@@ -146,8 +146,8 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         // Mark invite as used
         invite.MarkAsUsed(clock);
 
-        // Get club to retrieve tenant ID
-        var club = await db.Clubs.FindAsync([invite.ClubId], ct);
+        // Get club to retrieve tenant ID (ignore query filters - user is in onboarding tenant)
+        var club = await db.Clubs.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == invite.ClubId, ct);
         if (club is null)
             return Results.Problem("Club not found", statusCode: 404);
 

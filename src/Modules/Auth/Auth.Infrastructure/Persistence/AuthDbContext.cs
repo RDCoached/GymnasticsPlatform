@@ -47,14 +47,20 @@ public sealed class AuthDbContext(
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Auto-set TenantId on new entities
+        // Auto-set TenantId on new entities that don't already have one
         foreach (var entry in ChangeTracker.Entries<IMultiTenant>()
             .Where(e => e.State == EntityState.Added))
         {
-            if (_tenantContext.TenantId is null)
-                throw new InvalidOperationException("TenantId is required for creating multi-tenant entities");
+            var currentTenantId = (Guid)entry.Property(nameof(IMultiTenant.TenantId)).CurrentValue!;
 
-            entry.Property(nameof(IMultiTenant.TenantId)).CurrentValue = _tenantContext.TenantId.Value;
+            // Only set TenantId if not already set (Guid.Empty)
+            if (currentTenantId == Guid.Empty)
+            {
+                if (_tenantContext.TenantId is null)
+                    throw new InvalidOperationException("TenantId is required for creating multi-tenant entities");
+
+                entry.Property(nameof(IMultiTenant.TenantId)).CurrentValue = _tenantContext.TenantId.Value;
+            }
         }
 
         return base.SaveChangesAsync(cancellationToken);
