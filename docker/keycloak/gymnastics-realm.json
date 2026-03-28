@@ -21,6 +21,20 @@
   "accessCodeLifespan": 60,
   "accessCodeLifespanUserAction": 300,
   "accessCodeLifespanLogin": 1800,
+  "smtpServer": {
+    "host": "mailhog",
+    "port": "1025",
+    "from": "noreply@gymnastics.local",
+    "fromDisplayName": "Gymnastics Platform",
+    "replyTo": "",
+    "replyToDisplayName": "",
+    "envelopeFrom": "",
+    "ssl": "",
+    "starttls": "",
+    "auth": "",
+    "user": "",
+    "password": ""
+  },
   "roles": {
     "realm": [
       {

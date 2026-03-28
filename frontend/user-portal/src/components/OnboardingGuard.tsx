@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useKeycloak } from '@react-keycloak/web';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 
 interface OnboardingGuardProps {
@@ -9,16 +8,15 @@ interface OnboardingGuardProps {
 }
 
 export function OnboardingGuard({ children }: OnboardingGuardProps) {
-  const { keycloak, initialized } = useKeycloak();
   const { isOnboarding, isLoading } = useOnboardingStatus();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only redirect if user is authenticated and in onboarding tenant
-    if (initialized && keycloak.authenticated && !isLoading && isOnboarding) {
+    // Redirect if user needs to complete onboarding
+    if (!isLoading && isOnboarding) {
       navigate('/onboarding', { replace: true });
     }
-  }, [initialized, keycloak.authenticated, isLoading, isOnboarding, navigate]);
+  }, [isLoading, isOnboarding, navigate]);
 
   // Show loading while checking onboarding status
   if (isLoading) {

@@ -96,6 +96,14 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var keycloakUserId = createUserResult.Value!;
 
+        // Send verification email
+        var sendEmailResult = await keycloakService.SendVerificationEmailAsync(keycloakUserId, ct);
+        if (!sendEmailResult.IsSuccess)
+        {
+            // Log but don't fail registration - user can request resend later
+            // (could also return a warning in the response)
+        }
+
         // Create UserProfile in database
         var userProfile = UserProfile.Create(
             OnboardingTenantId,

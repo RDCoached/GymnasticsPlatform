@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
 
 interface OnboardingStatusResponse {
   completed: boolean;
@@ -14,22 +13,41 @@ interface UseOnboardingStatusResult {
   isLoading: boolean;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+
 export function useOnboardingStatus(): UseOnboardingStatusResult {
-  const { keycloak, initialized } = useKeycloak();
   const [status, setStatus] = useState<OnboardingStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!initialized || !keycloak.authenticated) {
+    const accessToken = localStorage.getItem('accessToken');
+    const userJson = localStorage.getItem('user');
+
+    if (!accessToken || !userJson) {
       setIsLoading(false);
       return;
     }
 
+    const user = JSON.parse(userJson);
+
+    // If user.onboardingCompleted is false, they're in onboarding
+    if (!user.onboardingCompleted) {
+      setStatus({
+        completed: false,
+        isOnboardingTenant: true,
+        tenantId: '00000000-0000-0000-0000-000000000001',
+        onboardingChoice: null,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Otherwise fetch full status from API
     const fetchStatus = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/onboarding/status', {
+        const response = await fetch(`${API_BASE_URL}/api/onboarding/status`, {
           headers: {
-            Authorization: `Bearer ${keycloak.token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         });
 
@@ -45,7 +63,7 @@ export function useOnboardingStatus(): UseOnboardingStatusResult {
     };
 
     fetchStatus();
-  }, [initialized, keycloak.authenticated, keycloak.token]);
+  }, []);
 
   const isOnboarding = status?.isOnboardingTenant ?? false;
   const tenantId = status?.tenantId;
