@@ -30,8 +30,8 @@ public sealed class TestAuthenticationHandler(
         var claims = new List<Claim>
         {
             new(UserIdClaimType, userId),
-            new(ClaimTypes.Email, email),
-            new(ClaimTypes.Name, username)
+            new("email", email),
+            new("name", username)
         };
 
         if (!string.IsNullOrEmpty(tenantId))

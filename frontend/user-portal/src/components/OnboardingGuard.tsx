@@ -10,15 +10,20 @@ interface OnboardingGuardProps {
 
 export function OnboardingGuard({ children }: OnboardingGuardProps) {
   const { keycloak, initialized } = useKeycloak();
-  const { isOnboarding } = useOnboardingStatus();
+  const { isOnboarding, isLoading } = useOnboardingStatus();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Only redirect if user is authenticated and in onboarding tenant
-    if (initialized && keycloak.authenticated && isOnboarding) {
+    if (initialized && keycloak.authenticated && !isLoading && isOnboarding) {
       navigate('/onboarding', { replace: true });
     }
-  }, [initialized, keycloak.authenticated, isOnboarding, navigate]);
+  }, [initialized, keycloak.authenticated, isLoading, isOnboarding, navigate]);
+
+  // Show loading while checking onboarding status
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   // Don't render children if user needs onboarding
   if (isOnboarding) {

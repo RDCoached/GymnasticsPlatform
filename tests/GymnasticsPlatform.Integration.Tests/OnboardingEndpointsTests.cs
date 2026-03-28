@@ -33,6 +33,47 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
     }
 
     [Fact]
+    public async Task FirstTimeUser_AutomaticallyGetsProfileInOnboardingTenant()
+    {
+        // Arrange - Brand new user with NO profile in database (simulating first login)
+        var userId = Guid.NewGuid().ToString();
+        var client = _factory.CreateOnboardingUserClient(userId);
+        // DON'T create profile - this simulates a first-time Google OAuth user
+
+        // Act - Make first authenticated request (middleware should auto-create profile)
+        var response = await client.GetAsync("/api/onboarding/status");
+
+        // Assert - Request should succeed
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Request failed with {response.StatusCode}. Error: {errorContent}");
+        }
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify profile was auto-created in onboarding tenant
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+
+        // Check all profiles in database for debugging
+        var allProfiles = await db.UserProfiles.IgnoreQueryFilters().ToListAsync();
+        Console.WriteLine($"Total profiles in DB: {allProfiles.Count}");
+        foreach (var p in allProfiles)
+        {
+            Console.WriteLine($"  Profile: UserId={p.KeycloakUserId}, TenantId={p.TenantId}");
+        }
+
+        var profile = await db.UserProfiles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId);
+
+        profile.Should().NotBeNull($"Profile should exist for user {userId}");
+        profile!.TenantId.Should().Be(OnboardingTenantId);
+        profile.Email.Should().Be("test@example.com"); // From test auth headers
+        profile.OnboardingCompleted.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task CreateClub_WithoutAuthentication_ReturnsUnauthorized()
     {
         // Arrange

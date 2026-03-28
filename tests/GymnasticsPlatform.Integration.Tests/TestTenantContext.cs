@@ -1,23 +1,22 @@
 using Common.Core;
+using GymnasticsPlatform.Api.Middleware;
 using Microsoft.AspNetCore.Http;
 
 namespace GymnasticsPlatform.Integration.Tests;
 
 public sealed class TestTenantContext(IHttpContextAccessor httpContextAccessor) : ITenantContext
 {
-    private const string TenantIdClaimType = "tenant_id";
     private Guid? _overrideTenantId;
 
     public Guid? TenantId
     {
         get
         {
-            // First, try to get from HTTP context (for API calls)
+            // First, try to get from HTTP context items (set by middleware during API calls)
             var httpContext = httpContextAccessor.HttpContext;
-            if (httpContext is not null)
+            if (httpContext?.Items.TryGetValue(TenantResolutionMiddleware.TenantIdKey, out var tenantIdObj) == true)
             {
-                var tenantIdClaim = httpContext.User.FindFirst(TenantIdClaimType)?.Value;
-                if (tenantIdClaim is not null && Guid.TryParse(tenantIdClaim, out var tenantId))
+                if (tenantIdObj is Guid tenantId)
                 {
                     return tenantId;
                 }
