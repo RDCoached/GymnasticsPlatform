@@ -9,8 +9,11 @@ header {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--border);
+  padding: 1.5rem;
+  background: rgba(170, 59, 255, 0.05);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
 }
 
 h1 {
@@ -47,11 +50,19 @@ button:active {
 
 .user-info,
 .api-test {
-  background: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-color-scheme: dark) {
+  .user-info,
+  .api-test {
+    background: rgba(255, 255, 255, 0.03);
+  }
 }
 
 dl {
@@ -177,19 +188,27 @@ em {
 }
 
 .option-card {
-  background: var(--bg);
+  background: rgba(255, 255, 255, 0.05);
   border: 2px solid var(--border);
   border-radius: 12px;
   padding: 2rem;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .option-card {
+    background: rgba(255, 255, 255, 0.03);
+  }
 }
 
 .option-card:hover {
   border-color: var(--accent);
   box-shadow: var(--shadow);
   transform: translateY(-4px);
+  background: var(--accent-bg);
 }
 
 .option-card h2 {
@@ -237,9 +256,16 @@ em {
   max-width: 500px;
   margin: 0 auto;
   padding: 2rem;
-  background: var(--bg);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-container {
+    background: rgba(255, 255, 255, 0.03);
+  }
 }
 
 .form-container h2 {
