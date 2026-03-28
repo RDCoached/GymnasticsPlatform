@@ -1,22 +1,33 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import App from './App';
 
-// Mock Keycloak
-vi.mock('@react-keycloak/web', () => ({
-  useKeycloak: () => ({
-    keycloak: {
-      authenticated: false,
-      login: vi.fn(),
-    },
-    initialized: false,
-  }),
-}));
-
 describe('App', () => {
-  it('should render loading state when Keycloak is not initialized', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('should redirect to sign-in page when not authenticated', async () => {
     render(<App />);
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+    });
+  });
+
+  it('should show app when authenticated', async () => {
+    localStorage.setItem('accessToken', 'fake-token');
+    localStorage.setItem('refreshToken', 'fake-refresh-token');
+    localStorage.setItem('user', JSON.stringify({
+      email: 'test@example.com',
+      fullName: 'Test User',
+      onboardingCompleted: true
+    }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: /sign in/i })).not.toBeInTheDocument();
+    });
   });
 });
