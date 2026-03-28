@@ -41,7 +41,9 @@ button {
 }
 
 button:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(170, 59, 255, 0.3);
 }
 
 button:active {
@@ -255,7 +257,9 @@ em {
 
 .option-button:hover {
   background-color: var(--accent);
-  filter: brightness(1.1);
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(170, 59, 255, 0.3);
 }
 
 .back-button {
@@ -353,7 +357,9 @@ em {
 }
 
 .submit-button:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(170, 59, 255, 0.3);
 }
 
 .submit-button:disabled {
