@@ -47,11 +47,22 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 return _testTenantContext;
             });
 
-            // Add test authentication scheme
-            services.AddAuthentication(TestAuthenticationHandler.AuthenticationScheme)
+            // Add test authentication scheme alongside existing JWT bearer
+            services.PostConfigure<AuthenticationOptions>(options =>
+            {
+                // Make test scheme the default if it's registered
+                if (options.Schemes.Any(s => s.Name == TestAuthenticationHandler.AuthenticationScheme))
+                {
+                    options.DefaultScheme = TestAuthenticationHandler.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = TestAuthenticationHandler.AuthenticationScheme;
+                    options.DefaultChallengeScheme = "Bearer"; // Keep Bearer for challenge to get WWW-Authenticate header
+                }
+            });
+
+            services.AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
                     TestAuthenticationHandler.AuthenticationScheme,
-                    _ => { });
+                    options => { });
 
             // Ensure database is created and migrated
             var serviceProvider = services.BuildServiceProvider();
