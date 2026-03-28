@@ -164,4 +164,97 @@ public sealed class UserProfileTests
         // Assert
         userProfile.FullName.Should().Be(fullName);
     }
+
+    [Fact]
+    public void Create_OnboardingCompletedDefaultsToFalse()
+    {
+        // Act
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "keycloak-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+
+        // Assert
+        userProfile.OnboardingCompleted.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_OnboardingChoiceDefaultsToNull()
+    {
+        // Act
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "keycloak-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+
+        // Assert
+        userProfile.OnboardingChoice.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("club")]
+    [InlineData("individual")]
+    public void CompleteOnboarding_SetsCompletedFlagAndChoice(string choice)
+    {
+        // Arrange
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "keycloak-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+
+        // Act
+        userProfile.CompleteOnboarding(choice);
+
+        // Assert
+        userProfile.OnboardingCompleted.Should().BeTrue();
+        userProfile.OnboardingChoice.Should().Be(choice);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData(null)]
+    public void CompleteOnboarding_WithInvalidChoice_ThrowsArgumentException(string? invalidChoice)
+    {
+        // Arrange
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "keycloak-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+
+        // Act
+        var act = () => userProfile.CompleteOnboarding(invalidChoice!);
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*choice*");
+    }
+
+    [Fact]
+    public void CompleteOnboarding_CannotBeCalledTwice()
+    {
+        // Arrange
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "keycloak-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+        userProfile.CompleteOnboarding("club");
+
+        // Act
+        var act = () => userProfile.CompleteOnboarding("individual");
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*already*");
+    }
 }

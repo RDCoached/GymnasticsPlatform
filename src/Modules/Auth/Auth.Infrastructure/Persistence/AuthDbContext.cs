@@ -11,6 +11,8 @@ public sealed class AuthDbContext(
     private readonly ITenantContext _tenantContext = tenantContext;
 
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<Club> Clubs => Set<Club>();
+    public DbSet<ClubInvite> ClubInvites => Set<ClubInvite>();
 
     // Expose tenant ID as a property for query filter evaluation
     private Guid CurrentTenantId => _tenantContext.TenantId ?? throw new InvalidOperationException("TenantId is required");

@@ -11,6 +11,8 @@ public sealed class UserProfile : IMultiTenant
     public string FullName { get; private set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? LastLoginAt { get; private set; }
+    public bool OnboardingCompleted { get; private set; }
+    public string? OnboardingChoice { get; private set; }
 
     private UserProfile() { }
 
@@ -29,12 +31,26 @@ public sealed class UserProfile : IMultiTenant
             Email = email,
             FullName = fullName,
             CreatedAt = createdAt,
-            LastLoginAt = null
+            LastLoginAt = null,
+            OnboardingCompleted = false,
+            OnboardingChoice = null
         };
     }
 
     public void RecordLogin(DateTimeOffset loginTime)
     {
         LastLoginAt = loginTime;
+    }
+
+    public void CompleteOnboarding(string choice)
+    {
+        if (string.IsNullOrWhiteSpace(choice))
+            throw new ArgumentException("Onboarding choice cannot be empty.", nameof(choice));
+
+        if (OnboardingCompleted)
+            throw new InvalidOperationException("Onboarding has already been completed.");
+
+        OnboardingCompleted = true;
+        OnboardingChoice = choice;
     }
 }

@@ -42,6 +42,15 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
         builder.Property(u => u.LastLoginAt)
             .HasColumnName("last_login_at");
 
+        builder.Property(u => u.OnboardingCompleted)
+            .HasColumnName("onboarding_completed")
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(u => u.OnboardingChoice)
+            .HasColumnName("onboarding_choice")
+            .HasMaxLength(20);
+
         // Indexes
         builder.HasIndex(u => u.TenantId)
             .HasDatabaseName("ix_user_profiles_tenant_id");
