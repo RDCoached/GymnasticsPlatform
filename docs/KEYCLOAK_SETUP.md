@@ -242,6 +242,22 @@ Authorization: Bearer [token]
 - `scripts/configure-oidc-clients-complete.sh` - Automated mapper configuration
 - `docker/keycloak/` - Realm import configuration
 
+### "Invalid redirect_uri" Error
+**Cause**: Frontend redirect URI not configured in Keycloak client
+
+**Symptoms**: Error during login: "invalid parameter - redirect_uri"
+
+**Fix**: Run the redirect URI configuration script:
+```bash
+bash scripts/configure-redirect-uris.sh
+```
+
+This configures both frontend clients to accept multiple development ports:
+- Ports 3001-3009 (local development flexibility)
+- Ports 5173, 5174 (Vite defaults)
+
+**Why multiple ports?** If a port is already in use, Vite automatically uses the next available port. Supporting a range allows multiple developers or instances to run simultaneously.
+
 ## Reset Procedure
 
 If Keycloak needs to be reset:
@@ -265,6 +281,11 @@ If Keycloak needs to be reset:
    bash scripts/configure-oidc-clients-complete.sh
    ```
 
-5. **Add Google Identity Provider** through admin console
+5. **Configure redirect URIs**:
+   ```bash
+   bash scripts/configure-redirect-uris.sh
+   ```
 
-6. **Verify**: Log in with Google and test `/api/auth/me` endpoint
+6. **Add Google Identity Provider** through admin console
+
+7. **Verify**: Log in with Google and test `/api/auth/me` endpoint

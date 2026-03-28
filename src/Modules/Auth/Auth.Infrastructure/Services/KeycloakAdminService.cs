@@ -37,31 +37,76 @@ public sealed class KeycloakAdminService : IKeycloakAdminService
             await EnsureAuthenticatedAsync(ct);
 
             var realm = _configuration["Keycloak:Realm"] ?? "gymnastics";
-            var url = $"/admin/realms/{realm}/users/{keycloakUserId}";
+            var userUrl = $"/admin/realms/{realm}/users/{keycloakUserId}";
 
+            // GET the current user to preserve existing data
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, userUrl);
+            getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+
+            var getResponse = await _httpClient.SendAsync(getRequest, ct);
+            if (!getResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await getResponse.Content.ReadAsStringAsync(ct);
+                _logger.LogError(
+                    "Failed to get user {UserId} from Keycloak. Status: {Status}, Error: {Error}",
+                    keycloakUserId, getResponse.StatusCode, errorContent);
+                throw new InvalidOperationException($"Failed to get Keycloak user: {getResponse.StatusCode}");
+            }
+
+            var userJson = await getResponse.Content.ReadFromJsonAsync<JsonElement>(ct);
+
+            // Create a mutable dictionary for attributes
+            var attributes = new Dictionary<string, List<string>>();
+
+            // Preserve existing attributes if any
+            if (userJson.TryGetProperty("attributes", out var existingAttrs) && existingAttrs.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in existingAttrs.EnumerateObject())
+                {
+                    var values = new List<string>();
+                    if (prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in prop.Value.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.String)
+                                values.Add(item.GetString()!);
+                        }
+                    }
+                    attributes[prop.Name] = values;
+                }
+            }
+
+            // Update tenant_id
+            attributes["tenant_id"] = [newTenantId.ToString()];
+
+            // Build update payload with full user data
             var updatePayload = new
             {
-                attributes = new Dictionary<string, List<string>>
-                {
-                    ["tenant_id"] = [newTenantId.ToString()]
-                }
+                id = userJson.GetProperty("id").GetString(),
+                username = userJson.GetProperty("username").GetString(),
+                email = userJson.TryGetProperty("email", out var email) ? email.GetString() : null,
+                emailVerified = userJson.TryGetProperty("emailVerified", out var emailVerified) && emailVerified.GetBoolean(),
+                firstName = userJson.TryGetProperty("firstName", out var firstName) ? firstName.GetString() : null,
+                lastName = userJson.TryGetProperty("lastName", out var lastName) ? lastName.GetString() : null,
+                enabled = !userJson.TryGetProperty("enabled", out var enabled) || enabled.GetBoolean(),
+                attributes = attributes
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Put, url)
+            var putRequest = new HttpRequestMessage(HttpMethod.Put, userUrl)
             {
                 Content = JsonContent.Create(updatePayload)
             };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+            putRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
 
-            var response = await _httpClient.SendAsync(request, ct);
+            var putResponse = await _httpClient.SendAsync(putRequest, ct);
 
-            if (!response.IsSuccessStatusCode)
+            if (!putResponse.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync(ct);
+                var errorContent = await putResponse.Content.ReadAsStringAsync(ct);
                 _logger.LogError(
                     "Failed to update tenant_id for user {UserId} in Keycloak. Status: {Status}, Error: {Error}",
-                    keycloakUserId, response.StatusCode, errorContent);
-                throw new InvalidOperationException($"Failed to update Keycloak user attributes: {response.StatusCode}");
+                    keycloakUserId, putResponse.StatusCode, errorContent);
+                throw new InvalidOperationException($"Failed to update Keycloak user attributes: {putResponse.StatusCode}");
             }
 
             _logger.LogInformation(
@@ -80,12 +125,12 @@ public sealed class KeycloakAdminService : IKeycloakAdminService
         if (!string.IsNullOrEmpty(_accessToken) && DateTimeOffset.UtcNow < _tokenExpiry)
             return;
 
-        var realm = _configuration["Keycloak:Realm"] ?? "gymnastics";
         var clientId = _configuration["Keycloak:AdminClientId"] ?? "admin-cli";
         var username = _configuration["Keycloak:AdminUsername"] ?? throw new InvalidOperationException("Keycloak admin username not configured");
         var password = _configuration["Keycloak:AdminPassword"] ?? throw new InvalidOperationException("Keycloak admin password not configured");
 
-        var tokenUrl = $"/realms/{realm}/protocol/openid-connect/token";
+        // Admin authentication must be against master realm, not the target realm
+        var tokenUrl = "/realms/master/protocol/openid-connect/token";
 
         var formData = new Dictionary<string, string>
         {

@@ -53,4 +53,12 @@ public sealed class UserProfile : IMultiTenant
         OnboardingCompleted = true;
         OnboardingChoice = choice;
     }
+
+    public void UpdateTenant(Guid newTenantId)
+    {
+        if (newTenantId == Guid.Empty)
+            throw new ArgumentException("Tenant ID cannot be empty.", nameof(newTenantId));
+
+        TenantId = newTenantId;
+    }
 }

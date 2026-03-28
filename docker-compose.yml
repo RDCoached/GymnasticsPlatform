@@ -70,6 +70,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/realms/gymnastics
       - Authentication__Keycloak__ValidIssuers__1=http://localhost:8080/realms/gymnastics
+      - Keycloak__AdminBaseUrl=http://keycloak:8080
+      - Keycloak__Realm=gymnastics
+      - Keycloak__AdminUsername=admin
+      - Keycloak__AdminPassword=admin
       - Observability__OtlpEndpoint=http://tempo:4318
       - OTEL_LOG_LEVEL=debug
       - Logging__LogLevel__OpenTelemetry=Debug

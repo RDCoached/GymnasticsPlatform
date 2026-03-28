@@ -12,9 +12,9 @@ export function useOnboardingComplete(): UseOnboardingCompleteResult {
 
   const complete = useCallback(async () => {
     setIsLoading(true);
-    // Logout and redirect back to the app root
-    // Keycloak will automatically redirect to login, then back here with new token
-    await keycloak.logout({
+    // Force re-login to get a new token with updated tenant_id
+    // Using login() instead of logout() for seamless re-authentication
+    await keycloak.login({
       redirectUri: window.location.origin,
     });
   }, [keycloak]);

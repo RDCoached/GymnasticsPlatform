@@ -271,4 +271,102 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             clubWithSameTenant.Should().BeNull();
         }
     }
+
+    [Fact]
+    public async Task FullFlow_CreateClub_SubsequentRequestsUseScopedToNewTenant()
+    {
+        // Arrange - Create user in onboarding state
+        var userId = Guid.NewGuid().ToString();
+        var onboardingClient = _factory.CreateOnboardingUserClient(userId);
+
+        _factory.TestTenantContext.TenantId = OnboardingTenantId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+            var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+
+            var userProfile = Auth.Domain.Entities.UserProfile.Create(
+                OnboardingTenantId,
+                userId,
+                "test@example.com",
+                "Test User",
+                clock.GetUtcNow());
+            db.UserProfiles.Add(userProfile);
+            await db.SaveChangesAsync();
+        }
+
+        // Act - Complete onboarding by creating a club
+        var createClubRequest = new { Name = "Test Gymnastics Club" };
+        var createClubResponse = await onboardingClient.PostAsJsonAsync("/api/onboarding/create-club", createClubRequest);
+        createClubResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var onboardingResult = await createClubResponse.Content.ReadFromJsonAsync<OnboardingCompleteResponse>();
+        var newTenantId = onboardingResult!.TenantId;
+
+        // Create a NEW client with the updated tenant (simulating re-authentication)
+        var authenticatedClient = _factory.CreateAuthenticatedUserClient(userId, newTenantId);
+
+        // Create a test entity in the new tenant to verify scoping
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+            var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+            _factory.TestTenantContext.TenantId = newTenantId;
+
+            var otherProfile = Auth.Domain.Entities.UserProfile.Create(
+                newTenantId,
+                Guid.NewGuid().ToString(),
+                "other@example.com",
+                "Other User",
+                clock.GetUtcNow());
+            db.UserProfiles.Add(otherProfile);
+            await db.SaveChangesAsync();
+        }
+
+        // Create a user in a DIFFERENT tenant (should not be visible)
+        var differentTenantId = Guid.NewGuid();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+            var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+            _factory.TestTenantContext.TenantId = differentTenantId;
+
+            var differentTenantProfile = Auth.Domain.Entities.UserProfile.Create(
+                differentTenantId,
+                Guid.NewGuid().ToString(),
+                "different@example.com",
+                "Different Tenant User",
+                clock.GetUtcNow());
+            db.UserProfiles.Add(differentTenantProfile);
+            await db.SaveChangesAsync();
+        }
+
+        // Assert - Verify subsequent requests are scoped to the new tenant
+        var statusResponse = await authenticatedClient.GetAsync("/api/onboarding/status");
+        statusResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify the user can only see data from their tenant
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+            _factory.TestTenantContext.TenantId = newTenantId;
+
+            // Should see 2 profiles in new tenant (original user + other user)
+            var profilesInTenant = await db.UserProfiles.ToListAsync();
+            profilesInTenant.Should().HaveCount(2);
+            profilesInTenant.Should().AllSatisfy(p => p.TenantId.Should().Be(newTenantId));
+
+            // Should NOT see the user from the different tenant
+            profilesInTenant.Should().NotContain(p => p.Email == "different@example.com");
+
+            // Should NOT see any users from onboarding tenant
+            profilesInTenant.Should().NotContain(p => p.TenantId == OnboardingTenantId);
+        }
+
+        // Verify user is NO LONGER in onboarding state
+        // (Attempting to create another club should fail)
+        var secondClubRequest = new { Name = "Second Club Should Fail" };
+        var secondClubResponse = await authenticatedClient.PostAsJsonAsync("/api/onboarding/create-club", secondClubRequest);
+        secondClubResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

@@ -7,7 +7,13 @@ import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ReactKeycloakProvider authClient={keycloak}>
+    <ReactKeycloakProvider
+      authClient={keycloak}
+      initOptions={{
+        onLoad: 'login-required',
+        checkLoginIframe: false,
+      }}
+    >
       <App />
     </ReactKeycloakProvider>
   </StrictMode>,

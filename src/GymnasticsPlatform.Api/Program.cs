@@ -1,5 +1,6 @@
 using Auth.Infrastructure.Persistence;
 using GymnasticsPlatform.Api.Extensions;
+using GymnasticsPlatform.Api.Middleware;
 using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -22,8 +23,8 @@ builder.Services.AddScoped<ITenantContext, TenantContext>();
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
 
-// Add Keycloak Admin Service
-builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>();
+// Add User Tenant Service
+builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.Infrastructure.Services.UserTenantService>();
 
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
@@ -70,9 +71,13 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3001",  // user-portal
-                "http://localhost:3002")  // admin-portal
+        // Support ports 3001-3009 for local development flexibility
+        var allowedOrigins = Enumerable.Range(3001, 9)
+            .Select(port => $"http://localhost:{port}")
+            .Concat(["http://localhost:5173", "http://localhost:5174"]) // Vite defaults
+            .ToArray();
+
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -141,6 +146,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthentication();
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
 // Auto-discover and register all endpoint groups

@@ -82,6 +82,11 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         return client;
     }
 
+    public HttpClient CreateAuthenticatedUserClient(string userId, Guid tenantId)
+    {
+        return CreateAuthenticatedClient(userId, tenantId.ToString());
+    }
+
     public HttpClient CreateOnboardingUserClient(string userId)
     {
         return CreateAuthenticatedClient(userId, OnboardingTenantId);
