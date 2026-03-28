@@ -1,4 +1,5 @@
 using Auth.Infrastructure.Persistence;
+using GymnasticsPlatform.Api.Extensions;
 using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -135,6 +136,9 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Auto-discover and register all endpoint groups
+app.MapEndpoints();
 
 // Health check endpoint (anonymous)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTimeOffset.UtcNow }))
