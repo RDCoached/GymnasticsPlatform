@@ -10,18 +10,18 @@ header {
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid var(--border);
 }
 
 h1 {
   font-size: 1.8rem;
-  color: #333;
+  color: var(--text-h);
   margin: 0;
 }
 
 h2 {
   font-size: 1.4rem;
-  color: #555;
+  color: var(--text-h);
   margin-top: 0;
 }
 
@@ -135,4 +135,198 @@ em {
   overflow-x: auto;
   font-size: 0.9rem;
   margin: 0.5rem 0 0 0;
+}
+
+/* Onboarding Screen Styles */
+.onboarding-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.onboarding-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+}
+
+.onboarding-header h1 {
+  color: var(--text-h);
+  margin: 0 0 1rem 0;
+  font-size: 2.5rem;
+}
+
+.onboarding-header p {
+  color: var(--text);
+  font-size: 1.1rem;
+  margin: 0;
+  max-width: 600px;
+}
+
+.onboarding-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.option-card {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.option-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+  transform: translateY(-4px);
+}
+
+.option-card h2 {
+  color: var(--text-h);
+  margin: 0 0 1rem 0;
+}
+
+.option-card p {
+  color: var(--text);
+  margin: 0 0 1.5rem 0;
+  line-height: 1.6;
+}
+
+.option-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.option-button:hover {
+  background-color: var(--accent);
+  filter: brightness(1.1);
+}
+
+.back-button {
+  margin-bottom: 1rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.back-button:hover {
+  background: var(--border);
+}
+
+/* Form Styles */
+.form-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.form-container h2 {
+  color: var(--text-h);
+  margin: 0 0 0.5rem 0;
+}
+
+.form-container > p {
+  color: var(--text);
+  margin: 0 0 2rem 0;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  color: var(--text-h);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.loading-message h2 {
+  color: var(--text-h);
+  margin: 0 0 1rem 0;
+}
+
+.loading-message p {
+  color: var(--text);
 }
