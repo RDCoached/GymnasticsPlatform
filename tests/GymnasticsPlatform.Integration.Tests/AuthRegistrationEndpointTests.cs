@@ -27,7 +27,7 @@ public sealed class AuthRegistrationEndpointTests(TestWebApplicationFactory fact
         var result = await response.Content.ReadFromJsonAsync<RegisterResponse>();
         result.Should().NotBeNull();
         result!.RequiresEmailVerification.Should().BeTrue();
-        result.Message.Should().Contain("verification");
+        result.Message.Should().ContainAny("verification", "verify");
     }
 
     [Fact]

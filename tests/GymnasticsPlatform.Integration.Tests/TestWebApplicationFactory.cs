@@ -1,5 +1,7 @@
+using Auth.Application.Services;
 using Auth.Infrastructure.Persistence;
 using Common.Core;
+using GymnasticsPlatform.Integration.Tests.Mocks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -26,6 +28,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public TestTenantContext TestTenantContext => _testTenantContext
         ?? throw new InvalidOperationException("TestTenantContext not initialized. CreateClient must be called first.");
 
+    private readonly MockKeycloakAdminService _mockKeycloakService = new();
+    public MockKeycloakAdminService MockKeycloakService => _mockKeycloakService;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
@@ -39,6 +44,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             // Add DbContext with test container connection string
             services.AddDbContext<AuthDbContext>(options =>
                 options.UseNpgsql(_dbContainer.GetConnectionString()));
+
+            // Replace IKeycloakAdminService with mock
+            services.RemoveAll(typeof(IKeycloakAdminService));
+            services.AddSingleton<IKeycloakAdminService>(_mockKeycloakService);
 
             // Replace ITenantContext with test implementation
             services.RemoveAll(typeof(ITenantContext));
