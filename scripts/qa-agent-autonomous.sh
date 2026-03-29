@@ -161,8 +161,8 @@ EOF
         return 1
     fi
 
-    # Run Claude Code with the prompt
-    if claude --prompt-file "$prompt_file" --non-interactive > claude-output.log 2>&1; then
+    # Run Claude Code with the prompt (use --print for non-interactive mode)
+    if claude --print "$(cat "$prompt_file")" > claude-output.log 2>&1; then
         log "Claude Code agent completed successfully"
         rm "$prompt_file"
         return 0
