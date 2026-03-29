@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: gymnastics-postgres
     environment:
-      POSTGRES_DB: gymnastics
-      POSTGRES_USER: gymadmin
-      POSTGRES_PASSWORD: local_dev_123
+      POSTGRES_DB: ${POSTGRES_DB:-gymnastics}
+      POSTGRES_USER: ${POSTGRES_USER:-gymadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env file}
     ports:
       - "5432:5432"
     volumes:
@@ -21,12 +21,12 @@ services:
     container_name: gymnastics-keycloak
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/gymnastics
-      KC_DB_USERNAME: gymadmin
-      KC_DB_PASSWORD: local_dev_123
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-gymnastics}
+      KC_DB_USERNAME: ${POSTGRES_USER:-gymadmin}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env file}
       KC_DB_SCHEMA: keycloak
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Please set KEYCLOAK_ADMIN_PASSWORD in .env file}
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_URL: http://localhost:8080
@@ -79,7 +79,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=gymnastics;Username=gymadmin;Password=local_dev_123;Include Error Detail=true
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-gymnastics};Username=${POSTGRES_USER:-gymadmin};Password=${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env file};Include Error Detail=true
       - Authentication__Keycloak__Authority=http://keycloak:8080/realms/gymnastics
       - Authentication__Keycloak__Audience=gymnastics-api
       - Authentication__Keycloak__RequireHttpsMetadata=false
@@ -87,8 +87,8 @@ services:
       - Authentication__Keycloak__ValidIssuers__1=http://localhost:8080/realms/gymnastics
       - Keycloak__AdminBaseUrl=http://keycloak:8080
       - Keycloak__Realm=gymnastics
-      - Keycloak__AdminUsername=admin
-      - Keycloak__AdminPassword=admin
+      - Keycloak__AdminUsername=${KEYCLOAK_ADMIN_USERNAME:-admin}
+      - Keycloak__AdminPassword=${KEYCLOAK_ADMIN_PASSWORD:?Please set KEYCLOAK_ADMIN_PASSWORD in .env file}
       - Observability__OtlpEndpoint=http://tempo:4318
       - OTEL_LOG_LEVEL=debug
       - Logging__LogLevel__OpenTelemetry=Debug

@@ -1,55 +1,10 @@
 import { useKeycloak } from '@react-keycloak/web';
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { SyncUsersPage } from './pages/SyncUsersPage';
 import './App.css';
 
-function App() {
-  const { keycloak, initialized } = useKeycloak();
-  const [apiResponse, setApiResponse] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const testApiCall = async () => {
-    setLoading(true);
-    setError(null);
-    setApiResponse(null);
-
-    try {
-      const response = await fetch('http://localhost:5001/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setApiResponse(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!initialized) {
-    return <div>Loading...</div>;
-  }
-
-  if (!keycloak.authenticated) {
-    return (
-      <div className="container">
-        <h1>Gymnastics Platform - Admin Portal</h1>
-        <p>Please log in with your administrator credentials.</p>
-        <button onClick={() => keycloak.login()}>
-          Login
-        </button>
-      </div>
-    );
-  }
-
+function HomePage() {
+  const { keycloak } = useKeycloak();
   const token = keycloak.tokenParsed;
   const tenantId = token?.tenant_id;
   const username = token?.preferred_username;
@@ -59,11 +14,31 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>Gymnastics Platform - Admin Portal</h1>
-        <button onClick={() => keycloak.logout()}>
+        <h1 style={{ marginRight: '1rem', flex: 1 }}>Gymnastics Platform - Admin Portal</h1>
+        <button onClick={() => keycloak.logout()} style={{ flexShrink: 0 }}>
           Logout
         </button>
       </header>
+
+      <nav style={{
+        marginBottom: '20px',
+        padding: '15px',
+        background: 'rgba(170, 59, 255, 0.05)',
+        border: '1px solid var(--accent-border)',
+        borderRadius: '8px'
+      }}>
+        <Link to="/" style={{
+          marginRight: '20px',
+          color: 'var(--accent)',
+          textDecoration: 'none',
+          fontWeight: 500
+        }}>Home</Link>
+        <Link to="/sync-users" style={{
+          color: 'var(--accent)',
+          textDecoration: 'none',
+          fontWeight: 500
+        }}>Sync Users</Link>
+      </nav>
 
       <main>
         <section className="user-info">
@@ -83,36 +58,44 @@ function App() {
           </dl>
         </section>
 
-        <section className="api-test">
-          <h2>API Integration</h2>
-          <p>Token available for API calls:</p>
-          <code className="token-preview">
-            Bearer {keycloak.token?.substring(0, 50)}...
-          </code>
-
-          <button onClick={testApiCall} disabled={loading} className="test-button">
-            {loading ? 'Calling API...' : 'Test API Call'}
-          </button>
-
-          {error && (
-            <div className="error">
-              <strong>Error:</strong> {error}
-            </div>
-          )}
-
-          {apiResponse && (
-            <div className="api-response">
-              <h3>API Response:</h3>
-              <pre>{JSON.stringify(apiResponse, null, 2)}</pre>
-            </div>
-          )}
-
-          <p className="info">
-            Click the button above to test calling the authenticated API endpoint.
-          </p>
+        <section style={{ marginTop: '30px' }}>
+          <h2>Admin Tools</h2>
+          <ul>
+            <li><Link to="/sync-users">Sync User Tenants</Link> - Sync user tenant_id from database to Keycloak</li>
+          </ul>
         </section>
       </main>
     </div>
+  );
+}
+
+function App() {
+  const { keycloak, initialized } = useKeycloak();
+
+  if (!initialized) {
+    return <div>Loading...</div>;
+  }
+
+  if (!keycloak.authenticated) {
+    return (
+      <div className="container">
+        <h1>Gymnastics Platform - Admin Portal</h1>
+        <p>Please log in with your administrator credentials.</p>
+        <button onClick={() => keycloak.login()}>
+          Login
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/sync-users" element={<SyncUsersPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

@@ -65,7 +65,8 @@ export function useOnboardingStatus(): UseOnboardingStatusResult {
     fetchStatus();
   }, []);
 
-  const isOnboarding = status?.isOnboardingTenant ?? false;
+  // Use 'completed' from database as source of truth, not tenant-based logic
+  const isOnboarding = status ? !status.completed : false;
   const tenantId = status?.tenantId;
 
   return {

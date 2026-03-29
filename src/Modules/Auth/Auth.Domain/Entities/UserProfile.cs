@@ -61,4 +61,18 @@ public sealed class UserProfile : IMultiTenant
 
         TenantId = newTenantId;
     }
+
+    public void UpdateProfile(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            throw new ArgumentException("Full name cannot be empty.", nameof(fullName));
+
+        if (fullName.Length < 2)
+            throw new ArgumentException("Full name must be at least 2 characters.", nameof(fullName));
+
+        if (fullName.Length > 100)
+            throw new ArgumentException("Full name must not exceed 100 characters.", nameof(fullName));
+
+        FullName = fullName;
+    }
 }

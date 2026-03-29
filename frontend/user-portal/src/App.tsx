@@ -5,6 +5,7 @@ import keycloak from './keycloak';
 import { OnboardingGuard } from './components/OnboardingGuard';
 import { OnboardingScreen } from './pages/OnboardingScreen';
 import { Dashboard } from './pages/Dashboard';
+import { UpdateProfilePage } from './pages/UpdateProfilePage';
 import { SignInPage } from './pages/SignInPage';
 import { RegisterPage } from './pages/RegisterPage';
 import './App.css';
@@ -73,6 +74,14 @@ function AppContent() {
           element={
             <OnboardingGuard>
               <Dashboard />
+            </OnboardingGuard>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <OnboardingGuard>
+              <UpdateProfilePage />
             </OnboardingGuard>
           }
         />

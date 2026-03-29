@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Auth.Infrastructure.Persistence;
+using Common.Core.Constants;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,6 @@ namespace GymnasticsPlatform.Integration.Tests;
 
 public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationFactory>
 {
-    private static readonly Guid OnboardingTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     private readonly TestWebApplicationFactory _factory;
     private readonly HttpClient _client;
@@ -68,7 +68,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             .FirstOrDefaultAsync(u => u.KeycloakUserId == userId);
 
         profile.Should().NotBeNull($"Profile should exist for user {userId}");
-        profile!.TenantId.Should().Be(OnboardingTenantId);
+        profile!.TenantId.Should().Be(TenantConstants.OnboardingTenantId);
         profile.Email.Should().Be("test@example.com"); // From test auth headers
         profile.OnboardingCompleted.Should().BeFalse();
     }
@@ -118,7 +118,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         var request = new { Name = "Elite Gymnastics Academy" };
 
         // Set tenant context to onboarding tenant for creating test data
-        _factory.TestTenantContext.TenantId = OnboardingTenantId;
+        _factory.TestTenantContext.TenantId = TenantConstants.OnboardingTenantId;
 
         // Create user profile in onboarding state
         using (var scope = _factory.Services.CreateScope())
@@ -127,7 +127,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
 
             var userProfile = Auth.Domain.Entities.UserProfile.Create(
-                OnboardingTenantId,
+                TenantConstants.OnboardingTenantId,
                 userId,
                 "test@example.com",
                 "Test User",
@@ -145,7 +145,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         var result = await response.Content.ReadFromJsonAsync<OnboardingCompleteResponse>();
         result.Should().NotBeNull();
         result!.TenantId.Should().NotBeEmpty();
-        result.TenantId.Should().NotBe(OnboardingTenantId);
+        result.TenantId.Should().NotBe(TenantConstants.OnboardingTenantId);
         result.Role.Should().Be("organization_owner");
         result.ClubId.Should().NotBeNull();
         result.ClubId!.Value.Should().NotBeEmpty();
@@ -208,14 +208,14 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         }
 
         // Create joiner profile in onboarding state
-        _factory.TestTenantContext.TenantId = OnboardingTenantId;
+        _factory.TestTenantContext.TenantId = TenantConstants.OnboardingTenantId;
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
             var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
 
             var joinerProfile = Auth.Domain.Entities.UserProfile.Create(
-                OnboardingTenantId,
+                TenantConstants.OnboardingTenantId,
                 joinerId,
                 "joiner@example.com",
                 "Joiner User",
@@ -265,7 +265,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         var client = _factory.CreateOnboardingUserClient(userId);
 
         // Set tenant context to onboarding tenant for creating test data
-        _factory.TestTenantContext.TenantId = OnboardingTenantId;
+        _factory.TestTenantContext.TenantId = TenantConstants.OnboardingTenantId;
 
         // Create user profile in onboarding state
         using (var scope = _factory.Services.CreateScope())
@@ -274,7 +274,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
 
             var userProfile = Auth.Domain.Entities.UserProfile.Create(
-                OnboardingTenantId,
+                TenantConstants.OnboardingTenantId,
                 userId,
                 "individual@example.com",
                 "Individual User",
@@ -292,7 +292,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         var result = await response.Content.ReadFromJsonAsync<OnboardingCompleteResponse>();
         result.Should().NotBeNull();
         result!.TenantId.Should().NotBeEmpty();
-        result.TenantId.Should().NotBe(OnboardingTenantId);
+        result.TenantId.Should().NotBe(TenantConstants.OnboardingTenantId);
         result.Role.Should().Be("individual");
         result.ClubId.Should().BeNull();
 
@@ -320,14 +320,14 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         var userId = Guid.NewGuid().ToString();
         var onboardingClient = _factory.CreateOnboardingUserClient(userId);
 
-        _factory.TestTenantContext.TenantId = OnboardingTenantId;
+        _factory.TestTenantContext.TenantId = TenantConstants.OnboardingTenantId;
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
             var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
 
             var userProfile = Auth.Domain.Entities.UserProfile.Create(
-                OnboardingTenantId,
+                TenantConstants.OnboardingTenantId,
                 userId,
                 "test@example.com",
                 "Test User",
@@ -401,7 +401,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             profilesInTenant.Should().NotContain(p => p.Email == "different@example.com");
 
             // Should NOT see any users from onboarding tenant
-            profilesInTenant.Should().NotContain(p => p.TenantId == OnboardingTenantId);
+            profilesInTenant.Should().NotContain(p => p.TenantId == TenantConstants.OnboardingTenantId);
         }
 
         // Verify user is NO LONGER in onboarding state

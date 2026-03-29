@@ -2,13 +2,14 @@ using Auth.Application.Services;
 using Auth.Domain.Entities;
 using Auth.Infrastructure.Persistence;
 using Common.Core;
+using Common.Core.Constants;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymnasticsPlatform.Api.Endpoints;
 
 public sealed class OnboardingEndpoints : IEndpointGroup
 {
-    private static readonly Guid OnboardingTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     public void Map(IEndpointRouteBuilder app)
     {
@@ -23,12 +24,14 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         group.MapPost("/create-club", CreateClub)
             .WithName("CreateClub")
             .WithSummary("Create a new club and complete onboarding")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .ProducesValidationProblem();
 
         group.MapPost("/join-club", JoinClub)
             .WithName("JoinClub")
             .WithSummary("Join an existing club via invite code")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .ProducesValidationProblem();
 
         group.MapPost("/individual", ChooseIndividualMode)
             .WithName("ChooseIndividualMode")
@@ -47,7 +50,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
             return Results.Unauthorized();
 
         var tenantId = tenantContext.TenantId ?? Guid.Empty;
-        var isOnboardingTenant = tenantId == OnboardingTenantId;
+        var isOnboardingTenant = tenantId == TenantConstants.OnboardingTenantId;
 
         // Check if user profile exists and get onboarding status
         var userProfile = await db.UserProfiles
@@ -63,6 +66,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
     private static async Task<IResult> CreateClub(
         CreateClubRequest request,
+        IValidator<CreateClubRequest> validator,
         ITenantContext tenantContext,
         AuthDbContext db,
         HttpContext httpContext,
@@ -70,12 +74,16 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         IUserTenantService userTenantService,
         CancellationToken ct)
     {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+            return Results.ValidationProblem(validationResult.ToDictionary());
+
         var userId = httpContext.User.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(userId))
             return Results.Unauthorized();
 
         var tenantId = tenantContext.TenantId ?? Guid.Empty;
-        if (tenantId != OnboardingTenantId)
+        if (tenantId != TenantConstants.OnboardingTenantId)
             return Results.Problem("User is not in onboarding tenant", statusCode: 400);
 
         // Create club with new tenant ID
@@ -107,6 +115,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
     private static async Task<IResult> JoinClub(
         JoinClubRequest request,
+        IValidator<JoinClubRequest> validator,
         ITenantContext tenantContext,
         AuthDbContext db,
         HttpContext httpContext,
@@ -114,12 +123,16 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         IUserTenantService userTenantService,
         CancellationToken ct)
     {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+            return Results.ValidationProblem(validationResult.ToDictionary());
+
         var userId = httpContext.User.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(userId))
             return Results.Unauthorized();
 
         var tenantId = tenantContext.TenantId ?? Guid.Empty;
-        if (tenantId != OnboardingTenantId)
+        if (tenantId != TenantConstants.OnboardingTenantId)
             return Results.Problem("User is not in onboarding tenant", statusCode: 400);
 
         // Find invite by code (ignore query filters - user is in onboarding tenant)
@@ -179,7 +192,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
             return Results.Unauthorized();
 
         var tenantId = tenantContext.TenantId ?? Guid.Empty;
-        if (tenantId != OnboardingTenantId)
+        if (tenantId != TenantConstants.OnboardingTenantId)
             return Results.Problem("User is not in onboarding tenant", statusCode: 400);
 
         // Generate unique tenant ID for individual user

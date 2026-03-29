@@ -51,6 +51,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
+        // Use internal Keycloak address for fetching signing keys
         options.Authority = keycloakConfig["Authority"];
         options.Audience = keycloakConfig["Audience"];
         options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
@@ -68,7 +69,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy =>
+        policy.RequireRole("platform_admin"));
+});
 
 // Add Exception Handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -77,17 +82,18 @@ builder.Services.AddProblemDetails();
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+// Add Health Checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AuthDbContext>("database");
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? ["http://localhost:3001", "http://localhost:3002"];
+
     options.AddDefaultPolicy(policy =>
     {
-        // Support ports 3001-3009 for local development flexibility
-        var allowedOrigins = Enumerable.Range(3001, 9)
-            .Select(port => $"http://localhost:{port}")
-            .Concat(["http://localhost:5173", "http://localhost:5174"]) // Vite defaults
-            .ToArray();
-
         policy.WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -165,10 +171,9 @@ app.UseAuthorization();
 // Auto-discover and register all endpoint groups
 app.MapEndpoints();
 
-// Health check endpoint (anonymous)
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTimeOffset.UtcNow }))
-    .WithName("HealthCheck")
-    .AllowAnonymous();
+// Health check endpoints (anonymous)
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/ready");
 
 // Protected test endpoint
 app.MapGet("/api/auth/me", (ITenantContext tenantContext, HttpContext httpContext) =>

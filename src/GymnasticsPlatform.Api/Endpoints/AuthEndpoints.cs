@@ -160,9 +160,10 @@ public sealed class AuthEndpoints : IEndpointGroup
         var tokenResponse = authResult.Value!;
 
         // Get or create user profile (ignore tenant filter since login is anonymous)
+        // Use case-insensitive email comparison
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
+            .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, request.Email), ct);
 
         if (userProfile is not null)
         {

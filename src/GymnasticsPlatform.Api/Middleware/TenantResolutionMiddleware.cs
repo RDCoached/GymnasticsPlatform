@@ -1,11 +1,11 @@
 using Auth.Application.Services;
+using Common.Core.Constants;
 
 namespace GymnasticsPlatform.Api.Middleware;
 
 public sealed class TenantResolutionMiddleware(RequestDelegate next, ILogger<TenantResolutionMiddleware> logger)
 {
     public const string TenantIdKey = "TenantId";
-    private static readonly Guid OnboardingTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     public async Task InvokeAsync(HttpContext context, IUserTenantService userTenantService)
     {
@@ -24,11 +24,11 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, ILogger<Ten
                     var fullName = context.User.FindFirst("name")?.Value;
 
                     // Set tenant BEFORE creating profile so DbContext can use it
-                    context.Items[TenantIdKey] = OnboardingTenantId;
+                    context.Items[TenantIdKey] = TenantConstants.OnboardingTenantId;
 
                     logger.LogInformation("Creating new user profile for {UserId} in onboarding tenant", userId);
-                    await userTenantService.UpdateUserTenantAsync(userId, OnboardingTenantId, email, fullName, context.RequestAborted);
-                    tenantId = OnboardingTenantId;
+                    await userTenantService.UpdateUserTenantAsync(userId, TenantConstants.OnboardingTenantId, email, fullName, context.RequestAborted);
+                    tenantId = TenantConstants.OnboardingTenantId;
                 }
                 else
                 {

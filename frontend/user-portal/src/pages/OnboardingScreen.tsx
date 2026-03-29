@@ -39,6 +39,14 @@ export function OnboardingScreen() {
         throw new Error('Failed to choose individual mode');
       }
 
+      // Update localStorage to mark onboarding as completed
+      const userJson = localStorage.getItem('user');
+      if (userJson) {
+        const user = JSON.parse(userJson);
+        user.onboardingCompleted = true;
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
       // Navigate to dashboard - next request will pick up new tenant
       handleOnboardingComplete();
     } catch (error) {

@@ -26,6 +26,7 @@ public sealed class TestAuthenticationHandler(
         var tenantId = Request.Headers["X-Test-Tenant-Id"].ToString();
         var email = Request.Headers["X-Test-Email"].ToString();
         var username = Request.Headers["X-Test-Username"].ToString();
+        var roles = Request.Headers["X-Test-Roles"].ToString();
 
         var claims = new List<Claim>
         {
@@ -37,6 +38,14 @@ public sealed class TestAuthenticationHandler(
         if (!string.IsNullOrEmpty(tenantId))
         {
             claims.Add(new Claim(TenantIdClaimType, tenantId));
+        }
+
+        if (!string.IsNullOrEmpty(roles))
+        {
+            foreach (var role in roles.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role.Trim()));
+            }
         }
 
         var identity = new ClaimsIdentity(claims, AuthenticationScheme);

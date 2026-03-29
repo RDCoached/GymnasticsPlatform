@@ -1,6 +1,7 @@
 import { useKeycloak } from '@react-keycloak/web';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../lib/api-client';
 
 export function Dashboard() {
   const { keycloak } = useKeycloak();
@@ -26,18 +27,7 @@ export function Dashboard() {
         throw new Error('No authentication token available');
       }
 
-      const response = await fetch('http://localhost:5001/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await apiClient.getCurrentUser(authToken);
       setApiResponse(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -54,10 +44,10 @@ export function Dashboard() {
 
     // Logout from Keycloak for OAuth
     if (keycloak.authenticated) {
-      keycloak.logout();
+      keycloak.logout({ redirectUri: window.location.origin + '/sign-in' });
     } else {
-      // Redirect to sign-in for email/password users
-      navigate('/sign-in');
+      // Force full page reload to reset app state and redirect to sign-in
+      window.location.href = '/sign-in';
     }
   };
 
@@ -100,6 +90,29 @@ export function Dashboard() {
               </>
             )}
           </dl>
+        </section>
+
+        <section style={{ marginBottom: '2rem' }}>
+          <h2>Quick Actions</h2>
+          <div className="onboarding-options" style={{ marginTop: '1.5rem' }}>
+            <div className="option-card" onClick={() => navigate('/profile')}>
+              <h2>Update My Profile</h2>
+              <p>Change your personal information and account settings.</p>
+              <button className="option-button">Update Profile</button>
+            </div>
+
+            <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+              <h2>Manage Club</h2>
+              <p>View and manage your club settings and members.</p>
+              <button className="option-button" disabled>Coming Soon</button>
+            </div>
+
+            <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+              <h2>View Sessions</h2>
+              <p>Track your training sessions and progress.</p>
+              <button className="option-button" disabled>Coming Soon</button>
+            </div>
+          </div>
         </section>
 
         <section className="api-test">

@@ -46,6 +46,14 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
         throw new Error(errorData.title || 'Failed to create club');
       }
 
+      // Update localStorage to mark onboarding as completed
+      const userJson = localStorage.getItem('user');
+      if (userJson) {
+        const user = JSON.parse(userJson);
+        user.onboardingCompleted = true;
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
       // Navigate to dashboard - next request will pick up new tenant from database
       onComplete();
     } catch (err) {

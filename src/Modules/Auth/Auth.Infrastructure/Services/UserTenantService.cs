@@ -11,15 +11,18 @@ public sealed class UserTenantService : IUserTenantService
     private readonly AuthDbContext _db;
     private readonly TimeProvider _clock;
     private readonly ILogger<UserTenantService> _logger;
+    private readonly IKeycloakAdminService _keycloakService;
 
     public UserTenantService(
         AuthDbContext db,
         TimeProvider clock,
-        ILogger<UserTenantService> logger)
+        ILogger<UserTenantService> logger,
+        IKeycloakAdminService keycloakService)
     {
         _db = db;
         _clock = clock;
         _logger = logger;
+        _keycloakService = keycloakService;
     }
 
     public async Task<Guid?> GetUserTenantIdAsync(string keycloakUserId, CancellationToken ct = default)
@@ -49,11 +52,12 @@ public sealed class UserTenantService : IUserTenantService
         if (userProfile is not null)
         {
             // Update existing profile's tenant
+            var oldTenantId = userProfile.TenantId;
             userProfile.UpdateTenant(newTenantId);
 
             _logger.LogInformation(
                 "Updated user {UserId} tenant from {OldTenant} to {NewTenant}",
-                keycloakUserId, userProfile.TenantId, newTenantId);
+                keycloakUserId, oldTenantId, newTenantId);
         }
         else
         {
@@ -79,5 +83,8 @@ public sealed class UserTenantService : IUserTenantService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Update Keycloak user attributes so future JWT tokens have correct tenant_id
+        await _keycloakService.UpdateUserTenantIdAsync(keycloakUserId, newTenantId, ct);
     }
 }
