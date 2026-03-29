@@ -303,20 +303,6 @@ cd frontend/admin-portal && npm test"
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Setup Claude Code CLI
-        if: steps.check-results.outputs.tests_failed == 'true'
-        run: |
-          # Install Claude Code CLI if available
-          # This is a placeholder - adjust based on actual CLI availability
-          echo "Claude Code CLI setup would go here"
-
-      - name: Invoke QA Agent to Fix Tests
-        if: steps.check-results.outputs.tests_failed == 'true'
-        run: |
-          echo "QA Agent would analyze and fix tests here"
-          # This would call Claude Code agent with the QA skill
-          # For now, we'll create a script that can be run manually
-
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
