@@ -14,10 +14,6 @@ export function UpdateProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -38,6 +34,10 @@ export function UpdateProfilePage() {
       setLoading(false);
     }
   }, [keycloak.token]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

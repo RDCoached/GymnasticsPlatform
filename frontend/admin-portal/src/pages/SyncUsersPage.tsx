@@ -11,10 +11,6 @@ export function SyncUsersPage() {
   const [results, setResults] = useState<Map<string, { success: boolean; message: string }>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -32,6 +28,10 @@ export function SyncUsersPage() {
       setLoading(false);
     }
   }, [keycloak.token]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const syncUser = async (userId: string) => {
     setSyncing(prev => new Set(prev).add(userId));
