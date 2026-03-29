@@ -161,8 +161,10 @@ EOF
         return 1
     fi
 
-    # Run Claude Code with the prompt (use --print for non-interactive mode)
-    if claude --print "$(cat "$prompt_file")" > claude-output.log 2>&1; then
+    # Run Claude Code autonomously with permissions bypassed
+    # Remove --print to allow tool execution (Edit, Read, etc.)
+    # Use --dangerously-skip-permissions to bypass all prompts
+    if echo "" | claude --dangerously-skip-permissions "$(cat "$prompt_file")" > claude-output.log 2>&1; then
         log "Claude Code agent completed successfully"
         rm "$prompt_file"
         return 0
