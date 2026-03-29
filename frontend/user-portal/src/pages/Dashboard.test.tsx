@@ -113,8 +113,12 @@ describe('Dashboard', () => {
       email: 'test@example.com',
       fullName: 'Test User',
       onboardingCompleted: true,
+      roles: [],
     };
 
+    // Mock for useEffect call on mount
+    vi.mocked(apiClient.getCurrentUser).mockResolvedValueOnce(mockApiResponse);
+    // Mock for button click call
     vi.mocked(apiClient.getCurrentUser).mockResolvedValueOnce(mockApiResponse);
 
     render(<Dashboard />);
@@ -155,6 +159,15 @@ describe('Dashboard', () => {
   });
 
   it('should display error message when API call fails', async () => {
+    // Mock for useEffect call on mount
+    vi.mocked(apiClient.getCurrentUser).mockResolvedValueOnce({
+      userId: 'user-123',
+      email: 'test@example.com',
+      fullName: 'Test User',
+      onboardingCompleted: true,
+      roles: [],
+    });
+    // Mock for button click call - this one should fail
     vi.mocked(apiClient.getCurrentUser).mockRejectedValueOnce(new Error('Network error'));
 
     render(<Dashboard />);
