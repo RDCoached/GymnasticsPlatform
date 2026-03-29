@@ -14,17 +14,16 @@ The QA Autonomous Agent automatically detects, analyzes, and fixes test failures
 
 ## Architecture
 
-**Two-Tier System:**
+**Single Autonomous Agent:**
 
-1. **GitHub Actions** (Tier 1) - Immediate notification
-   - Runs on push to main
-   - Creates issues when tests fail
-   - Does NOT fix tests
-
-2. **Local Autonomous Agent** (Tier 2) - Actual fixing
-   - Runs on schedule (cron)
-   - Uses Claude Code to analyze and fix
-   - Creates PRs automatically
+- Runs on schedule (cron, e.g., every 30 minutes)
+- Polls repository for changes
+- Runs tests when changes detected
+- Uses Claude Code to analyze failures
+- Generates fixes automatically
+- Verifies fixes work
+- Creates PRs with detailed descriptions
+- Fully autonomous - no human intervention required
 
 ## How It Works
 
