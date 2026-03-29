@@ -3,6 +3,9 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, type CurrentUserResponse } from '../lib/api-client';
 
+/**
+ * Dashboard component displays user information and quick actions
+ */
 export function Dashboard() {
   const { keycloak } = useKeycloak();
   const navigate = useNavigate();

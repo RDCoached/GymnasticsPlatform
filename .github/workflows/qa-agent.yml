@@ -46,26 +46,31 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
-          # Categorize changes
+          # Categorize changes using grep (avoids subshell variable issues)
           BACKEND_CHANGED=false
           FRONTEND_USER_CHANGED=false
           FRONTEND_ADMIN_CHANGED=false
           TESTS_CHANGED=false
 
-          while IFS= read -r file; do
-            if [[ $file == src/* ]] || [[ $file == tests/* ]]; then
-              BACKEND_CHANGED=true
-            fi
-            if [[ $file == frontend/user-portal/src/* ]] && [[ $file != *.test.* ]]; then
-              FRONTEND_USER_CHANGED=true
-            fi
-            if [[ $file == frontend/admin-portal/src/* ]] && [[ $file != *.test.* ]]; then
-              FRONTEND_ADMIN_CHANGED=true
-            fi
-            if [[ $file == *.test.* ]] || [[ $file == tests/* ]]; then
-              TESTS_CHANGED=true
-            fi
-          done <<< "$CHANGED_FILES"
+          # Check backend changes
+          if echo "$CHANGED_FILES" | grep -qE '^(src/|tests/)'; then
+            BACKEND_CHANGED=true
+          fi
+
+          # Check frontend user portal changes (exclude test files)
+          if echo "$CHANGED_FILES" | grep -E '^frontend/user-portal/src/' | grep -qvE '\.test\.'; then
+            FRONTEND_USER_CHANGED=true
+          fi
+
+          # Check frontend admin portal changes (exclude test files)
+          if echo "$CHANGED_FILES" | grep -E '^frontend/admin-portal/src/' | grep -qvE '\.test\.'; then
+            FRONTEND_ADMIN_CHANGED=true
+          fi
+
+          # Check test changes
+          if echo "$CHANGED_FILES" | grep -qE '(\.test\.|^tests/)'; then
+            TESTS_CHANGED=true
+          fi
 
           echo "backend_changed=$BACKEND_CHANGED" >> $GITHUB_OUTPUT
           echo "frontend_user_changed=$FRONTEND_USER_CHANGED" >> $GITHUB_OUTPUT
@@ -207,4 +212,251 @@ jobs:
             user-portal-test-output.log
             admin-portal-test-output.log
             backend-test-results.trx
+          retention-days: 30
+
+  test-gap-analysis:
+    name: Proactive Test Gap Analysis
+    runs-on: ubuntu-latest
+    needs: qa-analysis
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Get commit info
+        id: commit-info
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "author=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
+
+      - name: Analyze changed files
+        id: changed-files
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Find new/modified source files
+          NEW_SOURCE_FILES=""
+          MODIFIED_SOURCE_FILES=""
+
+          while IFS= read -r file; do
+            # Backend source files (not tests)
+            if [[ $file == src/**/*.cs ]] && [[ $file != *Test*.cs ]]; then
+              if ! git cat-file -e HEAD~1:"$file" 2>/dev/null; then
+                NEW_SOURCE_FILES="$NEW_SOURCE_FILES$file\n"
+              else
+                MODIFIED_SOURCE_FILES="$MODIFIED_SOURCE_FILES$file\n"
+              fi
+            fi
+
+            # Frontend source files (not tests)
+            if [[ $file == frontend/*/src/**/*.tsx ]] || [[ $file == frontend/*/src/**/*.ts ]]; then
+              if [[ $file != *.test.* ]] && [[ $file != *.spec.* ]]; then
+                if ! git cat-file -e HEAD~1:"$file" 2>/dev/null; then
+                  NEW_SOURCE_FILES="$NEW_SOURCE_FILES$file\n"
+                else
+                  MODIFIED_SOURCE_FILES="$MODIFIED_SOURCE_FILES$file\n"
+                fi
+              fi
+            fi
+          done <<< "$CHANGED_FILES"
+
+          echo "new_source_files<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$NEW_SOURCE_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "modified_source_files<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$MODIFIED_SOURCE_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check for missing test files
+        id: missing-tests
+        run: |
+          MISSING_TESTS=""
+          NEW_FILES="${{ steps.changed-files.outputs.new_source_files }}"
+
+          while IFS= read -r file; do
+            if [[ -z "$file" ]]; then continue; fi
+
+            # Backend: Check for corresponding test file
+            if [[ $file == src/**/*.cs ]]; then
+              # Convert src path to test path
+              TEST_FILE=$(echo "$file" | sed 's|^src/|tests/|' | sed 's|\.cs$|Tests.cs|')
+              if [[ ! -f "$TEST_FILE" ]]; then
+                MISSING_TESTS="$MISSING_TESTS- $file (expected: $TEST_FILE)\n"
+              fi
+            fi
+
+            # Frontend: Check for corresponding test file
+            if [[ $file == frontend/*/src/**/*.tsx ]] || [[ $file == frontend/*/src/**/*.ts ]]; then
+              # Check for .test.tsx or .test.ts file
+              BASE="${file%.*}"
+              EXT="${file##*.}"
+              TEST_FILE="${BASE}.test.${EXT}"
+
+              if [[ ! -f "$TEST_FILE" ]]; then
+                MISSING_TESTS="$MISSING_TESTS- $file (expected: $TEST_FILE)\n"
+              fi
+            fi
+          done <<< "$NEW_FILES"
+
+          echo "missing_tests<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$MISSING_TESTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if [[ -n "$MISSING_TESTS" ]]; then
+            echo "has_missing_tests=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_missing_tests=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install backend dependencies
+        run: dotnet restore
+
+      - name: Generate backend coverage report
+        id: backend-coverage
+        continue-on-error: true
+        run: |
+          dotnet test --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            --verbosity quiet
+
+          # Install ReportGenerator
+          dotnet tool install -g dotnet-reportgenerator-globaltool || true
+
+          # Generate coverage report
+          reportgenerator \
+            -reports:./coverage/**/coverage.cobertura.xml \
+            -targetdir:./coverage-report \
+            -reporttypes:"TextSummary;Html" || echo "Coverage report generation failed"
+
+          # Extract coverage percentage
+          if [[ -f ./coverage-report/Summary.txt ]]; then
+            COVERAGE=$(grep "Line coverage:" ./coverage-report/Summary.txt | grep -oP '\d+\.\d+%' | head -1 || echo "N/A")
+            echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+
+            # Flag if coverage is low
+            COVERAGE_NUM=$(echo "$COVERAGE" | sed 's/%//')
+            if (( $(echo "$COVERAGE_NUM < 80" | bc -l) )); then
+              echo "low_coverage=true" >> $GITHUB_OUTPUT
+            else
+              echo "low_coverage=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "coverage=N/A" >> $GITHUB_OUTPUT
+            echo "low_coverage=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend/user-portal && npm ci
+          cd ../admin-portal && npm ci
+
+      - name: Generate frontend coverage report
+        id: frontend-coverage
+        continue-on-error: true
+        run: |
+          # User Portal
+          cd frontend/user-portal
+          npm run test:coverage -- --reporter=json --reporter=text-summary > coverage-summary.txt 2>&1 || true
+          USER_COVERAGE=$(grep -oP '\d+\.\d+%' coverage-summary.txt | tail -1 || echo "N/A")
+          echo "user_coverage=$USER_COVERAGE" >> $GITHUB_OUTPUT
+
+          # Admin Portal
+          cd ../admin-portal
+          npm run test:coverage -- --reporter=json --reporter=text-summary > coverage-summary.txt 2>&1 || true
+          ADMIN_COVERAGE=$(grep -oP '\d+\.\d+%' coverage-summary.txt | tail -1 || echo "N/A")
+          echo "admin_coverage=$ADMIN_COVERAGE" >> $GITHUB_OUTPUT
+
+      - name: Analyze edge case coverage
+        id: edge-cases
+        run: |
+          # Scan test files for common edge case patterns
+          EDGE_CASE_GAPS=""
+
+          # Check for error handling tests
+          ERROR_TESTS=$(grep -r "throw\|error\|Error" src/ --include="*.cs" | wc -l)
+          ERROR_TEST_COVERAGE=$(grep -r "throw\|error\|Error\|exception" tests/ --include="*.cs" | wc -l)
+
+          if (( ERROR_TESTS > ERROR_TEST_COVERAGE * 2 )); then
+            EDGE_CASE_GAPS="$EDGE_CASE_GAPS- Insufficient error handling test coverage\n"
+          fi
+
+          # Check for null/empty validation tests
+          NULL_CHECKS=$(grep -r "IsNullOrEmpty\|IsNullOrWhiteSpace\|null" src/ --include="*.cs" | wc -l)
+          NULL_TEST_COVERAGE=$(grep -r "null\|empty\|Empty" tests/ --include="*.cs" | wc -l)
+
+          if (( NULL_CHECKS > NULL_TEST_COVERAGE * 2 )); then
+            EDGE_CASE_GAPS="$EDGE_CASE_GAPS- Missing null/empty validation tests\n"
+          fi
+
+          # Check for boundary condition tests
+          BOUNDARY_TESTS=$(grep -r "GreaterThan\|LessThan\|Between\|Range" tests/ --include="*.cs" | wc -l)
+
+          if (( BOUNDARY_TESTS < 10 )); then
+            EDGE_CASE_GAPS="$EDGE_CASE_GAPS- Limited boundary condition testing\n"
+          fi
+
+          echo "edge_case_gaps<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$EDGE_CASE_GAPS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if [[ -n "$EDGE_CASE_GAPS" ]]; then
+            echo "has_edge_case_gaps=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_edge_case_gaps=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create test gap issue
+        if: |
+          steps.missing-tests.outputs.has_missing_tests == 'true' ||
+          steps.backend-coverage.outputs.low_coverage == 'true' ||
+          steps.edge-cases.outputs.has_edge_case_gaps == 'true'
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "🔍 QA Agent: Test Gaps Detected in ${{ steps.commit-info.outputs.short_sha }}"
+          content-filepath: .github/workflows/qa-agent-gap-template.md
+          labels: |
+            qa-agent
+            test-gap
+            test-coverage
+            automated
+        env:
+          COMMIT_SHA: ${{ steps.commit-info.outputs.sha }}
+          COMMIT_SHORT_SHA: ${{ steps.commit-info.outputs.short_sha }}
+          COMMIT_AUTHOR: ${{ steps.commit-info.outputs.author }}
+          MISSING_TESTS: ${{ steps.missing-tests.outputs.missing_tests }}
+          HAS_MISSING_TESTS: ${{ steps.missing-tests.outputs.has_missing_tests }}
+          BACKEND_COVERAGE: ${{ steps.backend-coverage.outputs.coverage }}
+          LOW_COVERAGE: ${{ steps.backend-coverage.outputs.low_coverage }}
+          USER_COVERAGE: ${{ steps.frontend-coverage.outputs.user_coverage }}
+          ADMIN_COVERAGE: ${{ steps.frontend-coverage.outputs.admin_coverage }}
+          EDGE_CASE_GAPS: ${{ steps.edge-cases.outputs.edge_case_gaps }}
+          HAS_EDGE_CASE_GAPS: ${{ steps.edge-cases.outputs.has_edge_case_gaps }}
+          NEW_FILES: ${{ steps.changed-files.outputs.new_source_files }}
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports-${{ steps.commit-info.outputs.short_sha }}
+          path: |
+            coverage-report/
+            frontend/user-portal/coverage/
+            frontend/admin-portal/coverage/
           retention-days: 30
