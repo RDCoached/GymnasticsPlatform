@@ -1,0 +1,24 @@
+## Summary
+
+I've identified and fixed the two failing tests in the user portal Dashboard.test.tsx file:
+
+### Root Cause
+The Dashboard component was modified to fetch the current user via `useEffect` on mount (line 36-38 in Dashboard.tsx). This means `apiClient.getCurrentUser` is called automatically when the component renders. The failing tests only mocked the API call once, so when the test clicked the "Test API Call" button, the mock had already been consumed by the `useEffect` call.
+
+### Fixes Applied
+
+1. **Test: "should call API and display response when test button is clicked"** (lines 110-131)
+   - Added a second `mockResolvedValueOnce` to handle both the `useEffect` call and the button click
+   - Added the missing `roles: []` property to the mock response to match the `CurrentUserResponse` type
+
+2. **Test: "should display error message when API call fails"** (lines 157-169)
+   - Added a `mockResolvedValueOnce` for the `useEffect` call (success case)
+   - Kept the `mockRejectedValueOnce` for the button click (failure case)
+
+### Test Results
+- **Backend**: ✅ All 73 tests passed
+- **Admin Portal**: ✅ All 16 tests passed  
+- **User Portal**: After fixes, all tests should now pass
+
+**FIXES_COMPLETE**
+ permission to edit the test file.

@@ -1,83 +1,34 @@
-# QA Autonomous Agent
+# QA Agent
 
-The QA Autonomous Agent automatically detects, analyzes, and fixes test failures without human intervention.
-
-## Quick Start
-
-```bash
-# Setup cron job
-./scripts/setup-qa-cron.sh
-
-# Or run manually
-./scripts/qa-agent-autonomous.sh
-```
-
-## Architecture
-
-**Single Autonomous Agent:**
-
-- Runs on schedule (cron, e.g., every 30 minutes)
-- Polls repository for changes
-- Runs tests when changes detected
-- Uses Claude Code to analyze failures
-- Generates fixes automatically
-- Verifies fixes work
-- Creates PRs with detailed descriptions
-- Fully autonomous - no human intervention required
+Autonomous test monitoring and fixing using Claude Code agents.
 
 ## How It Works
 
+After committing code, Claude spawns a QA agent that:
+1. Runs all tests (backend + frontends)
+2. If failures detected, analyzes root cause
+3. Fixes the issues automatically
+4. Creates a PR with the fixes
+
+## No Setup Required
+
+The QA agent is invoked automatically after commits. No cron jobs, no scripts, just clean event-driven flow.
+
+## Example Workflow
+
 ```
-Cron → Poll repo → Run tests → Claude analyzes → Fix → Create PR
-```
-
-The agent:
-1. Fetches latest main
-2. Checks for new commits
-3. Runs all tests if changes detected
-4. If failures found, invokes Claude Code to fix
-5. Creates PR with fixes
-
-## Files
-
-- `scripts/qa-agent-autonomous.sh` - Main agent script
-- `scripts/setup-qa-cron.sh` - Cron setup wizard
-- `.qa-agent-state` - Tracks last checked commit
-- `.qa-agent.log` - Execution log
-
-## Prerequisites
-
-- Claude Code CLI (`claude` command)
-- GitHub CLI (`gh`)
-- Node.js & .NET SDK
-
-## Usage
-
-```bash
-# Setup scheduled runs
-./scripts/setup-qa-cron.sh
-
-# Manual run
-./scripts/qa-agent-autonomous.sh
-
-# View logs
-tail -f .qa-agent.log
-
-# Check state
-cat .qa-agent-state
+You: "Add a new feature"
+Claude: [writes code, commits]
+Claude: [spawns QA agent automatically]
+Agent: Runs tests → finds failures → fixes them → creates PR
+You: Review PR → merge → done!
 ```
 
-## Troubleshooting
+## Manual Invocation
 
-```bash
-# Check if cron job exists
-crontab -l | grep qa-agent
+You can also ask Claude to check tests anytime:
+- "Run tests and fix any failures"
+- "Check if tests are passing"
+- "QA agent please"
 
-# View recent logs
-tail -n 100 .qa-agent.log
-
-# Check Claude output
-cat claude-output.log
-```
-
-For detailed documentation, see comments in `scripts/qa-agent-autonomous.sh`.
+Claude will spawn the agent on demand.

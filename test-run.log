@@ -1,0 +1,831 @@
+[2026-03-29 23:44:41] === QA Autonomous Agent Starting ===
+[2026-03-29 23:44:41] Fetching latest changes from origin
+From https://github.com/RDCoached/GymnasticsPlatform
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+[2026-03-29 23:44:42] Successfully updated to latest main
+[2026-03-29 23:44:42] New commits detected: 15082299f65216b430165ca8ad4b035859f92f1f -> 405f684ab94b742114a3e4f93335d81d6fb80fc9
+[2026-03-29 23:44:42] Running all tests...
+[2026-03-29 23:44:42] Running backend tests...
+[2026-03-29 23:46:17] ✅ Backend tests passed
+[2026-03-29 23:46:17] Running user portal tests...
+
+> user-portal@0.0.0 test
+> vitest
+
+
+ RUN  v4.1.2 /Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal
+
+Warning: A vi.mock("@react-keycloak/web") call in "/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/src/test/setup.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+stderr | src/pages/Dashboard.test.tsx > Dashboard > should call API and display response when test button is clicked
+TypeError: Cannot read properties of undefined (reading 'length')
+    at Dashboard (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/src/pages/Dashboard.tsx:113:47)
+    at Object.react_stack_bottom_frame (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:25904:20)
+    at renderWithHooks (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:7662:22)
+    at updateFunctionComponent (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:10166:19)
+    at beginWork (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:11778:18)
+    at runWithFiberInDEV (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:874:13)
+    at performUnitOfWork (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:17641:22)
+    at workLoopSync (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:17469:41)
+    at renderRootSync (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:17450:11)
+    at performWorkOnRoot (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:16583:35)
+An error occurred in the <Dashboard> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+stderr | src/pages/Dashboard.test.tsx > Dashboard > should display error message when API call fails
+Failed to fetch current user: Error: Network error
+    at /Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/src/pages/Dashboard.test.tsx:158:63
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:26
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2316:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2313:10)
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2295:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2262:10)
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2945:64
+
+ ❯ src/pages/Dashboard.test.tsx (13 tests | 2 failed) 2308ms
+     × should call API and display response when test button is clicked 1027ms
+     × should display error message when API call fails 1020ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pages/Dashboard.test.tsx > Dashboard > should call API and display response when test button is clicked
+TestingLibraryElementError: Unable to find an element with the text: API Response:. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div />[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/pages/Dashboard.test.tsx:125:11
+    123|     fireEvent.click(testButton);
+    124|
+    125|     await waitFor(() => {
+       |           ^
+    126|       expect(screen.getByText('API Response:')).toBeInTheDocument();
+    127|       expect(screen.getByText(/"userId": "user-123"/)).toBeInTheDocume…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/pages/Dashboard.test.tsx > Dashboard > should display error message when API call fails
+TestingLibraryElementError: Unable to find an element with the text: Error:. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"container"[39m
+    [36m>[39m
+      [36m<header>[39m
+        [36m<h1>[39m
+          [0mGymnastics Platform - User Portal[0m
+        [36m</h1>[39m
+        [36m<button>[39m
+          [0mLogout[0m
+        [36m</button>[39m
+      [36m</header>[39m
+      [36m<main>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"user-info"[39m
+        [36m>[39m
+          [36m<h2>[39m
+            [0mUser Information[0m
+          [36m</h2>[39m
+          [36m<dl>[39m
+            [36m<dt>[39m
+              [0mUsername:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mTest User[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mEmail:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mtest@example.com[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mTenant ID:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mtenant-123[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mAuth Method:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mEmail/Password[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mRoles (Keycloak):[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0muser[0m
+            [36m</dd>[39m
+          [36m</dl>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33mstyle[39m=[32m"margin-bottom: 2rem;"[39m
+        [36m>[39m
+          [36m<h2>[39m
+            [0mQuick Actions[0m
+          [36m</h2>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"onboarding-options"[39m
+            [33mstyle[39m=[32m"margin-top: 1.5rem;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"option-card"[39m
+            [36m>[39m
+              [36m<h2>[39m
+                [0mUpdate My Profile[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mChange your personal information and account settings.[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"option-button"[39m
+              [36m>[39m
+                [0mUpdate Profile[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"option-card"[39m
+              [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+            [36m>[39m
+              [36m<h2>[39m
+                [0mManage Club[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mView and manage your club settings and members.[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"option-button"[39m
+                [33mdisabled[39m=[32m""[39m
+              [36m>[39m
+                [0mComing Soon[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"option-card"[39m
+              [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+            [36m>[39m
+              [36m<h2>[39m
+                [0mView Sessions[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mTrack your training sessions and progress.[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"option-button"[39m
+                [33mdisabled[39m=[32m""[39m
+              [36m>[39m
+                [0mComing Soon[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"api-test"[39m
+        [36m>[39m
+          [36m<h2>[39m
+            [0mAPI Integration[0m
+          [36m</h2>[39m
+          [36m<p>[39m
+            [0mToken available for API calls:[0m
+          [36m</p>[39m
+          [36m<code[39m
+            [33mclass[39m=[32m"token-preview"[39m
+          [36m>[39m
+            [0mBearer [0m
+            [0mmock-jwt-token[0m
+            [0m...[0m
+          [36m</code>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"test-button"[39m
+          [36m>[39m
+            [0mTest API Call[0m
+          [36m</button>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"info"[39m
+          [36m>[39m
+            [0mClick the button above to test calling the authenticated API endpoint.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"container"[39m
+      [36m>[39m
+        [36m<header>[39m
+          [36m<h1>[39m
+            [0mGymnastics Platform - User Portal[0m
+          [36m</h1>[39m
+          [36m<button>[39m
+            [0mLogout[0m
+          [36m</button>[39m
+        [36m</header>[39m
+        [36m<main>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"user-info"[39m
+          [36m>[39m
+            [36m<h2>[39m
+              [0mUser Information[0m
+            [36m</h2>[39m
+            [36m<dl>[39m
+              [36m<dt>[39m
+                [0mUsername:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mTest User[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mEmail:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mtest@example.com[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mTenant ID:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mtenant-123[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mAuth Method:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mEmail/Password[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mRoles (Keycloak):[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0muser[0m
+              [36m</dd>[39m
+            [36m</dl>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33mstyle[39m=[32m"margin-bottom: 2rem;"[39m
+          [36m>[39m
+            [36m<h2>[39m
+              [0mQuick Actions[0m
+            [36m</h2>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"onboarding-options"[39m
+              [33mstyle[39m=[32m"margin-top: 1.5rem;"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"option-card"[39m
+              [36m>[39m
+                [36m<h2>[39m
+                  [0mUpdate My Profile[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mChange your personal information and account settings.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"option-button"[39m
+                [36m>[39m
+                  [0mUpdate Profile[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"option-card"[39m
+                [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+              [36m>[39m
+                [36m<h2>[39m
+                  [0mManage Club[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mView and manage your club settings and members.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"option-button"[39m
+                  [33mdisabled[39m=[32m""[39m
+                [36m>[39m
+                  [0mComing Soon[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"option-card"[39m
+                [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+              [36m>[39m
+                [36m<h2>[39m
+                  [0mView Sessions[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mTrack your training sessions and progress.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"option-button"[39m
+                  [33mdisabled[39m=[32m""[39m
+                [36m>[39m
+                  [0mComing Soon[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"api-test"[39m
+          [36m>[39m
+            [36m<h2>[39m
+              [0mAPI Integration[0m
+            [36m</h2>[39m
+            [36m<p>[39m
+              [0mToken available for API calls:[0m
+            [36m</p>[39m
+            [36m<code[39m
+              [33mclass[39m=[32m"token-preview"[39m
+            [36m>[39m
+              [0mBearer [0m
+              [0mmock-jwt-token[0m
+              [0m...[0m
+            [36m</code>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"test-button"[39m
+            [36m>[39m
+              [0mTest API Call[0m
+            [36m</button>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"info"[39m
+            [36m>[39m
+              [0mClick the button above to test calling the authenticated API endpoint.[0m
+            [36m</p>[39m
+          [36m</section>[39m
+        [36m</main>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/pages/Dashboard.test.tsx:165:11
+    163|     fireEvent.click(testButton);
+    164|
+    165|     await waitFor(() => {
+       |           ^
+    166|       expect(screen.getByText('Error:')).toBeInTheDocument();
+    167|       expect(screen.getByText('Network error')).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 8 passed (9)
+      Tests  2 failed | 74 passed (76)
+   Start at  23:46:18
+   Duration  4.29s (transform 1.21s, setup 2.60s, import 1.78s, tests 6.68s, environment 6.58s)
+
+[2026-03-29 23:46:22] ❌ User portal tests failed
+[2026-03-29 23:46:22] Running admin portal tests...
+
+> admin-portal@0.0.0 test
+> vitest
+
+
+ RUN  v4.1.2 /Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/admin-portal
+
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  23:46:23
+   Duration  1.11s (transform 218ms, setup 269ms, import 274ms, tests 448ms, environment 456ms)
+
+[2026-03-29 23:46:24] ✅ Admin portal tests passed
+[2026-03-29 23:46:24] Tests failed. Proceeding with analysis and fixes...
+[2026-03-29 23:46:24] Invoking Claude Code to analyze and fix test failures...
+[2026-03-29 23:46:24] Calling Claude Code agent...
+[2026-03-29 23:47:33] Claude Code agent completed successfully
+[2026-03-29 23:47:33] Verifying fixes by running tests again...
+[2026-03-29 23:47:33] Running all tests...
+[2026-03-29 23:47:33] Running backend tests...
+[2026-03-29 23:49:06] ✅ Backend tests passed
+[2026-03-29 23:49:06] Running user portal tests...
+
+> user-portal@0.0.0 test
+> vitest
+
+
+ RUN  v4.1.2 /Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal
+
+Warning: A vi.mock("@react-keycloak/web") call in "/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/src/test/setup.ts" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+stderr | src/pages/Dashboard.test.tsx > Dashboard > should call API and display response when test button is clicked
+TypeError: Cannot read properties of undefined (reading 'length')
+    at Dashboard (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/src/pages/Dashboard.tsx:113:47)
+    at Object.react_stack_bottom_frame (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:25904:20)
+    at renderWithHooks (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:7662:22)
+    at updateFunctionComponent (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:10166:19)
+    at beginWork (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:11778:18)
+    at runWithFiberInDEV (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:874:13)
+    at performUnitOfWork (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:17641:22)
+    at workLoopSync (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:17469:41)
+    at renderRootSync (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:17450:11)
+    at performWorkOnRoot (/Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/react-dom/cjs/react-dom-client.development.js:16583:35)
+An error occurred in the <Dashboard> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+stderr | src/pages/Dashboard.test.tsx > Dashboard > should display error message when API call fails
+Failed to fetch current user: Error: Network error
+    at /Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/src/pages/Dashboard.test.tsx:158:63
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:26
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2316:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2313:10)
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2295:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2262:10)
+    at file:///Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/user-portal/node_modules/@vitest/runner/dist/chunk-artifact.js:2945:64
+
+ ❯ src/pages/Dashboard.test.tsx (13 tests | 2 failed) 2597ms
+     × should call API and display response when test button is clicked 1082ms
+     × should display error message when API call fails 1019ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pages/Dashboard.test.tsx > Dashboard > should call API and display response when test button is clicked
+TestingLibraryElementError: Unable to find an element with the text: API Response:. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div />[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div />[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/pages/Dashboard.test.tsx:125:11
+    123|     fireEvent.click(testButton);
+    124|
+    125|     await waitFor(() => {
+       |           ^
+    126|       expect(screen.getByText('API Response:')).toBeInTheDocument();
+    127|       expect(screen.getByText(/"userId": "user-123"/)).toBeInTheDocume…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/pages/Dashboard.test.tsx > Dashboard > should display error message when API call fails
+TestingLibraryElementError: Unable to find an element with the text: Error:. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"container"[39m
+    [36m>[39m
+      [36m<header>[39m
+        [36m<h1>[39m
+          [0mGymnastics Platform - User Portal[0m
+        [36m</h1>[39m
+        [36m<button>[39m
+          [0mLogout[0m
+        [36m</button>[39m
+      [36m</header>[39m
+      [36m<main>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"user-info"[39m
+        [36m>[39m
+          [36m<h2>[39m
+            [0mUser Information[0m
+          [36m</h2>[39m
+          [36m<dl>[39m
+            [36m<dt>[39m
+              [0mUsername:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mTest User[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mEmail:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mtest@example.com[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mTenant ID:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mtenant-123[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mAuth Method:[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0mEmail/Password[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mRoles (Keycloak):[0m
+            [36m</dt>[39m
+            [36m<dd>[39m
+              [0muser[0m
+            [36m</dd>[39m
+          [36m</dl>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33mstyle[39m=[32m"margin-bottom: 2rem;"[39m
+        [36m>[39m
+          [36m<h2>[39m
+            [0mQuick Actions[0m
+          [36m</h2>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"onboarding-options"[39m
+            [33mstyle[39m=[32m"margin-top: 1.5rem;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"option-card"[39m
+            [36m>[39m
+              [36m<h2>[39m
+                [0mUpdate My Profile[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mChange your personal information and account settings.[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"option-button"[39m
+              [36m>[39m
+                [0mUpdate Profile[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"option-card"[39m
+              [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+            [36m>[39m
+              [36m<h2>[39m
+                [0mManage Club[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mView and manage your club settings and members.[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"option-button"[39m
+                [33mdisabled[39m=[32m""[39m
+              [36m>[39m
+                [0mComing Soon[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"option-card"[39m
+              [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+            [36m>[39m
+              [36m<h2>[39m
+                [0mView Sessions[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mTrack your training sessions and progress.[0m
+              [36m</p>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"option-button"[39m
+                [33mdisabled[39m=[32m""[39m
+              [36m>[39m
+                [0mComing Soon[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"api-test"[39m
+        [36m>[39m
+          [36m<h2>[39m
+            [0mAPI Integration[0m
+          [36m</h2>[39m
+          [36m<p>[39m
+            [0mToken available for API calls:[0m
+          [36m</p>[39m
+          [36m<code[39m
+            [33mclass[39m=[32m"token-preview"[39m
+          [36m>[39m
+            [0mBearer [0m
+            [0mmock-jwt-token[0m
+            [0m...[0m
+          [36m</code>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"test-button"[39m
+          [36m>[39m
+            [0mTest API Call[0m
+          [36m</button>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"info"[39m
+          [36m>[39m
+            [0mClick the button above to test calling the authenticated API endpoint.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+      [36m</main>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"container"[39m
+      [36m>[39m
+        [36m<header>[39m
+          [36m<h1>[39m
+            [0mGymnastics Platform - User Portal[0m
+          [36m</h1>[39m
+          [36m<button>[39m
+            [0mLogout[0m
+          [36m</button>[39m
+        [36m</header>[39m
+        [36m<main>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"user-info"[39m
+          [36m>[39m
+            [36m<h2>[39m
+              [0mUser Information[0m
+            [36m</h2>[39m
+            [36m<dl>[39m
+              [36m<dt>[39m
+                [0mUsername:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mTest User[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mEmail:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mtest@example.com[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mTenant ID:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mtenant-123[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mAuth Method:[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0mEmail/Password[0m
+              [36m</dd>[39m
+              [36m<dt>[39m
+                [0mRoles (Keycloak):[0m
+              [36m</dt>[39m
+              [36m<dd>[39m
+                [0muser[0m
+              [36m</dd>[39m
+            [36m</dl>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33mstyle[39m=[32m"margin-bottom: 2rem;"[39m
+          [36m>[39m
+            [36m<h2>[39m
+              [0mQuick Actions[0m
+            [36m</h2>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"onboarding-options"[39m
+              [33mstyle[39m=[32m"margin-top: 1.5rem;"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"option-card"[39m
+              [36m>[39m
+                [36m<h2>[39m
+                  [0mUpdate My Profile[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mChange your personal information and account settings.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"option-button"[39m
+                [36m>[39m
+                  [0mUpdate Profile[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"option-card"[39m
+                [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+              [36m>[39m
+                [36m<h2>[39m
+                  [0mManage Club[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mView and manage your club settings and members.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"option-button"[39m
+                  [33mdisabled[39m=[32m""[39m
+                [36m>[39m
+                  [0mComing Soon[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"option-card"[39m
+                [33mstyle[39m=[32m"opacity: 0.6; cursor: not-allowed;"[39m
+              [36m>[39m
+                [36m<h2>[39m
+                  [0mView Sessions[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mTrack your training sessions and progress.[0m
+                [36m</p>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"option-button"[39m
+                  [33mdisabled[39m=[32m""[39m
+                [36m>[39m
+                  [0mComing Soon[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"api-test"[39m
+          [36m>[39m
+            [36m<h2>[39m
+              [0mAPI Integration[0m
+            [36m</h2>[39m
+            [36m<p>[39m
+              [0mToken available for API calls:[0m
+            [36m</p>[39m
+            [36m<code[39m
+              [33mclass[39m=[32m"token-preview"[39m
+            [36m>[39m
+              [0mBearer [0m
+              [0mmock-jwt-token[0m
+              [0m...[0m
+            [36m</code>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"test-button"[39m
+            [36m>[39m
+              [0mTest API Call[0m
+            [36m</button>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"info"[39m
+            [36m>[39m
+              [0mClick the button above to test calling the authenticated API endpoint.[0m
+            [36m</p>[39m
+          [36m</section>[39m
+        [36m</main>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/pages/Dashboard.test.tsx:165:11
+    163|     fireEvent.click(testButton);
+    164|
+    165|     await waitFor(() => {
+       |           ^
+    166|       expect(screen.getByText('Error:')).toBeInTheDocument();
+    167|       expect(screen.getByText('Network error')).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 8 passed (9)
+      Tests  2 failed | 74 passed (76)
+   Start at  23:49:08
+   Duration  6.80s (transform 2.10s, setup 3.83s, import 3.13s, tests 8.25s, environment 14.50s)
+
+[2026-03-29 23:49:15] ❌ User portal tests failed
+[2026-03-29 23:49:15] Running admin portal tests...
+
+> admin-portal@0.0.0 test
+> vitest
+
+
+ RUN  v4.1.2 /Users/rdcoached/RiderProjects/GymnasticsPlatform/frontend/admin-portal
+
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  23:49:16
+   Duration  1.92s (transform 440ms, setup 476ms, import 577ms, tests 478ms, environment 1.07s)
+
+[2026-03-29 23:49:18] ✅ Admin portal tests passed
+[2026-03-29 23:49:18] ERROR: ❌ Tests still failing after fixes. Manual intervention needed.
+[2026-03-29 23:49:18] ERROR: Fixes didn't resolve all failures. Manual intervention required.
+
