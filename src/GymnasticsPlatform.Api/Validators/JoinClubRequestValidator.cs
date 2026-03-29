@@ -10,8 +10,8 @@ public sealed class JoinClubRequestValidator : AbstractValidator<JoinClubRequest
         RuleFor(x => x.InviteCode)
             .NotEmpty()
             .WithMessage("Invite code is required")
-            .Length(6)
-            .WithMessage("Invite code must be exactly 6 characters")
+            .Length(8)
+            .WithMessage("Invite code must be exactly 8 characters")
             .Matches("^[A-Z0-9]+$")
             .WithMessage("Invite code must contain only uppercase letters and numbers");
     }

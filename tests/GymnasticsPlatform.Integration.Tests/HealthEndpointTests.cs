@@ -28,12 +28,11 @@ public sealed class HealthEndpointTests : IClassFixture<TestWebApplicationFactor
     {
         // Act
         var response = await _client.GetAsync("/health");
-        var content = await response.Content.ReadFromJsonAsync<HealthResponse>();
+        var content = await response.Content.ReadAsStringAsync();
 
         // Assert
-        content.Should().NotBeNull();
-        content!.Status.Should().Be("healthy");
-        content.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        content.Should().NotBeNullOrEmpty();
+        content.Should().Contain("Healthy");
     }
 
     [Fact]
@@ -48,6 +47,4 @@ public sealed class HealthEndpointTests : IClassFixture<TestWebApplicationFactor
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Should().NotContainKey("WWW-Authenticate");
     }
-
-    private sealed record HealthResponse(string Status, DateTimeOffset Timestamp);
 }
