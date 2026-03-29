@@ -202,20 +202,4 @@ app.MapEndpoints();
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/ready");
 
-// Protected test endpoint
-app.MapGet("/api/auth/me", (ITenantContext tenantContext, HttpContext httpContext) =>
-{
-    var user = httpContext.User;
-    return Results.Ok(new
-    {
-        userId = user.FindFirst("sub")?.Value,
-        email = user.FindFirst("email")?.Value,
-        name = user.FindFirst("name")?.Value,
-        tenantId = tenantContext.TenantId,
-        roles = user.FindAll("roles").Select(c => c.Value).ToArray()
-    });
-})
-.WithName("GetCurrentUser")
-.RequireAuthorization();
-
 app.Run();

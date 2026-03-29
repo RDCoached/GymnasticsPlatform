@@ -37,6 +37,12 @@ public sealed class AuthEndpoints : IEndpointGroup
             .WithName("ForgotPassword")
             .WithSummary("Initiate password reset flow")
             .AllowAnonymous();
+
+        group.MapGet("/me", GetCurrentUser)
+            .WithName("GetCurrentUser")
+            .WithSummary("Get current authenticated user with roles")
+            .Produces<CurrentUserResponse>()
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> Register(
@@ -250,4 +256,55 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         return Results.Ok(response);
     }
+
+    private static async Task<IResult> GetCurrentUser(
+        HttpContext httpContext,
+        ITenantContext tenantContext,
+        IRoleService roleService,
+        AuthDbContext db,
+        CancellationToken ct)
+    {
+        var userId = httpContext.User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Results.Unauthorized();
+
+        var tenantId = tenantContext.TenantId;
+        if (!tenantId.HasValue)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: "Tenant context not available");
+        }
+
+        // Get user profile
+        var userProfile = await db.UserProfiles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId && u.TenantId == tenantId.Value, ct);
+
+        if (userProfile is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                detail: "User profile not found");
+        }
+
+        // Get user roles
+        var roles = await roleService.GetUserRolesAsync(tenantId.Value, userId, ct);
+
+        var response = new CurrentUserResponse(
+            UserId: userId,
+            Email: userProfile.Email,
+            Name: userProfile.FullName,
+            TenantId: tenantId.Value,
+            Roles: roles.Select(r => r.ToString()).ToList());
+
+        return Results.Ok(response);
+    }
 }
+
+public record CurrentUserResponse(
+    string UserId,
+    string Email,
+    string Name,
+    Guid TenantId,
+    IReadOnlyList<string> Roles);

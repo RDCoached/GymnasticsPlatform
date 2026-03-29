@@ -46,6 +46,13 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
         throw new Error(errorData.title || 'Failed to create club');
       }
 
+      const data = await response.json();
+
+      // Store club ID if present
+      if (data.clubId) {
+        localStorage.setItem('clubId', data.clubId);
+      }
+
       // Update localStorage to mark onboarding as completed
       const userJson = localStorage.getItem('user');
       if (userJson) {

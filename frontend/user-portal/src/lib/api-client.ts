@@ -57,6 +57,24 @@ export interface CurrentUserResponse {
   roles: string[];
 }
 
+export interface CreateInviteRequest {
+  inviteType: number; // 1 = Coach, 2 = Gymnast
+  maxUses: number;
+  expiryDays: number;
+  description?: string;
+}
+
+export interface InviteResponse {
+  id: string;
+  code: string;
+  inviteType: number;
+  maxUses: number;
+  timesUsed: number;
+  expiresAt: string;
+  createdAt: string;
+  description?: string | null;
+}
+
 export class ApiClient {
   private baseUrl: string;
 
@@ -152,6 +170,34 @@ export class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to update profile' }));
       throw new Error(error.detail || 'Failed to update profile');
+    }
+
+    return response.json();
+  }
+
+  async createInvite(token: string, clubId: string, request: CreateInviteRequest): Promise<InviteResponse> {
+    const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to create invite' }));
+      throw new Error(error.detail || 'Failed to create invite');
+    }
+
+    return response.json();
+  }
+
+  async listInvites(token: string, clubId: string): Promise<InviteResponse[]> {
+    const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites`, {
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to fetch invites' }));
+      throw new Error(error.detail || 'Failed to fetch invites');
     }
 
     return response.json();

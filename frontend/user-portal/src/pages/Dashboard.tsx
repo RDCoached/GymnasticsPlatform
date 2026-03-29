@@ -1,12 +1,13 @@
 import { useKeycloak } from '@react-keycloak/web';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../lib/api-client';
+import { apiClient, type CurrentUserResponse } from '../lib/api-client';
 
 export function Dashboard() {
   const { keycloak } = useKeycloak();
   const navigate = useNavigate();
   const [apiResponse, setApiResponse] = useState<Record<string, unknown> | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUserResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +17,22 @@ export function Dashboard() {
     const userJson = localStorage.getItem('user');
     return userJson ? JSON.parse(userJson) : null;
   }, []);
+
+  // Fetch current user with roles
+  const fetchCurrentUser = useCallback(async () => {
+    if (!authToken) return;
+
+    try {
+      const user = await apiClient.getCurrentUser(authToken);
+      setCurrentUser(user);
+    } catch (err) {
+      console.error('Failed to fetch current user:', err);
+    }
+  }, [authToken]);
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
   const testApiCall = async () => {
     setLoading(true);
@@ -85,8 +102,15 @@ export function Dashboard() {
 
             {roles.length > 0 && (
               <>
-                <dt>Roles:</dt>
+                <dt>Roles (Keycloak):</dt>
                 <dd>{roles.filter(r => !r.startsWith('default-') && !r.startsWith('uma_')).join(', ')}</dd>
+              </>
+            )}
+
+            {currentUser && currentUser.roles.length > 0 && (
+              <>
+                <dt>App Roles:</dt>
+                <dd>{currentUser.roles.join(', ')}</dd>
               </>
             )}
           </dl>
@@ -101,11 +125,19 @@ export function Dashboard() {
               <button className="option-button">Update Profile</button>
             </div>
 
-            <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-              <h2>Manage Club</h2>
-              <p>View and manage your club settings and members.</p>
-              <button className="option-button" disabled>Coming Soon</button>
-            </div>
+            {currentUser && currentUser.roles.includes('ClubAdmin') && localStorage.getItem('clubId') ? (
+              <div className="option-card" onClick={() => navigate(`/club/invites?clubId=${localStorage.getItem('clubId')}`)}>
+                <h2>Manage Club</h2>
+                <p>View and manage your club invites and members.</p>
+                <button className="option-button">Manage Club</button>
+              </div>
+            ) : (
+              <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                <h2>Manage Club</h2>
+                <p>View and manage your club settings and members.</p>
+                <button className="option-button" disabled>Coming Soon</button>
+              </div>
+            )}
 
             <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
               <h2>View Sessions</h2>
