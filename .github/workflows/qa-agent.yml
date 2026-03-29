@@ -95,26 +95,35 @@ jobs:
         if: steps.analyze.outputs.backend_changed == 'true'
         continue-on-error: true
         run: |
+          set -o pipefail
           dotnet test --no-restore --verbosity normal --logger "trx;LogFileName=backend-test-results.trx" 2>&1 | tee backend-test-output.log
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $TEST_EXIT_CODE
 
       - name: Run User Portal Tests
         id: user-portal-tests
         if: steps.analyze.outputs.frontend_user_changed == 'true'
         continue-on-error: true
         run: |
+          set -o pipefail
           cd frontend/user-portal
           npm run test:ci 2>&1 | tee ../../user-portal-test-output.log
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $TEST_EXIT_CODE
 
       - name: Run Admin Portal Tests
         id: admin-portal-tests
         if: steps.analyze.outputs.frontend_admin_changed == 'true'
         continue-on-error: true
         run: |
+          set -o pipefail
           cd frontend/admin-portal
           npm run test:ci 2>&1 | tee ../../admin-portal-test-output.log
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $TEST_EXIT_CODE
 
       - name: Check test results
         id: check-results
@@ -145,6 +154,15 @@ jobs:
           echo "admin_portal_failed=$ADMIN_PORTAL_FAILED" >> $GITHUB_OUTPUT
           echo "tests_failed=$TESTS_FAILED" >> $GITHUB_OUTPUT
 
+      - name: Prepare issue context
+        if: steps.check-results.outputs.tests_failed == 'true'
+        id: issue-context
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | head -20)
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Trigger QA Agent Analysis
         if: steps.check-results.outputs.tests_failed == 'true'
         uses: peter-evans/create-issue-from-file@v5
@@ -163,6 +181,7 @@ jobs:
           BACKEND_FAILED: ${{ steps.check-results.outputs.backend_failed }}
           USER_PORTAL_FAILED: ${{ steps.check-results.outputs.user_portal_failed }}
           ADMIN_PORTAL_FAILED: ${{ steps.check-results.outputs.admin_portal_failed }}
+          CHANGED_FILES: ${{ steps.issue-context.outputs.changed_files }}
 
       - name: Setup Claude Code CLI
         if: steps.check-results.outputs.tests_failed == 'true'
