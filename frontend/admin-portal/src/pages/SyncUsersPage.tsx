@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
 import { Link } from 'react-router-dom';
 import { adminApiClient, type UserProfileResponse } from '../lib/api-client';
@@ -13,9 +13,9 @@ export function SyncUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -31,9 +31,9 @@ export function SyncUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [keycloak.token]);
 
-  const syncUser = async (userId: string, email: string) => {
+  const syncUser = async (userId: string) => {
     setSyncing(prev => new Set(prev).add(userId));
 
     try {
@@ -62,7 +62,7 @@ export function SyncUsersPage() {
 
   const syncAllUsers = async () => {
     for (const user of users) {
-      await syncUser(user.keycloakUserId, user.email);
+      await syncUser(user.keycloakUserId);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
 import { apiClient, type ProfileResponse } from '../lib/api-client';
@@ -16,9 +16,9 @@ export function UpdateProfilePage() {
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [fetchProfile]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -37,7 +37,7 @@ export function UpdateProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [keycloak.token]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

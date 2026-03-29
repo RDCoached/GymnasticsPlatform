@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ReactKeycloakProvider, useKeycloak } from '@react-keycloak/web';
 import keycloak from './keycloak';
@@ -37,13 +37,6 @@ function AppContent() {
       refreshToken: tokens.refreshToken,
       user: tokens.user,
     });
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    keycloakInstance.logout();
   };
 
   if (!keycloakInitialized) {

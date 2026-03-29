@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useKeycloak } from '@react-keycloak/web';
 import App from './App';
