@@ -20,6 +20,11 @@ internal sealed class ClubInviteConfiguration : IEntityTypeConfiguration<ClubInv
             .HasColumnName("club_id")
             .IsRequired();
 
+        builder.Property(ci => ci.InviteType)
+            .HasColumnName("invite_type")
+            .HasConversion<int>()
+            .IsRequired();
+
         builder.Property(ci => ci.Code)
             .HasColumnName("code")
             .HasMaxLength(20)
@@ -40,6 +45,10 @@ internal sealed class ClubInviteConfiguration : IEntityTypeConfiguration<ClubInv
         builder.Property(ci => ci.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();
+
+        builder.Property(ci => ci.Description)
+            .HasColumnName("description")
+            .HasMaxLength(500);
 
         // Foreign key relationship
         builder.HasOne<Club>()

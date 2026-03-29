@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Auth.Domain.Entities;
 using Auth.Infrastructure.Persistence;
 using Common.Core.Constants;
 using FluentAssertions;
@@ -20,7 +21,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         _client = factory.CreateClient();
     }
 
-    private record OnboardingCompleteResponse(Guid TenantId, string Role, Guid? ClubId);
+    private record OnboardingCompleteResponse(Guid TenantId, IReadOnlyList<Role> Roles, Guid? ClubId);
 
     [Fact]
     public async Task GetOnboardingStatus_WithoutAuthentication_ReturnsUnauthorized()
@@ -146,7 +147,8 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         result.Should().NotBeNull();
         result!.TenantId.Should().NotBeEmpty();
         result.TenantId.Should().NotBe(TenantConstants.OnboardingTenantId);
-        result.Role.Should().Be("organization_owner");
+        result.Roles.Should().Contain(Role.ClubAdmin);
+        result.Roles.Should().Contain(Role.Coach);
         result.ClubId.Should().NotBeNull();
         result.ClubId!.Value.Should().NotBeEmpty();
 
@@ -194,8 +196,10 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
 
             var invite = Auth.Domain.Entities.ClubInvite.Create(
                 club.Id,
+                InviteType.Coach,
                 maxUses: 5,
                 expiresAt: clock.GetUtcNow().AddDays(7),
+                null,
                 clock);
             db.ClubInvites.Add(invite);
             await db.SaveChangesAsync();
@@ -236,7 +240,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         var result = await response.Content.ReadFromJsonAsync<OnboardingCompleteResponse>();
         result.Should().NotBeNull();
         result!.TenantId.Should().Be(clubTenantId);
-        result.Role.Should().Be("member");
+        result.Roles.Should().Contain(Role.Coach);
         result.ClubId.Should().Be(clubId);
 
         // Verify in a fresh scope to see committed changes
@@ -293,7 +297,8 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         result.Should().NotBeNull();
         result!.TenantId.Should().NotBeEmpty();
         result.TenantId.Should().NotBe(TenantConstants.OnboardingTenantId);
-        result.Role.Should().Be("individual");
+        result.Roles.Should().Contain(Role.IndividualAdmin);
+        result.Roles.Should().Contain(Role.Coach);
         result.ClubId.Should().BeNull();
 
         // Verify in a fresh scope to see committed changes

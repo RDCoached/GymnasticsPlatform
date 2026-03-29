@@ -72,6 +72,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         HttpContext httpContext,
         TimeProvider clock,
         IUserTenantService userTenantService,
+        IRoleService roleService,
         CancellationToken ct)
     {
         var validationResult = await validator.ValidateAsync(request, ct);
@@ -106,9 +107,13 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         var fullName = httpContext.User.FindFirst("name")?.Value;
         await userTenantService.UpdateUserTenantAsync(userId, club.TenantId, email, fullName, ct);
 
+        // Assign ClubAdmin and Coach roles
+        var roles = new List<Role> { Role.ClubAdmin, Role.Coach }.AsReadOnly();
+        await roleService.AssignRolesAsync(club.TenantId, userId, roles, null, ct);
+
         return Results.Ok(new OnboardingCompleteResponse(
             TenantId: club.TenantId,
-            Role: "organization_owner",
+            Roles: roles,
             ClubId: club.Id
         ));
     }
@@ -121,6 +126,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         HttpContext httpContext,
         TimeProvider clock,
         IUserTenantService userTenantService,
+        IRoleService roleService,
         CancellationToken ct)
     {
         var validationResult = await validator.ValidateAsync(request, ct);
@@ -173,9 +179,14 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         var fullName = httpContext.User.FindFirst("name")?.Value;
         await userTenantService.UpdateUserTenantAsync(userId, club.TenantId, email, fullName, ct);
 
+        // Assign role based on invite type
+        var role = invite.InviteType == InviteType.Coach ? Role.Coach : Role.Gymnast;
+        var roles = new List<Role> { role }.AsReadOnly();
+        await roleService.AssignRolesAsync(club.TenantId, userId, roles, null, ct);
+
         return Results.Ok(new OnboardingCompleteResponse(
             TenantId: club.TenantId,
-            Role: "member",
+            Roles: roles,
             ClubId: club.Id
         ));
     }
@@ -185,6 +196,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         AuthDbContext db,
         HttpContext httpContext,
         IUserTenantService userTenantService,
+        IRoleService roleService,
         CancellationToken ct)
     {
         var userId = httpContext.User.FindFirst("sub")?.Value;
@@ -214,9 +226,13 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         var fullName = httpContext.User.FindFirst("name")?.Value;
         await userTenantService.UpdateUserTenantAsync(userId, newTenantId, email, fullName, ct);
 
+        // Assign IndividualAdmin and Coach roles
+        var roles = new List<Role> { Role.IndividualAdmin, Role.Coach }.AsReadOnly();
+        await roleService.AssignRolesAsync(newTenantId, userId, roles, null, ct);
+
         return Results.Ok(new OnboardingCompleteResponse(
             TenantId: newTenantId,
-            Role: "individual",
+            Roles: roles,
             ClubId: null
         ));
     }
@@ -234,5 +250,5 @@ public record JoinClubRequest(string InviteCode);
 
 public record OnboardingCompleteResponse(
     Guid TenantId,
-    string Role,
+    IReadOnlyList<Role> Roles,
     Guid? ClubId);

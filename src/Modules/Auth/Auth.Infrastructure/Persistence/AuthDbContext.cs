@@ -13,6 +13,7 @@ public sealed class AuthDbContext(
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<Club> Clubs => Set<Club>();
     public DbSet<ClubInvite> ClubInvites => Set<ClubInvite>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     // Expose tenant ID as a property for query filter evaluation
     private Guid CurrentTenantId => _tenantContext.TenantId ?? throw new InvalidOperationException("TenantId is required");

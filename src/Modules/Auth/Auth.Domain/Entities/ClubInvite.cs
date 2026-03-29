@@ -4,15 +4,23 @@ public sealed class ClubInvite
 {
     public Guid Id { get; private set; }
     public Guid ClubId { get; private set; }
+    public InviteType InviteType { get; private set; }
     public string Code { get; private set; } = string.Empty;
     public int MaxUses { get; private set; }
     public int TimesUsed { get; private set; }
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+    public string? Description { get; private set; }
 
     private ClubInvite() { }
 
-    public static ClubInvite Create(Guid clubId, int maxUses, DateTimeOffset expiresAt, TimeProvider clock)
+    public static ClubInvite Create(
+        Guid clubId,
+        InviteType inviteType,
+        int maxUses,
+        DateTimeOffset expiresAt,
+        string? description,
+        TimeProvider clock)
     {
         if (maxUses <= 0)
             throw new ArgumentException("Max uses must be greater than zero.", nameof(maxUses));
@@ -24,11 +32,13 @@ public sealed class ClubInvite
         {
             Id = Guid.NewGuid(),
             ClubId = clubId,
+            InviteType = inviteType,
             Code = GenerateInviteCode(),
             MaxUses = maxUses,
             TimesUsed = 0,
             ExpiresAt = expiresAt,
-            CreatedAt = clock.GetUtcNow()
+            CreatedAt = clock.GetUtcNow(),
+            Description = description
         };
     }
 

@@ -1,8 +1,10 @@
 using Auth.Infrastructure.Persistence;
+using GymnasticsPlatform.Api.Authorization;
 using GymnasticsPlatform.Api.Extensions;
 using GymnasticsPlatform.Api.Middleware;
 using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenTelemetry.Logs;
@@ -26,6 +28,9 @@ builder.Services.AddSingleton(TimeProvider.System);
 
 // Add User Tenant Service
 builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.Infrastructure.Services.UserTenantService>();
+
+// Add Role Service
+builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
 
 // Add Keycloak Admin Service
 builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>();
@@ -69,10 +74,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Register Authorization Handler
+builder.Services.AddSingleton<IAuthorizationHandler, GymnasticsPlatform.Api.Authorization.TenantRoleAuthorizationHandler>();
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminPolicy", policy =>
         policy.RequireRole("platform_admin"));
+
+    options.AddPolicy("ClubAdminPolicy", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireTenantRole(Auth.Domain.Entities.Role.ClubAdmin));
+
+    options.AddPolicy("CoachPolicy", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireTenantRole(
+                  Auth.Domain.Entities.Role.Coach,
+                  Auth.Domain.Entities.Role.ClubAdmin,
+                  Auth.Domain.Entities.Role.IndividualAdmin));
+
+    options.AddPolicy("GymnastPolicy", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireTenantRole(
+                  Auth.Domain.Entities.Role.Gymnast,
+                  Auth.Domain.Entities.Role.Coach,
+                  Auth.Domain.Entities.Role.ClubAdmin,
+                  Auth.Domain.Entities.Role.IndividualAdmin));
 });
 
 // Add Exception Handler
