@@ -84,6 +84,117 @@ analyze_commit() {
     echo ""
 }
 
+# Function to detect test patterns from existing tests
+detect_test_patterns() {
+    echo -e "${YELLOW}🔍 Detecting test patterns from codebase${NC}"
+
+    PATTERNS_FILE="$PROJECT_ROOT/qa-test-patterns.md"
+    echo "# Detected Test Patterns" > "$PATTERNS_FILE"
+    echo "" >> "$PATTERNS_FILE"
+    echo "This file contains patterns detected from existing tests in the codebase." >> "$PATTERNS_FILE"
+    echo "Use these patterns when generating new tests." >> "$PATTERNS_FILE"
+    echo "" >> "$PATTERNS_FILE"
+
+    # Backend test patterns
+    if [ "$BACKEND_CHANGED" == "true" ] || [ ${#NEW_FEATURES[@]} -gt 0 ]; then
+        echo "## Backend Tests (.NET)" >> "$PATTERNS_FILE"
+        echo "" >> "$PATTERNS_FILE"
+
+        # Find example integration test
+        EXAMPLE_TEST=$(find "$PROJECT_ROOT/tests" -name "*Tests.cs" -type f | head -n 1)
+        if [ -n "$EXAMPLE_TEST" ]; then
+            echo "**Framework:** xUnit v3 + WebApplicationFactory + Testcontainers" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+            echo "**Example test file:** \`${EXAMPLE_TEST#$PROJECT_ROOT/}\`" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+
+            # Extract key patterns
+            if grep -q "IClassFixture" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Uses \`IClassFixture<ApiFixture>\` for shared setup" >> "$PATTERNS_FILE"
+            fi
+            if grep -q "HttpClient" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Integration tests via HTTP client" >> "$PATTERNS_FILE"
+            fi
+            if grep -q "TestAuthenticationHandler" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Uses TestAuthenticationHandler with X-Test headers for auth" >> "$PATTERNS_FILE"
+            fi
+            echo "" >> "$PATTERNS_FILE"
+
+            # Show example test structure
+            echo "\`\`\`csharp" >> "$PATTERNS_FILE"
+            head -n 30 "$EXAMPLE_TEST" | grep -A 20 "\[Fact\]" | head -n 25 >> "$PATTERNS_FILE"
+            echo "\`\`\`" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+        fi
+    fi
+
+    # Frontend test patterns (User Portal)
+    if [ "$FRONTEND_USER_CHANGED" == "true" ] || [[ " ${NEW_FEATURES[@]} " =~ "frontend/user-portal" ]]; then
+        echo "## Frontend Tests (User Portal)" >> "$PATTERNS_FILE"
+        echo "" >> "$PATTERNS_FILE"
+
+        EXAMPLE_TEST=$(find "$PROJECT_ROOT/frontend/user-portal/src" -name "*.test.tsx" -type f | head -n 1)
+        if [ -n "$EXAMPLE_TEST" ]; then
+            echo "**Framework:** Vitest + React Testing Library" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+            echo "**Example test file:** \`${EXAMPLE_TEST#$PROJECT_ROOT/}\`" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+
+            # Extract patterns
+            if grep -q "vi.mock" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Uses Vitest mocks (\`vi.mock\`, \`vi.mocked\`)" >> "$PATTERNS_FILE"
+            fi
+            if grep -q "render(" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Uses React Testing Library's \`render\`" >> "$PATTERNS_FILE"
+            fi
+            if grep -q "waitFor(" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Uses \`waitFor\` for async operations" >> "$PATTERNS_FILE"
+            fi
+            if grep -q "@react-keycloak/web" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Mocks Keycloak for authentication" >> "$PATTERNS_FILE"
+            fi
+            echo "" >> "$PATTERNS_FILE"
+
+            # Show example
+            echo "\`\`\`typescript" >> "$PATTERNS_FILE"
+            head -n 50 "$EXAMPLE_TEST" | grep -B 5 -A 15 "describe(" | head -n 25 >> "$PATTERNS_FILE"
+            echo "\`\`\`" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+
+            # Check for test factories
+            if [ -f "$PROJECT_ROOT/frontend/user-portal/src/test/factories.ts" ]; then
+                echo "**Factory Pattern:** Test data factories exist at \`src/test/factories.ts\`" >> "$PATTERNS_FILE"
+                echo "" >> "$PATTERNS_FILE"
+            fi
+        fi
+    fi
+
+    # Frontend test patterns (Admin Portal)
+    if [ "$FRONTEND_ADMIN_CHANGED" == "true" ] || [[ " ${NEW_FEATURES[@]} " =~ "frontend/admin-portal" ]]; then
+        echo "## Frontend Tests (Admin Portal)" >> "$PATTERNS_FILE"
+        echo "" >> "$PATTERNS_FILE"
+
+        EXAMPLE_TEST=$(find "$PROJECT_ROOT/frontend/admin-portal/src" -name "*.test.tsx" -type f | head -n 1)
+        if [ -n "$EXAMPLE_TEST" ]; then
+            echo "**Framework:** Vitest + React Testing Library" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+            echo "**Example test file:** \`${EXAMPLE_TEST#$PROJECT_ROOT/}\`" >> "$PATTERNS_FILE"
+            echo "" >> "$PATTERNS_FILE"
+
+            # Same pattern detection as user portal
+            if grep -q "vi.mock" "$EXAMPLE_TEST"; then
+                echo "**Pattern:** Uses Vitest mocks (\`vi.mock\`, \`vi.mocked\`)" >> "$PATTERNS_FILE"
+            fi
+            echo "" >> "$PATTERNS_FILE"
+        fi
+    fi
+
+    export PATTERNS_FILE
+
+    echo -e "${GREEN}✓ Test patterns detected: $PATTERNS_FILE${NC}"
+    echo ""
+}
+
 # Function to run tests
 run_tests() {
     echo -e "${YELLOW}🧪 Running tests${NC}"
@@ -266,6 +377,16 @@ invoke_claude_for_fixes() {
     echo "You are a QA autonomous agent. Analyze the following test failures and create fixes:" > "$PROMPT_FILE"
     echo "" >> "$PROMPT_FILE"
 
+    # Include detected patterns
+    if [ -f "$PATTERNS_FILE" ]; then
+        echo "## Test Patterns to Follow" >> "$PROMPT_FILE"
+        echo "" >> "$PROMPT_FILE"
+        cat "$PATTERNS_FILE" >> "$PROMPT_FILE"
+        echo "" >> "$PROMPT_FILE"
+        echo "---" >> "$PROMPT_FILE"
+        echo "" >> "$PROMPT_FILE"
+    fi
+
     if [ "$BACKEND_TESTS_FAILED" == "true" ]; then
         echo "## Backend Test Failures" >> "$PROMPT_FILE"
         echo "" >> "$PROMPT_FILE"
@@ -324,6 +445,7 @@ main() {
     case "$MODE" in
         analyze)
             analyze_commit
+            detect_test_patterns
             run_tests
             check_missing_tests
             create_report
@@ -331,12 +453,14 @@ main() {
             ;;
         fix)
             analyze_commit
+            detect_test_patterns
             run_tests
             check_missing_tests
             invoke_claude_for_fixes
             ;;
         full)
             analyze_commit
+            detect_test_patterns
             run_tests
             check_missing_tests
             create_report

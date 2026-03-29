@@ -94,3 +94,10 @@ $RECYCLE.BIN/
 *~
 .directory
 .Trash-*
+
+# QA Agent Output
+qa-agent-report.md
+qa-test-patterns.md
+qa-agent-prompt.txt
+qa-agent-initial-message.txt
+qa-*-tests.log
