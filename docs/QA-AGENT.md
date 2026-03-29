@@ -1,34 +1,71 @@
 # QA Agent
 
-Autonomous test monitoring and fixing using Claude Code agents.
+Autonomous test quality assurance using Claude Code agents.
 
-## How It Works
+## Responsibilities
 
-After committing code, Claude spawns a QA agent that:
-1. Runs all tests (backend + frontends)
-2. If failures detected, analyzes root cause
-3. Fixes the issues automatically
-4. Creates a PR with the fixes
+The QA agent ensures comprehensive test coverage by:
 
-## No Setup Required
+1. **Fix Failing Tests** - Analyzes and repairs broken tests
+2. **Identify Test Gaps** - Finds source files without tests
+3. **Add Missing Tests** - Creates tests for untested code
+4. **Find Edge Cases** - Identifies missing edge case coverage
+5. **Add Edge Case Tests** - Tests null checks, errors, boundaries, etc.
 
-The QA agent is invoked automatically after commits. No cron jobs, no scripts, just clean event-driven flow.
+## Invocation
 
-## Example Workflow
+Automatically spawned by Claude after committing code.
 
-```
-You: "Add a new feature"
-Claude: [writes code, commits]
-Claude: [spawns QA agent automatically]
-Agent: Runs tests → finds failures → fixes them → creates PR
-You: Review PR → merge → done!
-```
+The agent will:
+- Run all tests and fix failures
+- Analyze codebase for test gaps
+- Check for missing edge cases:
+  - Null/undefined handling
+  - Empty collections
+  - Boundary values (min/max, empty strings)
+  - Error conditions (network failures, validation errors)
+  - Authentication/authorization edge cases
+  - Race conditions and idempotency
+- Create comprehensive tests to fill gaps
+- Create PR with all improvements
+
+## What Gets Tested
+
+**Backend (.NET/xUnit)**
+- Controllers/Endpoints
+- Services and business logic
+- Domain entities
+- Validators
+- Edge cases: null inputs, invalid data, authorization
+
+**Frontend (Vitest/React Testing Library)**
+- Components and user interactions
+- Hooks and state management
+- API integration (mocked)
+- Edge cases: loading states, errors, empty data
 
 ## Manual Invocation
 
-You can also ask Claude to check tests anytime:
-- "Run tests and fix any failures"
-- "Check if tests are passing"
-- "QA agent please"
+Ask Claude anytime:
+- "Run QA agent"
+- "Check test coverage and fill gaps"
+- "Find missing edge cases"
 
-Claude will spawn the agent on demand.
+## Example
+
+```
+You: "Add new feature X"
+Claude: [implements feature, commits]
+Claude: [spawns QA agent]
+
+Agent:
+  ✅ All tests passing
+  ⚠️  Found gaps:
+     - Feature X has no tests
+     - Missing error handling tests in Y
+     - No edge case for empty input in Z
+  ✅ Added 15 new tests
+  ✅ Created PR with comprehensive coverage
+
+You: Review PR → Merge → 100% coverage!
+```
