@@ -66,12 +66,46 @@ jobs:
         working-directory: tests/e2e
         run: npx playwright install --with-deps chromium
 
+      - name: Start backend server
+        run: |
+          cd src/GymnasticsPlatform.Api
+          dotnet run --no-build --configuration Release &
+          echo $! > ${{ runner.temp }}/backend.pid
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5001
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=gymnastics_test;Username=postgres;Password=postgres"
+
+      - name: Start frontend server
+        run: |
+          cd frontend/user-portal
+          npm run dev &
+          echo $! > ${{ runner.temp }}/frontend.pid
+        env:
+          VITE_API_URL: http://localhost:5001
+
+      - name: Wait for servers to be ready
+        run: |
+          echo "Waiting for backend..."
+          timeout 60 bash -c 'until curl -f http://localhost:5001/health; do sleep 2; done'
+          echo "Backend is ready!"
+
+          echo "Waiting for frontend..."
+          timeout 60 bash -c 'until curl -f http://localhost:5173; do sleep 2; done'
+          echo "Frontend is ready!"
+
       - name: Run E2E tests
         working-directory: tests/e2e
         run: npm run test:ci
         env:
           CI: true
           DATABASE_CONNECTION_STRING: "Host=localhost;Port=5432;Database=gymnastics_test;Username=postgres;Password=postgres"
+
+      - name: Stop servers
+        if: always()
+        run: |
+          kill $(cat ${{ runner.temp }}/backend.pid) 2>/dev/null || true
+          kill $(cat ${{ runner.temp }}/frontend.pid) 2>/dev/null || true
 
       - name: Upload test results
         if: always()

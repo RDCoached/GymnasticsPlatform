@@ -30,17 +30,18 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: [
+  // Only start servers automatically when running locally (not in CI)
+  webServer: process.env.CI ? undefined : [
     {
       command: 'cd ../../frontend/user-portal && npm run dev',
       url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       timeout: 120000,
     },
     {
       command: 'cd ../../src/GymnasticsPlatform.Api && dotnet run',
       url: 'http://localhost:5001/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       timeout: 120000,
     },
   ],
