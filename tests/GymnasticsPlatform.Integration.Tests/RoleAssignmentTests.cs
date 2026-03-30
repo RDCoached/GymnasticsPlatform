@@ -27,6 +27,7 @@ public sealed class RoleAssignmentTests : IClassFixture<TestWebApplicationFactor
         var client = _factory.CreateOnboardingUserClient(userId);
         var request = new { Name = "Test Club" };
 
+        // CreateClient must be called before accessing TestTenantContext
         _factory.TestTenantContext.TenantId = TenantConstants.OnboardingTenantId;
         using (var scope = _factory.Services.CreateScope())
         {
