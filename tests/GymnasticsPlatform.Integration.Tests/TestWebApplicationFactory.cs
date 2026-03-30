@@ -74,13 +74,35 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
                     TestAuthenticationHandler.AuthenticationScheme,
                     options => { });
+        });
+    }
 
-            // Ensure database is created and migrated
-            var serviceProvider = services.BuildServiceProvider();
-            using var scope = serviceProvider.CreateScope();
+    public override IServiceProvider Services
+    {
+        get
+        {
+            // Ensure database is migrated when services are first accessed
+            EnsureDatabaseMigrated();
+            return base.Services;
+        }
+    }
+
+    private bool _databaseMigrated;
+    private readonly object _migrationLock = new();
+
+    private void EnsureDatabaseMigrated()
+    {
+        if (_databaseMigrated) return;
+
+        lock (_migrationLock)
+        {
+            if (_databaseMigrated) return;
+
+            using var scope = base.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
             db.Database.Migrate();
-        });
+            _databaseMigrated = true;
+        }
     }
 
     public HttpClient CreateAuthenticatedClient(string userId, string tenantId, string email = "test@example.com", string username = "testuser")
