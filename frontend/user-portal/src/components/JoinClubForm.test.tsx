@@ -5,7 +5,7 @@ import { useKeycloak } from '@react-keycloak/web';
 
 vi.mock('@react-keycloak/web');
 
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5137';
 
 describe('JoinClubForm', () => {
   const mockOnComplete = vi.fn();
