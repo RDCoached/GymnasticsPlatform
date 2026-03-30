@@ -73,7 +73,7 @@ jobs:
           echo $! > ${{ runner.temp }}/backend.pid
         env:
           ASPNETCORE_ENVIRONMENT: Development
-          ASPNETCORE_URLS: http://localhost:5001
+          ASPNETCORE_URLS: http://localhost:5137
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=gymnastics_test;Username=postgres;Password=postgres"
 
       - name: Start frontend server
@@ -82,12 +82,12 @@ jobs:
           npm run dev &
           echo $! > ${{ runner.temp }}/frontend.pid
         env:
-          VITE_API_URL: http://localhost:5001
+          VITE_API_URL: http://localhost:5137
 
       - name: Wait for servers to be ready
         run: |
           echo "Waiting for backend..."
-          timeout 60 bash -c 'until curl -f http://localhost:5001/health; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f http://localhost:5137/health; do sleep 2; done'
           echo "Backend is ready!"
 
           echo "Waiting for frontend..."
