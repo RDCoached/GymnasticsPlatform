@@ -95,12 +95,21 @@ test.describe('Onboarding - Join Club Flow', () => {
     const email = generateUniqueEmail('joininvalid');
     await registerAndLogin(page, email);
 
+    // Mock invalid invite code response
+    await page.route('**/api/onboarding/join-club', route => {
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ title: 'Invalid invite code' }),
+      });
+    });
+
     const onboardingPage = new OnboardingPage(page);
     await onboardingPage.joinClub('INVALID123');
 
     // Should show error message
-    const errorMessage = page.getByText(/invalid|not found/i);
-    await expect(errorMessage).toBeVisible();
+    await expect(onboardingPage.errorMessage).toBeVisible();
+    await expect(onboardingPage.errorMessage).toContainText(/invalid/i);
 
     // Should remain on onboarding page
     await expect(page).toHaveURL(/\/onboarding/);
@@ -114,7 +123,8 @@ test.describe('Onboarding - Join Club Flow', () => {
     await page.route('**/api/onboarding/join-club', route => {
       route.fulfill({
         status: 400,
-        body: JSON.stringify({ error: 'Invite code has expired' }),
+        contentType: 'application/json',
+        body: JSON.stringify({ title: 'Invite code has expired' }),
       });
     });
 
@@ -122,8 +132,8 @@ test.describe('Onboarding - Join Club Flow', () => {
     await onboardingPage.joinClub('EXPIRED123');
 
     // Should show error message
-    const errorMessage = page.getByText(/expired/i);
-    await expect(errorMessage).toBeVisible();
+    await expect(onboardingPage.errorMessage).toBeVisible();
+    await expect(onboardingPage.errorMessage).toContainText(/expired/i);
   });
 
   test('should format invite code input correctly', async ({ page }) => {

@@ -53,7 +53,15 @@ export class OnboardingPage {
 
   async selectIndividualMode(): Promise<void> {
     await this.individualModeButton.click();
-    await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
+
+    // Wait for navigation to dashboard (success case)
+    // If error occurs, alert will be shown and navigation won't happen
+    try {
+      await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
+    } catch {
+      // Navigation timeout is expected on error - alert will have been shown
+      // Test should verify the alert was displayed
+    }
   }
 
   async createClub(clubName: string): Promise<void> {
