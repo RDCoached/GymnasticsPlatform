@@ -1,0 +1,191 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly Monday 2am UTC
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  dotnet-dependencies:
+    name: .NET Dependency Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Scan for vulnerable packages
+        run: |
+          echo "Scanning for vulnerable NuGet packages..."
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.txt
+
+          # Check if vulnerabilities were found
+          if grep -q "has the following vulnerable packages" vulnerable-packages.txt; then
+            echo "⚠️  Vulnerable packages detected!"
+            echo "VULNERABILITIES_FOUND=true" >> $GITHUB_ENV
+            exit 1
+          else
+            echo "✅ No vulnerable packages found"
+            echo "VULNERABILITIES_FOUND=false" >> $GITHUB_ENV
+          fi
+        continue-on-error: true
+
+      - name: Upload vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-vulnerability-report
+          path: vulnerable-packages.txt
+
+  frontend-dependencies:
+    name: Frontend Dependency Audit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [user-portal, admin-portal]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/${{ matrix.app }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend/${{ matrix.app }}
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: frontend/${{ matrix.app }}
+        run: |
+          echo "Running npm audit for ${{ matrix.app }}..."
+          npm audit --audit-level=high --json > audit-report.json || true
+
+          # Display summary
+          npm audit --audit-level=high || true
+
+          # Check for high/critical vulnerabilities
+          HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-report.json)
+          CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-report.json)
+
+          echo "High severity vulnerabilities: $HIGH_VULNS"
+          echo "Critical severity vulnerabilities: $CRITICAL_VULNS"
+
+          if [ "$HIGH_VULNS" -gt 0 ] || [ "$CRITICAL_VULNS" -gt 0 ]; then
+            echo "⚠️  High or critical vulnerabilities found in ${{ matrix.app }}"
+            exit 1
+          else
+            echo "✅ No high or critical vulnerabilities found"
+          fi
+        continue-on-error: true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-audit-report
+          path: frontend/${{ matrix.app }}/audit-report.json
+
+  trivy-scan:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'  # Don't fail the build, just report
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy scan (table output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'  # Fail if critical/high vulnerabilities found
+
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for comprehensive scan
+
+      - name: TruffleHog Secrets Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified --fail
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dotnet-dependencies, frontend-dependencies, trivy-scan, secrets-scan]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| .NET Dependencies | ${{ needs.dotnet-dependencies.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Dependencies | ${{ needs.frontend-dependencies.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Filesystem | ${{ needs.trivy-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets Detection | ${{ needs.secrets-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Determine overall status
+          if [[ "${{ needs.dotnet-dependencies.result }}" == "failure" ]] || \
+             [[ "${{ needs.frontend-dependencies.result }}" == "failure" ]] || \
+             [[ "${{ needs.trivy-scan.result }}" == "failure" ]] || \
+             [[ "${{ needs.secrets-scan.result }}" == "failure" ]]; then
+            echo "⚠️ **Security issues detected.** Please review the scan results above." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ **All security scans passed successfully.**" >> $GITHUB_STEP_SUMMARY
+          fi

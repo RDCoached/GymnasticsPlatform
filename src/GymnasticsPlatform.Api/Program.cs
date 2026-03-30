@@ -122,8 +122,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(allowedOrigins)
-            .AllowAnyMethod()
-            .AllowAnyHeader()
+            .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+            .WithHeaders("Content-Type", "Authorization", "X-Tenant-Id")
             .AllowCredentials();
     });
 });
