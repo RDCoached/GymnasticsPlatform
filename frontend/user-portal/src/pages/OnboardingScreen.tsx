@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 import { CreateClubForm } from '../components/CreateClubForm';
 import { JoinClubForm } from '../components/JoinClubForm';
 import { useKeycloak } from '@react-keycloak/web';
+import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { API_BASE_URL } from '../constants';
 
 type OnboardingMode = 'select' | 'create-club' | 'join-club';
@@ -12,6 +13,14 @@ export function OnboardingScreen() {
   const [mode, setMode] = useState<OnboardingMode>('select');
   const navigate = useNavigate();
   const { keycloak } = useKeycloak();
+  const { isOnboarding, isLoading } = useOnboardingStatus();
+
+  // Redirect to dashboard if onboarding is already complete
+  useEffect(() => {
+    if (!isLoading && !isOnboarding) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isLoading, isOnboarding, navigate]);
 
   const handleOnboardingComplete = () => {
     // Navigate to dashboard - middleware will pick up new tenant from database
@@ -54,6 +63,11 @@ export function OnboardingScreen() {
       alert('Failed to complete onboarding. Please try again.');
     }
   };
+
+  // Show loading while checking onboarding status
+  if (isLoading) {
+    return <div className="onboarding-container">Loading...</div>;
+  }
 
   if (mode === 'create-club') {
     return (

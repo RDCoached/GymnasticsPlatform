@@ -16,11 +16,13 @@ export interface OnboardingStatusResponse {
   tenantId: string;
 }
 
+const API_BASE_URL = 'http://localhost:5137';
+
 export class ApiClient {
   constructor(private readonly request: APIRequestContext) {}
 
   async register(email: string, password: string, fullName: string): Promise<void> {
-    const response = await this.request.post('http://localhost:5001/api/auth/register', {
+    const response = await this.request.post(`${API_BASE_URL}/api/auth/register`, {
       data: {
         email,
         password,
@@ -35,7 +37,7 @@ export class ApiClient {
   }
 
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await this.request.post('http://localhost:5001/api/auth/login', {
+    const response = await this.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: {
         email,
         password,
@@ -51,7 +53,7 @@ export class ApiClient {
   }
 
   async getOnboardingStatus(token: string): Promise<OnboardingStatusResponse> {
-    const response = await this.request.get('http://localhost:5001/api/onboarding/status', {
+    const response = await this.request.get(`${API_BASE_URL}/api/onboarding/status`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -66,7 +68,7 @@ export class ApiClient {
   }
 
   async createClub(token: string, clubName: string): Promise<unknown> {
-    const response = await this.request.post('http://localhost:5001/api/onboarding/create-club', {
+    const response = await this.request.post(`${API_BASE_URL}/api/onboarding/create-club`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -84,7 +86,7 @@ export class ApiClient {
   }
 
   async chooseIndividualMode(token: string): Promise<unknown> {
-    const response = await this.request.post('http://localhost:5001/api/onboarding/individual', {
+    const response = await this.request.post(`${API_BASE_URL}/api/onboarding/individual`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -99,7 +101,7 @@ export class ApiClient {
   }
 
   async joinClub(token: string, inviteCode: string): Promise<unknown> {
-    const response = await this.request.post('http://localhost:5001/api/onboarding/join-club', {
+    const response = await this.request.post(`${API_BASE_URL}/api/onboarding/join-club`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
