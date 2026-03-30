@@ -41,7 +41,7 @@ export default defineConfig({
     },
     {
       command: 'cd ../../src/GymnasticsPlatform.Api && dotnet run',
-      url: 'http://localhost:5001/health',
+      url: 'http://localhost:5137/health',
       reuseExistingServer: true,
       timeout: 120000,
     },

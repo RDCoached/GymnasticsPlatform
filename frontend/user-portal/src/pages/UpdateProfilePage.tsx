@@ -128,15 +128,18 @@ export function UpdateProfilePage() {
           <p>Update your personal information</p>
 
           {success && (
-            <div style={{
-              background: 'rgba(76, 175, 80, 0.1)',
-              border: '1px solid rgba(76, 175, 80, 0.3)',
-              color: '#4caf50',
-              padding: '0.75rem',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              textAlign: 'center'
-            }}>
+            <div
+              role="status"
+              style={{
+                background: 'rgba(76, 175, 80, 0.1)',
+                border: '1px solid rgba(76, 175, 80, 0.3)',
+                color: '#4caf50',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                textAlign: 'center'
+              }}
+            >
               Profile updated successfully! Redirecting...
             </div>
           )}
@@ -170,9 +173,9 @@ export function UpdateProfilePage() {
               />
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="error-message" role="alert">{error}</div>}
 
-            <button type="submit" disabled={isSubmitting || success} className="submit-button">
+            <button type="submit" disabled={isSubmitting || success || !fullName.trim()} className="submit-button">
               {isSubmitting ? 'Updating...' : success ? 'Updated!' : 'Update Profile'}
             </button>
           </form>

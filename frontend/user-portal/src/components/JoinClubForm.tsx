@@ -82,9 +82,9 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
           />
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
 
-        <button type="submit" disabled={isSubmitting} className="submit-button">
+        <button type="submit" disabled={isSubmitting || !inviteCode.trim()} className="submit-button">
           {isSubmitting ? 'Joining Club...' : 'Join Club'}
         </button>
       </form>

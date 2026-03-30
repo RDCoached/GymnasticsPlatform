@@ -25,6 +25,12 @@ export class SignInPage {
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
     await this.signInButton.click();
+
+    // Wait for either successful navigation to onboarding/dashboard or error message
+    await Promise.race([
+      this.page.waitForURL(/\/(onboarding|dashboard)/, { timeout: 10000 }),
+      this.errorMessage.waitFor({ state: 'visible', timeout: 10000 })
+    ]);
   }
 
   async navigateToRegister(): Promise<void> {

@@ -3,6 +3,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { SignInPage } from '../pages/SignInPage';
 import { OnboardingPage } from '../pages/OnboardingPage';
 import { DashboardPage } from '../pages/DashboardPage';
+import { ProfilePage } from '../pages/ProfilePage';
 import { generateUniqueEmail } from '../helpers/test-data';
 
 test.describe('User Profile Management', () => {
@@ -20,8 +21,9 @@ test.describe('User Profile Management', () => {
     await expect(page).toHaveURL(/\/profile/);
 
     // Should display user information
-    await expect(page.getByText(fullName)).toBeVisible();
-    await expect(page.getByText(email)).toBeVisible();
+    const profilePage = new ProfilePage(page);
+    await expect(profilePage.nameInput).toHaveValue(fullName);
+    await expect(profilePage.emailInput).toHaveValue(email);
   });
 
   test('should allow updating profile information', async ({ page }) => {
@@ -33,20 +35,11 @@ test.describe('User Profile Management', () => {
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.navigateToProfile();
 
-    // Find and update name field
-    const nameInput = page.getByLabel(/name/i);
-    await expect(nameInput).toBeVisible();
-
-    await nameInput.clear();
-    await nameInput.fill('Updated Name');
-
-    // Submit form
-    const updateButton = page.getByRole('button', { name: /update|save/i });
-    await updateButton.click();
+    const profilePage = new ProfilePage(page);
+    await profilePage.updateProfile('Updated Name');
 
     // Should show success message
-    const successMessage = page.getByText(/updated|saved successfully/i);
-    await expect(successMessage).toBeVisible();
+    await expect(profilePage.successMessage).toBeVisible();
   });
 
   test('should validate profile update form', async ({ page }) => {
@@ -58,17 +51,13 @@ test.describe('User Profile Management', () => {
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.navigateToProfile();
 
+    const profilePage = new ProfilePage(page);
+
     // Clear required field
-    const nameInput = page.getByLabel(/name/i);
-    await nameInput.clear();
+    await profilePage.nameInput.clear();
 
-    // Try to submit
-    const updateButton = page.getByRole('button', { name: /update|save/i });
-    await updateButton.click();
-
-    // Should show validation error
-    const errorMessage = page.getByText(/required/i);
-    await expect(errorMessage).toBeVisible();
+    // Button should be disabled when field is empty
+    await expect(profilePage.updateButton).toBeDisabled();
   });
 
   test('should handle profile update errors gracefully', async ({ page }) => {
@@ -81,22 +70,20 @@ test.describe('User Profile Management', () => {
     await dashboardPage.navigateToProfile();
 
     // Mock error response
-    await page.route('**/api/profile/**', route => {
+    await page.route('**/api/profile', route => {
       route.fulfill({
         status: 500,
-        body: JSON.stringify({ error: 'Internal server error' }),
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Internal server error' }),
       });
     });
 
-    const nameInput = page.getByLabel(/name/i);
-    await nameInput.fill('New Name');
-
-    const updateButton = page.getByRole('button', { name: /update|save/i });
-    await updateButton.click();
+    const profilePage = new ProfilePage(page);
+    await profilePage.nameInput.fill('New Name');
+    await profilePage.updateButton.click();
 
     // Should show error message
-    const errorMessage = page.getByText(/failed|error/i);
-    await expect(errorMessage).toBeVisible();
+    await expect(profilePage.errorMessage).toBeVisible();
   });
 
   test('should navigate back to dashboard from profile', async ({ page }) => {
@@ -110,13 +97,8 @@ test.describe('User Profile Management', () => {
 
     await expect(page).toHaveURL(/\/profile/);
 
-    // Navigate back to dashboard
-    const backButton = page.getByRole('link', { name: /dashboard|back/i });
-    if (await backButton.isVisible()) {
-      await backButton.click();
-    } else {
-      await page.goto('/dashboard');
-    }
+    const profilePage = new ProfilePage(page);
+    await profilePage.goBackToDashboard();
 
     await expect(page).toHaveURL(/\/dashboard/);
   });

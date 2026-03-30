@@ -82,15 +82,8 @@ test.describe('Onboarding - Create Club Flow', () => {
     const onboardingPage = new OnboardingPage(page);
     await onboardingPage.selectCreateClub();
 
-    // Try to submit without club name
-    await onboardingPage.createClubSubmitButton.click();
-
-    // Should show validation error
-    const errorMessage = page.getByText(/required/i);
-    await expect(errorMessage).toBeVisible();
-
-    // Should not navigate away
-    await expect(page).toHaveURL(/\/onboarding/);
+    // Button should be disabled when field is empty
+    await expect(onboardingPage.createClubSubmitButton).toBeDisabled();
   });
 
   test('should prevent duplicate club creation', async ({ page }) => {

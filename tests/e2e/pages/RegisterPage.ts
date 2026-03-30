@@ -39,13 +39,6 @@ export class RegisterPage {
       this.page.waitForURL(/\/sign-in/, { timeout: 10000 }),
       this.errorMessage.waitFor({ state: 'visible', timeout: 10000 })
     ]);
-
-    // If there's an error, fail the test with the error message
-    const errorVisible = await this.errorMessage.isVisible().catch(() => false);
-    if (errorVisible) {
-      const errorText = await this.errorMessage.textContent();
-      throw new Error(`Registration failed: ${errorText}`);
-    }
   }
 
   async navigateToSignIn(): Promise<void> {

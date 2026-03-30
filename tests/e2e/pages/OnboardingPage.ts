@@ -16,6 +16,9 @@ export class OnboardingPage {
   readonly inviteCodeInput: Locator;
   readonly joinClubSubmitButton: Locator;
 
+  // Error message
+  readonly errorMessage: Locator;
+
   constructor(page: Page) {
     this.page = page;
     this.heading = page.getByRole('heading', { name: /welcome to gymnastics platform/i });
@@ -31,6 +34,9 @@ export class OnboardingPage {
     // Join Club Form fields
     this.inviteCodeInput = page.getByLabel(/invite code/i);
     this.joinClubSubmitButton = page.getByRole('button', { name: /join/i });
+
+    // Error message
+    this.errorMessage = page.getByRole('alert');
   }
 
   async goto(): Promise<void> {
@@ -54,14 +60,24 @@ export class OnboardingPage {
     await this.selectCreateClub();
     await this.clubNameInput.fill(clubName);
     await this.createClubSubmitButton.click();
-    await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
+
+    // Wait for either successful navigation to dashboard or error message
+    await Promise.race([
+      this.page.waitForURL(/\/dashboard/, { timeout: 10000 }),
+      this.errorMessage.waitFor({ state: 'visible', timeout: 10000 })
+    ]);
   }
 
   async joinClub(inviteCode: string): Promise<void> {
     await this.selectJoinClub();
     await this.inviteCodeInput.fill(inviteCode);
     await this.joinClubSubmitButton.click();
-    await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
+
+    // Wait for either successful navigation to dashboard or error message
+    await Promise.race([
+      this.page.waitForURL(/\/dashboard/, { timeout: 10000 }),
+      this.errorMessage.waitFor({ state: 'visible', timeout: 10000 })
+    ]);
   }
 
   async goBack(): Promise<void> {

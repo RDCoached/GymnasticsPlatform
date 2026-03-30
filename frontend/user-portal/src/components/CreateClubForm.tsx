@@ -88,9 +88,9 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
           />
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
 
-        <button type="submit" disabled={isSubmitting} className="submit-button">
+        <button type="submit" disabled={isSubmitting || !clubName.trim()} className="submit-button">
           {isSubmitting ? 'Creating Club...' : 'Create Club'}
         </button>
       </form>

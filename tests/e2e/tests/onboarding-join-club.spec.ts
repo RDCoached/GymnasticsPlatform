@@ -87,15 +87,8 @@ test.describe('Onboarding - Join Club Flow', () => {
     const onboardingPage = new OnboardingPage(page);
     await onboardingPage.selectJoinClub();
 
-    // Try to submit without invite code
-    await onboardingPage.joinClubSubmitButton.click();
-
-    // Should show validation error
-    const errorMessage = page.getByText(/required/i);
-    await expect(errorMessage).toBeVisible();
-
-    // Should not navigate away
-    await expect(page).toHaveURL(/\/onboarding/);
+    // Button should be disabled when field is empty
+    await expect(onboardingPage.joinClubSubmitButton).toBeDisabled();
   });
 
   test('should handle invalid invite code gracefully', async ({ page }) => {
