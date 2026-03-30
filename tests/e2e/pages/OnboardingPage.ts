@@ -47,18 +47,21 @@ export class OnboardingPage {
 
   async selectIndividualMode(): Promise<void> {
     await this.individualModeButton.click();
+    await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
   }
 
   async createClub(clubName: string): Promise<void> {
     await this.selectCreateClub();
     await this.clubNameInput.fill(clubName);
     await this.createClubSubmitButton.click();
+    await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
   }
 
   async joinClub(inviteCode: string): Promise<void> {
     await this.selectJoinClub();
     await this.inviteCodeInput.fill(inviteCode);
     await this.joinClubSubmitButton.click();
+    await this.page.waitForURL(/\/dashboard/, { timeout: 10000 });
   }
 
   async goBack(): Promise<void> {

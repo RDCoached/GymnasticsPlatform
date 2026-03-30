@@ -9,8 +9,8 @@ export class DashboardPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.heading = page.getByRole('heading', { name: /dashboard/i });
-    this.profileLink = page.getByRole('link', { name: /profile/i });
+    this.heading = page.getByRole('heading', { name: /Gymnastics Platform - User Portal/i });
+    this.profileLink = page.getByRole('button', { name: /update profile/i });
     this.clubInvitesLink = page.getByRole('link', { name: /club invites/i });
     this.welcomeMessage = page.getByText(/welcome/i);
   }

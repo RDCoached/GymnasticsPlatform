@@ -33,7 +33,10 @@ builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.In
 builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
 
 // Add Keycloak Admin Service
-builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>();
+builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(2);
+});
 
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>

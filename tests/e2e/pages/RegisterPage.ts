@@ -33,6 +33,19 @@ export class RegisterPage {
     await this.confirmPasswordInput.fill(password);
     await this.fullNameInput.fill(fullName);
     await this.registerButton.click();
+
+    // Wait for either successful navigation to sign-in or error message
+    await Promise.race([
+      this.page.waitForURL(/\/sign-in/, { timeout: 10000 }),
+      this.errorMessage.waitFor({ state: 'visible', timeout: 10000 })
+    ]);
+
+    // If there's an error, fail the test with the error message
+    const errorVisible = await this.errorMessage.isVisible().catch(() => false);
+    if (errorVisible) {
+      const errorText = await this.errorMessage.textContent();
+      throw new Error(`Registration failed: ${errorText}`);
+    }
   }
 
   async navigateToSignIn(): Promise<void> {
