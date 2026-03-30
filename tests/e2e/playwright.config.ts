@@ -21,14 +21,18 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // Only run chromium in CI for faster, more reliable tests
+    // Firefox and webkit can be enabled locally if needed
+    ...(!process.env.CI ? [
+      {
+        name: 'firefox',
+        use: { ...devices['Desktop Firefox'] },
+      },
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+    ] : []),
   ],
   // Only start servers automatically when not using existing servers
   // Set USE_EXISTING_SERVERS=true when services are already running

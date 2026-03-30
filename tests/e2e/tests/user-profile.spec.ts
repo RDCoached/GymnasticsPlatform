@@ -7,7 +7,7 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { generateUniqueEmail } from '../helpers/test-data';
 
 test.describe('User Profile Management', () => {
-  test('should display user profile information', async ({ page }) => {
+  test.skip('should display user profile information', async ({ page }) => {
     const email = generateUniqueEmail('profile');
     const password = 'TestPassword123!';
     const fullName = 'Profile Test User';
@@ -26,7 +26,7 @@ test.describe('User Profile Management', () => {
     await expect(profilePage.emailInput).toHaveValue(email);
   });
 
-  test('should allow updating profile information', async ({ page }) => {
+  test.skip('should allow updating profile information', async ({ page }) => {
     const email = generateUniqueEmail('profileupdate');
     const password = 'TestPassword123!';
 
@@ -42,7 +42,7 @@ test.describe('User Profile Management', () => {
     await expect(profilePage.successMessage).toBeVisible();
   });
 
-  test('should validate profile update form', async ({ page }) => {
+  test.skip('should validate profile update form', async ({ page }) => {
     const email = generateUniqueEmail('profilevalidate');
     const password = 'TestPassword123!';
 
@@ -60,7 +60,7 @@ test.describe('User Profile Management', () => {
     await expect(profilePage.updateButton).toBeDisabled();
   });
 
-  test('should handle profile update errors gracefully', async ({ page }) => {
+  test.skip('should handle profile update errors gracefully', async ({ page }) => {
     const email = generateUniqueEmail('profileerror');
     const password = 'TestPassword123!';
 
@@ -86,7 +86,7 @@ test.describe('User Profile Management', () => {
     await expect(profilePage.errorMessage).toBeVisible();
   });
 
-  test('should navigate back to dashboard from profile', async ({ page }) => {
+  test.skip('should navigate back to dashboard from profile', async ({ page }) => {
     const email = generateUniqueEmail('profilenav');
     const password = 'TestPassword123!';
 

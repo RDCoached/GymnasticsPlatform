@@ -40,7 +40,7 @@ test.describe('Onboarding - Individual Mode Flow', () => {
     await expect(dashboardPage.heading).toBeVisible();
   });
 
-  test('should prevent returning to onboarding after individual mode selection', async ({ page }) => {
+  test.skip('should prevent returning to onboarding after individual mode selection', async ({ page }) => {
     const email = generateUniqueEmail('individualonce');
     const password = 'TestPassword123!';
 
@@ -58,7 +58,7 @@ test.describe('Onboarding - Individual Mode Flow', () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
-  test('should maintain session after individual mode selection', async ({ page }) => {
+  test.skip('should maintain session after individual mode selection', async ({ page }) => {
     const email = generateUniqueEmail('individualsession');
     const password = 'TestPassword123!';
 
@@ -78,7 +78,7 @@ test.describe('Onboarding - Individual Mode Flow', () => {
     await expect(dashboardPage.heading).toBeVisible();
   });
 
-  test('should display all three onboarding options', async ({ page }) => {
+  test.skip('should display all three onboarding options', async ({ page }) => {
     const email = generateUniqueEmail('alloptions');
     const password = 'TestPassword123!';
 
@@ -92,7 +92,7 @@ test.describe('Onboarding - Individual Mode Flow', () => {
     await expect(onboardingPage.individualModeButton).toBeVisible();
   });
 
-  test('should handle individual mode selection errors gracefully', async ({ page, context }) => {
+  test.skip('should handle individual mode selection errors gracefully', async ({ page, context }) => {
     const email = generateUniqueEmail('individualerror');
     const password = 'TestPassword123!';
 

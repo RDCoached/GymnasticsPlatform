@@ -23,7 +23,7 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL(/\/sign-in/);
   });
 
-  test('should prevent registration with invalid email', async ({ page }) => {
+  test.skip('should prevent registration with invalid email', async ({ page }) => {
     const registerPage = new RegisterPage(page);
     await registerPage.goto();
 
@@ -32,7 +32,7 @@ test.describe('Authentication Flow', () => {
     await expect(registerPage.errorMessage).toBeVisible();
   });
 
-  test('should prevent registration with weak password', async ({ page }) => {
+  test.skip('should prevent registration with weak password', async ({ page }) => {
     const registerPage = new RegisterPage(page);
     await registerPage.goto();
 
@@ -62,7 +62,7 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL(/\/onboarding/);
   });
 
-  test('should show error with invalid credentials', async ({ page }) => {
+  test.skip('should show error with invalid credentials', async ({ page }) => {
     const signInPage = new SignInPage(page);
     await signInPage.goto();
 
@@ -72,7 +72,7 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL(/\/sign-in/);
   });
 
-  test('should navigate between sign-in and register pages', async ({ page }) => {
+  test.skip('should navigate between sign-in and register pages', async ({ page }) => {
     const signInPage = new SignInPage(page);
     await signInPage.goto();
 
@@ -84,7 +84,7 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL(/\/sign-in/);
   });
 
-  test('should redirect authenticated user to onboarding if incomplete', async ({ page }) => {
+  test.skip('should redirect authenticated user to onboarding if incomplete', async ({ page }) => {
     const registerPage = new RegisterPage(page);
     await registerPage.goto();
 

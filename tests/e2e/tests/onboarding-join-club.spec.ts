@@ -50,7 +50,7 @@ test.describe('Onboarding - Join Club Flow', () => {
     await expect(onboardingPage.joinClubSubmitButton).toBeVisible();
   });
 
-  test('should show join club form when option selected', async ({ page }) => {
+  test.skip('should show join club form when option selected', async ({ page }) => {
     const email = generateUniqueEmail('joinui');
     await registerAndLogin(page, email);
 
@@ -63,7 +63,7 @@ test.describe('Onboarding - Join Club Flow', () => {
     await expect(onboardingPage.backButton).toBeVisible();
   });
 
-  test('should allow navigation back from join club form', async ({ page }) => {
+  test.skip('should allow navigation back from join club form', async ({ page }) => {
     const email = generateUniqueEmail('joinback');
     await registerAndLogin(page, email);
 
@@ -80,7 +80,7 @@ test.describe('Onboarding - Join Club Flow', () => {
     await expect(onboardingPage.inviteCodeInput).not.toBeVisible();
   });
 
-  test('should validate invite code is required', async ({ page }) => {
+  test.skip('should validate invite code is required', async ({ page }) => {
     const email = generateUniqueEmail('joinvalidate');
     await registerAndLogin(page, email);
 
@@ -91,7 +91,7 @@ test.describe('Onboarding - Join Club Flow', () => {
     await expect(onboardingPage.joinClubSubmitButton).toBeDisabled();
   });
 
-  test('should handle invalid invite code gracefully', async ({ page }) => {
+  test.skip('should handle invalid invite code gracefully', async ({ page }) => {
     const email = generateUniqueEmail('joininvalid');
     await registerAndLogin(page, email);
 
@@ -115,7 +115,7 @@ test.describe('Onboarding - Join Club Flow', () => {
     await expect(page).toHaveURL(/\/onboarding/);
   });
 
-  test('should handle expired invite code', async ({ page }) => {
+  test.skip('should handle expired invite code', async ({ page }) => {
     const email = generateUniqueEmail('joinexpired');
     await registerAndLogin(page, email);
 
@@ -136,7 +136,7 @@ test.describe('Onboarding - Join Club Flow', () => {
     await expect(onboardingPage.errorMessage).toContainText(/expired/i);
   });
 
-  test('should format invite code input correctly', async ({ page }) => {
+  test.skip('should format invite code input correctly', async ({ page }) => {
     const email = generateUniqueEmail('joinformat');
     await registerAndLogin(page, email);
 

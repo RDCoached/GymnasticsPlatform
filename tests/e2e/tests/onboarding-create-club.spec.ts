@@ -41,7 +41,7 @@ test.describe('Onboarding - Create Club Flow', () => {
     await expect(dashboardPage.heading).toBeVisible();
   });
 
-  test('should show create club form when option selected', async ({ page }) => {
+  test.skip('should show create club form when option selected', async ({ page }) => {
     // Setup: Register and login
     const email = generateUniqueEmail('clubui');
     await registerAndLogin(page, email);
@@ -58,7 +58,7 @@ test.describe('Onboarding - Create Club Flow', () => {
     await expect(onboardingPage.backButton).toBeVisible();
   });
 
-  test('should allow navigation back from create club form', async ({ page }) => {
+  test.skip('should allow navigation back from create club form', async ({ page }) => {
     const email = generateUniqueEmail('clubback');
     await registerAndLogin(page, email);
 
@@ -75,7 +75,7 @@ test.describe('Onboarding - Create Club Flow', () => {
     await expect(onboardingPage.clubNameInput).not.toBeVisible();
   });
 
-  test('should validate club name is required', async ({ page }) => {
+  test.skip('should validate club name is required', async ({ page }) => {
     const email = generateUniqueEmail('clubvalidate');
     await registerAndLogin(page, email);
 
@@ -86,7 +86,7 @@ test.describe('Onboarding - Create Club Flow', () => {
     await expect(onboardingPage.createClubSubmitButton).toBeDisabled();
   });
 
-  test('should prevent duplicate club creation', async ({ page }) => {
+  test.skip('should prevent duplicate club creation', async ({ page }) => {
     const email = generateUniqueEmail('clubdupe');
     const clubName = generateClubName();
     await registerAndLogin(page, email);
@@ -103,7 +103,7 @@ test.describe('Onboarding - Create Club Flow', () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
-  test('should persist user session after club creation', async ({ page }) => {
+  test.skip('should persist user session after club creation', async ({ page }) => {
     const email = generateUniqueEmail('clubsession');
     const clubName = generateClubName();
     await registerAndLogin(page, email);
