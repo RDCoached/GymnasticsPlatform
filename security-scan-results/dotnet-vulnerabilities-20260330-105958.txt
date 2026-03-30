@@ -1,0 +1,21 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+
+The following sources were used:
+   https://api.nuget.org/v3/index.json
+
+The given project `GymnasticsPlatform.Api` has no vulnerable packages given the current sources.
+The given project `Common.Contracts` has no vulnerable packages given the current sources.
+The given project `Common.Core` has no vulnerable packages given the current sources.
+The given project `Auth.Api` has no vulnerable packages given the current sources.
+The given project `Auth.Application` has no vulnerable packages given the current sources.
+The given project `Auth.Domain` has no vulnerable packages given the current sources.
+The given project `Auth.Infrastructure` has no vulnerable packages given the current sources.
+The given project `Sessions.Api` has no vulnerable packages given the current sources.
+The given project `Sessions.Application` has no vulnerable packages given the current sources.
+The given project `Sessions.Domain` has no vulnerable packages given the current sources.
+The given project `Sessions.Infrastructure` has no vulnerable packages given the current sources.
+The given project `Auth.Domain.Tests` has no vulnerable packages given the current sources.
+The given project `Auth.Infrastructure.Tests` has no vulnerable packages given the current sources.
+The given project `Common.Core.Tests` has no vulnerable packages given the current sources.
+The given project `GymnasticsPlatform.Integration.Tests` has no vulnerable packages given the current sources.
