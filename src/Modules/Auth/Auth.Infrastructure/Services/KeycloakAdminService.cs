@@ -49,11 +49,16 @@ public sealed class KeycloakAdminService : IKeycloakAdminService
             var firstName = nameParts[0];
             var lastName = nameParts.Length > 1 ? nameParts[1] : "";
 
+            // In development, auto-verify emails to simplify testing
+            var isDevelopment = _configuration["ASPNETCORE_ENVIRONMENT"] == "Development";
+            var emailVerified = isDevelopment;
+            var requiredActions = isDevelopment ? Array.Empty<string>() : new[] { "VERIFY_EMAIL" };
+
             var userPayload = new
             {
                 username = email,
                 email = email,
-                emailVerified = false,
+                emailVerified = emailVerified,
                 enabled = true,
                 firstName = firstName,
                 lastName = lastName,
@@ -70,7 +75,7 @@ public sealed class KeycloakAdminService : IKeycloakAdminService
                         temporary = false
                     }
                 },
-                requiredActions = new[] { "VERIFY_EMAIL" }
+                requiredActions = requiredActions
             };
 
             var request = new HttpRequestMessage(HttpMethod.Post, userUrl)

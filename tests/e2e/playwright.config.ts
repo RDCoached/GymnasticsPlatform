@@ -30,8 +30,9 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  // Only start servers automatically when running locally (not in CI)
-  webServer: process.env.CI ? undefined : [
+  // Only start servers automatically when not using existing servers
+  // Set USE_EXISTING_SERVERS=true when services are already running
+  webServer: process.env.CI || process.env.USE_EXISTING_SERVERS ? undefined : [
     {
       command: 'cd ../../frontend/user-portal && npm run dev',
       url: 'http://localhost:5173',
