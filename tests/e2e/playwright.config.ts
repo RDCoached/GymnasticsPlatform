@@ -34,9 +34,22 @@ export default defineConfig({
       },
     ] : []),
   ],
-  // Only start servers automatically when not using existing servers
-  // Set USE_EXISTING_SERVERS=true when services are already running
-  webServer: process.env.CI || process.env.USE_EXISTING_SERVERS ? undefined : [
+  // In CI, the workflow starts servers manually, but we still need Playwright
+  // to wait for them to be accessible from the browser process
+  webServer: process.env.CI ? [
+    {
+      command: 'echo "Frontend server should already be running"',
+      url: 'http://localhost:5173',
+      reuseExistingServer: true,
+      timeout: 120000,
+    },
+    {
+      command: 'echo "Backend server should already be running"',
+      url: 'http://localhost:5137/health',
+      reuseExistingServer: true,
+      timeout: 120000,
+    },
+  ] : (process.env.USE_EXISTING_SERVERS ? undefined : [
     {
       command: 'cd ../../frontend/user-portal && npm run dev',
       url: 'http://localhost:5173',
@@ -49,5 +62,5 @@ export default defineConfig({
       reuseExistingServer: true,
       timeout: 120000,
     },
-  ],
+  ]),
 });
