@@ -81,14 +81,16 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     {
         get
         {
-            // Ensure database is migrated when services are first accessed
             EnsureDatabaseMigrated();
+            EnsureTenantContextInitialized();
             return base.Services;
         }
     }
 
     private bool _databaseMigrated;
+    private bool _tenantContextInitialized;
     private readonly object _migrationLock = new();
+    private readonly object _tenantContextLock = new();
 
     private void EnsureDatabaseMigrated()
     {
@@ -105,14 +107,41 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         }
     }
 
+    private void EnsureTenantContextInitialized()
+    {
+        if (_tenantContextInitialized) return;
+
+        lock (_tenantContextLock)
+        {
+            if (_tenantContextInitialized) return;
+
+            // Force ITenantContext singleton to be resolved, which initializes _testTenantContext
+            using var scope = base.Services.CreateScope();
+            _ = scope.ServiceProvider.GetRequiredService<ITenantContext>();
+            _tenantContextInitialized = true;
+        }
+    }
+
     public HttpClient CreateAuthenticatedClient(string userId, string tenantId, string email = "test@example.com", string username = "testuser")
     {
+        // Ensure database is migrated and services are initialized
+        EnsureDatabaseMigrated();
+        EnsureTenantContextInitialized();
+
         var client = CreateClient();
         client.DefaultRequestHeaders.Add("X-Test-User-Id", userId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", tenantId);
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", username);
         return client;
+    }
+
+    public new HttpClient CreateClient(WebApplicationFactoryClientOptions? options = null)
+    {
+        // Ensure database is migrated and tenant context initialized before creating client
+        EnsureDatabaseMigrated();
+        EnsureTenantContextInitialized();
+        return base.CreateClient(options ?? new WebApplicationFactoryClientOptions());
     }
 
     public HttpClient CreateAuthenticatedUserClient(string userId, Guid tenantId)
