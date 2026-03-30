@@ -50,6 +50,11 @@ jobs:
       - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
+      - name: Run database migrations
+        run: dotnet ef database update --project src/Modules/Auth/Auth.Infrastructure --startup-project src/GymnasticsPlatform.Api
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=gymnastics_test;Username=postgres;Password=postgres"
+
       - name: Install frontend dependencies
         working-directory: frontend/user-portal
         run: npm ci
