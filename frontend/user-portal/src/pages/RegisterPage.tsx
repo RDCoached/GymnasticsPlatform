@@ -10,7 +10,6 @@ export function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -47,39 +46,13 @@ export function RegisterPage() {
 
     try {
       await apiClient.register({ email, password, fullName });
-      setSuccess(true);
+      navigate('/sign-in');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="onboarding-container">
-        <div className="form-container success-container">
-          <h2>Registration Successful!</h2>
-          <p className="success-message">
-            Please check your email to verify your account before signing in.
-          </p>
-          <p className="dev-hint">
-            (In development, check MailHog at{' '}
-            <a href="http://localhost:8025" target="_blank" rel="noopener noreferrer" className="accent-link">
-              http://localhost:8025
-            </a>
-            )
-          </p>
-          <button
-            onClick={() => navigate('/sign-in')}
-            className="submit-button"
-          >
-            Go to Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="onboarding-container">
@@ -89,9 +62,9 @@ export function RegisterPage() {
       </div>
 
       <div className="form-container">
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label htmlFor="fullName">Full Name</label>
             <input

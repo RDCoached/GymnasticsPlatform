@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api-client';
 import keycloak from '../keycloak';
 
@@ -8,7 +8,6 @@ interface SignInPageProps {
 }
 
 export function SignInPage({ onLoginSuccess }: SignInPageProps) {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,12 +25,6 @@ export function SignInPage({ onLoginSuccess }: SignInPageProps) {
         refreshToken: response.refreshToken,
         user: response.user,
       });
-
-      if (!response.user.onboardingCompleted) {
-        navigate('/onboarding');
-      } else {
-        navigate('/dashboard');
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -47,7 +40,7 @@ export function SignInPage({ onLoginSuccess }: SignInPageProps) {
       </div>
 
       <div className="form-container">
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

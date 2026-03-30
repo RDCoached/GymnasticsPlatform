@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ReactKeycloakProvider, useKeycloak } from '@react-keycloak/web';
 import keycloak from './keycloak';
 import { OnboardingGuard } from './components/OnboardingGuard';
@@ -19,6 +19,67 @@ interface AuthState {
     fullName: string;
     onboardingCompleted: boolean;
   } | null;
+}
+
+function RoutesComponent({
+  isAuthenticated,
+  handleLoginSuccess
+}: {
+  isAuthenticated: boolean;
+  handleLoginSuccess: (tokens: { accessToken: string; refreshToken: string; user: { email: string; fullName: string; onboardingCompleted: boolean } }) => void;
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isAuthenticated && (location.pathname === '/sign-in' || location.pathname === '/register')) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
+
+  return (
+    <Routes>
+        {!isAuthenticated ? (
+          <>
+            <Route path="/sign-in" element={<SignInPage onLoginSuccess={handleLoginSuccess} />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="*" element={<Navigate to="/sign-in" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/onboarding" element={<OnboardingScreen />} />
+            <Route
+              path="/dashboard"
+              element={
+                <OnboardingGuard>
+                  <Dashboard />
+                </OnboardingGuard>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <OnboardingGuard>
+                  <UpdateProfilePage />
+                </OnboardingGuard>
+              }
+            />
+            <Route
+              path="/club/invites"
+              element={
+                <OnboardingGuard>
+                  <ClubInvitesPage />
+                </OnboardingGuard>
+              }
+            />
+            <Route path="/sign-in" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </>
+        )}
+      </Routes>
+  );
 }
 
 function AppContent() {
@@ -44,52 +105,11 @@ function AppContent() {
     return <div>Loading...</div>;
   }
 
-  // Check if authenticated via Keycloak (Google OAuth) or localStorage (email/password)
   const isAuthenticated = keycloakInstance.authenticated || (authState.accessToken && authState.user);
-
-  if (!isAuthenticated) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/sign-in" element={<SignInPage onLoginSuccess={handleLoginSuccess} />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="*" element={<Navigate to="/sign-in" replace />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/onboarding" element={<OnboardingScreen />} />
-        <Route
-          path="/dashboard"
-          element={
-            <OnboardingGuard>
-              <Dashboard />
-            </OnboardingGuard>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <OnboardingGuard>
-              <UpdateProfilePage />
-            </OnboardingGuard>
-          }
-        />
-        <Route
-          path="/club/invites"
-          element={
-            <OnboardingGuard>
-              <ClubInvitesPage />
-            </OnboardingGuard>
-          }
-        />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+      <RoutesComponent isAuthenticated={isAuthenticated} handleLoginSuccess={handleLoginSuccess} />
     </BrowserRouter>
   );
 }

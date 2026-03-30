@@ -20,7 +20,6 @@ test.describe('Authentication Flow', () => {
 
     await registerPage.register(email, password, fullName);
 
-    await expect(registerPage.successMessage).toBeVisible();
     await expect(page).toHaveURL(/\/sign-in/);
   });
 
