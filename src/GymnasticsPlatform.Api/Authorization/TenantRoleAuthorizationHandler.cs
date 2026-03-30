@@ -6,17 +6,14 @@ namespace GymnasticsPlatform.Api.Authorization;
 
 public sealed class TenantRoleAuthorizationHandler : AuthorizationHandler<RoleRequirement>
 {
-    private readonly IRoleService _roleService;
-    private readonly ITenantContext _tenantContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<TenantRoleAuthorizationHandler> _logger;
 
     public TenantRoleAuthorizationHandler(
-        IRoleService roleService,
-        ITenantContext tenantContext,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<TenantRoleAuthorizationHandler> logger)
     {
-        _roleService = roleService;
-        _tenantContext = tenantContext;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -24,6 +21,17 @@ public sealed class TenantRoleAuthorizationHandler : AuthorizationHandler<RoleRe
         AuthorizationHandlerContext context,
         RoleRequirement requirement)
     {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
+        {
+            _logger.LogWarning("Authorization failed: No HttpContext available");
+            context.Fail();
+            return;
+        }
+
+        var roleService = httpContext.RequestServices.GetRequiredService<IRoleService>();
+        var tenantContext = httpContext.RequestServices.GetRequiredService<ITenantContext>();
+
         var userId = context.User.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(userId))
         {
@@ -32,7 +40,7 @@ public sealed class TenantRoleAuthorizationHandler : AuthorizationHandler<RoleRe
             return;
         }
 
-        var tenantId = _tenantContext.TenantId;
+        var tenantId = tenantContext.TenantId;
         if (tenantId is null)
         {
             _logger.LogWarning("Authorization failed: No tenant context available for user {UserId}", userId);
@@ -42,7 +50,7 @@ public sealed class TenantRoleAuthorizationHandler : AuthorizationHandler<RoleRe
 
         try
         {
-            var hasAnyRole = await _roleService.HasAnyRoleAsync(
+            var hasAnyRole = await roleService.HasAnyRoleAsync(
                 tenantId.Value,
                 userId,
                 requirement.Roles,
