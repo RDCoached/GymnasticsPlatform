@@ -29,17 +29,17 @@ describe('JoinClubForm', () => {
     expect(screen.getByRole('button', { name: /join club/i })).toBeInTheDocument();
   });
 
-  it('should show validation error when submitting whitespace-only invite code', async () => {
+  it('should disable button when invite code is whitespace-only', async () => {
     render(<JoinClubForm onComplete={mockOnComplete} />);
 
     const input = screen.getByLabelText(/invite code/i);
     const submitButton = screen.getByRole('button', { name: /join club/i });
 
+    // Button should be disabled when field contains only whitespace
     fireEvent.change(input, { target: { value: '   ' } });
-    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Invite code is required')).toBeInTheDocument();
+      expect(submitButton).toBeDisabled();
     });
 
     expect(global.fetch).not.toHaveBeenCalled();

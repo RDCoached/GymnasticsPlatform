@@ -87,7 +87,7 @@ export function ClubInvitesPage() {
       await navigator.clipboard.writeText(code);
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
-    } catch (err) {
+    } catch {
       setError('Failed to copy invite code');
     }
   };

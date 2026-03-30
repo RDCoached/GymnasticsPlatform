@@ -108,7 +108,7 @@ describe('UpdateProfilePage', () => {
     expect(screen.getByDisplayValue('Updated Name')).toBeInTheDocument();
   });
 
-  it('should show validation error when full name is empty', async () => {
+  it('should disable button when full name is empty', async () => {
     const mockProfile = {
       email: 'test@example.com',
       fullName: 'Test User',
@@ -126,11 +126,11 @@ describe('UpdateProfilePage', () => {
     const fullNameInput = screen.getByLabelText(/full name/i);
     const submitButton = screen.getByRole('button', { name: /update profile/i });
 
+    // Button should be disabled when field contains only whitespace
     fireEvent.change(fullNameInput, { target: { value: '   ' } });
-    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Full name is required')).toBeInTheDocument();
+      expect(submitButton).toBeDisabled();
     });
 
     expect(apiClient.updateProfile).not.toHaveBeenCalled();

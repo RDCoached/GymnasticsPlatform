@@ -8,6 +8,12 @@ vi.mock('@react-keycloak/web');
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(),
 }));
+vi.mock('../hooks/useOnboardingStatus', () => ({
+  useOnboardingStatus: vi.fn(() => ({
+    isOnboarding: true,
+    isLoading: false,
+  })),
+}));
 vi.mock('../components/CreateClubForm', () => ({
   CreateClubForm: ({ onComplete }: { onComplete: () => void }) => (
     <div data-testid="create-club-form">

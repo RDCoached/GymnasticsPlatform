@@ -29,18 +29,17 @@ describe('CreateClubForm', () => {
     expect(screen.getByRole('button', { name: /create club/i })).toBeInTheDocument();
   });
 
-  it('should show validation error when submitting whitespace-only club name', async () => {
+  it('should disable button when club name is whitespace-only', async () => {
     render(<CreateClubForm onComplete={mockOnComplete} />);
 
     const input = screen.getByLabelText(/club name/i);
     const submitButton = screen.getByRole('button', { name: /create club/i });
 
-    // Enter whitespace-only value
+    // Button should be disabled when field contains only whitespace
     fireEvent.change(input, { target: { value: '   ' } });
-    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Club name is required')).toBeInTheDocument();
+      expect(submitButton).toBeDisabled();
     });
 
     expect(global.fetch).not.toHaveBeenCalled();
