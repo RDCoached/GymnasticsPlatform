@@ -11,6 +11,8 @@ The QA agent ensures comprehensive test coverage by:
 3. **Add Missing Tests** - Creates tests for untested code
 4. **Find Edge Cases** - Identifies missing edge case coverage
 5. **Add Edge Case Tests** - Tests null checks, errors, boundaries, etc.
+6. **Evaluate E2E Coverage** - Identifies critical user journeys lacking end-to-end tests
+7. **Create E2E Tests** - Generates Playwright tests for full user workflows
 
 ## Invocation
 
@@ -43,6 +45,15 @@ The agent will:
 - Hooks and state management
 - API integration (mocked)
 - Edge cases: loading states, errors, empty data
+
+**E2E Tests (Playwright)**
+- Full user journeys from UI to database
+- Authentication flows (login, logout, token refresh)
+- Onboarding processes (create club, join club, individual mode)
+- Critical business workflows spanning frontend + backend
+- Form submissions with validation
+- Multi-step processes
+- Integration between modules
 
 ## Manual Invocation
 
