@@ -84,7 +84,8 @@ describe('ClubInvitesPage', () => {
     render(<ClubInvitesPage />);
 
     expect(screen.getByRole('heading', { name: /club invites/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /create new invite/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /send email invitation/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /create generic invite code/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /active invites/i })).toBeInTheDocument();
 
     await waitFor(() => {
