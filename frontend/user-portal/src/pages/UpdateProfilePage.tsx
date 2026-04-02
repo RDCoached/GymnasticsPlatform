@@ -1,11 +1,11 @@
 import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { apiClient, type ProfileResponse } from '../lib/api-client';
 
 export function UpdateProfilePage() {
   const navigate = useNavigate();
-  const { keycloak } = useKeycloak();
+  const { getToken, logout } = useAuth();
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [fullName, setFullName] = useState('');
@@ -19,7 +19,7 @@ export function UpdateProfilePage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('accessToken') || keycloak.token;
+      const token = getToken();
 
       if (!token) {
         throw new Error('Not authenticated');
@@ -33,7 +33,7 @@ export function UpdateProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [keycloak.token]);
+  }, [getToken]);
 
   useEffect(() => {
     fetchProfile();
@@ -52,7 +52,7 @@ export function UpdateProfilePage() {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('accessToken') || keycloak.token;
+      const token = getToken();
 
       if (!token) {
         throw new Error('Not authenticated');
@@ -81,16 +81,9 @@ export function UpdateProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-
-    if (keycloak.authenticated) {
-      keycloak.logout({ redirectUri: window.location.origin + '/sign-in' });
-    } else {
-      window.location.href = '/sign-in';
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/sign-in');
   };
 
   if (loading) {
@@ -128,15 +121,18 @@ export function UpdateProfilePage() {
           <p>Update your personal information</p>
 
           {success && (
-            <div style={{
-              background: 'rgba(76, 175, 80, 0.1)',
-              border: '1px solid rgba(76, 175, 80, 0.3)',
-              color: '#4caf50',
-              padding: '0.75rem',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              textAlign: 'center'
-            }}>
+            <div
+              role="status"
+              style={{
+                background: 'rgba(76, 175, 80, 0.1)',
+                border: '1px solid rgba(76, 175, 80, 0.3)',
+                color: '#4caf50',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                textAlign: 'center'
+              }}
+            >
               Profile updated successfully! Redirecting...
             </div>
           )}
@@ -170,9 +166,9 @@ export function UpdateProfilePage() {
               />
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="error-message" role="alert">{error}</div>}
 
-            <button type="submit" disabled={isSubmitting || success} className="submit-button">
+            <button type="submit" disabled={isSubmitting || success || !fullName.trim()} className="submit-button">
               {isSubmitting ? 'Updating...' : success ? 'Updated!' : 'Update Profile'}
             </button>
           </form>

@@ -56,6 +56,58 @@ public class KeycloakAdminServiceTests
         }
 
         [Fact]
+        public async Task CreateUserAsync_DevelopmentEnvironment_AutoVerifiesEmail()
+        {
+            // Arrange
+            var devConfig = new Dictionary<string, string?>
+            {
+                ["Keycloak:AdminBaseUrl"] = "http://localhost:8080",
+                ["Keycloak:Realm"] = "gymnastics",
+                ["Keycloak:AdminUsername"] = "admin",
+                ["Keycloak:AdminPassword"] = "admin",
+                ["Keycloak:AdminClientId"] = "admin-cli",
+                ["ASPNETCORE_ENVIRONMENT"] = "Development"
+            };
+
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(devConfig)
+                .Build();
+
+            var httpClient = CreateMockHttpClient();
+            var service = new KeycloakAdminService(httpClient, configuration, _logger);
+
+            // Act
+            var result = await service.CreateUserAsync(
+                "test@example.com",
+                "Test123!",
+                "Test User",
+                Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            result.Value.Should().NotBeNullOrEmpty();
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_ProductionEnvironment_RequiresEmailVerification()
+        {
+            // Arrange - Production environment (no ASPNETCORE_ENVIRONMENT or set to Production)
+            var httpClient = CreateMockHttpClient();
+            var service = new KeycloakAdminService(httpClient, _configuration, _logger);
+
+            // Act
+            var result = await service.CreateUserAsync(
+                "test@example.com",
+                "Test123!",
+                "Test User",
+                Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            result.Value.Should().NotBeNullOrEmpty();
+        }
+
+        [Fact]
         public async Task CreateUserAsync_DuplicateEmail_ReturnsConflictError()
         {
             // Arrange

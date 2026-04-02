@@ -1,12 +1,18 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OnboardingScreen } from './OnboardingScreen';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-vi.mock('@react-keycloak/web');
+vi.mock('../contexts/AuthContext');
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(),
+}));
+vi.mock('../hooks/useOnboardingStatus', () => ({
+  useOnboardingStatus: vi.fn(() => ({
+    isOnboarding: true,
+    isLoading: false,
+  })),
 }));
 vi.mock('../components/CreateClubForm', () => ({
   CreateClubForm: ({ onComplete }: { onComplete: () => void }) => (
@@ -23,19 +29,27 @@ vi.mock('../components/JoinClubForm', () => ({
   ),
 }));
 
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5137';
 
 describe('OnboardingScreen', () => {
   const mockToken = 'mock-jwt-token';
   const mockNavigate = vi.fn();
+  const mockGetToken = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useKeycloak).mockReturnValue({
-      keycloak: {
-        token: mockToken,
-      },
-    } as never);
+    mockGetToken.mockReturnValue(mockToken);
+
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      register: vi.fn(),
+      getToken: mockGetToken,
+    });
+
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
     global.fetch = vi.fn();
   });
@@ -52,7 +66,7 @@ describe('OnboardingScreen', () => {
   it('should show CreateClubForm when Create Club option is clicked', () => {
     render(<OnboardingScreen />);
 
-    const createButton = screen.getByRole('button', { name: /create club/i });
+    const createButton = screen.getByRole('button', { name: /create a new club/i });
     fireEvent.click(createButton);
 
     expect(screen.getByTestId('create-club-form')).toBeInTheDocument();
@@ -72,17 +86,14 @@ describe('OnboardingScreen', () => {
   it('should return to option selection when back button is clicked', () => {
     render(<OnboardingScreen />);
 
-    // Navigate to Create Club form
-    const createButton = screen.getByRole('button', { name: /create club/i });
+    const createButton = screen.getByRole('button', { name: /create a new club/i });
     fireEvent.click(createButton);
 
     expect(screen.getByTestId('create-club-form')).toBeInTheDocument();
 
-    // Click back button
     const backButton = screen.getByRole('button', { name: /back/i });
     fireEvent.click(backButton);
 
-    // Should show options again
     expect(screen.getByRole('heading', { name: /create a club/i })).toBeInTheDocument();
     expect(screen.queryByTestId('create-club-form')).not.toBeInTheDocument();
   });
@@ -95,7 +106,7 @@ describe('OnboardingScreen', () => {
 
     render(<OnboardingScreen />);
 
-    const individualButton = screen.getByRole('button', { name: /go individual/i });
+    const individualButton = screen.getByRole('button', { name: /use individual mode/i });
     fireEvent.click(individualButton);
 
     await waitFor(() => {
@@ -125,7 +136,7 @@ describe('OnboardingScreen', () => {
 
     render(<OnboardingScreen />);
 
-    const individualButton = screen.getByRole('button', { name: /go individual/i });
+    const individualButton = screen.getByRole('button', { name: /use individual mode/i });
     fireEvent.click(individualButton);
 
     await waitFor(() => {
@@ -141,7 +152,7 @@ describe('OnboardingScreen', () => {
   it('should navigate to dashboard when CreateClubForm completes', () => {
     render(<OnboardingScreen />);
 
-    const createButton = screen.getByRole('button', { name: /create club/i });
+    const createButton = screen.getByRole('button', { name: /create a new club/i });
     fireEvent.click(createButton);
 
     const completeButton = screen.getByRole('button', { name: /complete create club/i });

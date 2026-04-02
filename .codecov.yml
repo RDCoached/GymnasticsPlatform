@@ -1,0 +1,21 @@
+coverage:
+  status:
+    patch:
+      default:
+        target: 75%
+        threshold: 0%
+    project:
+      default:
+        target: 75%
+        threshold: 0%
+
+ignore:
+  - "tests/**/*"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  # Test infrastructure files - only used in E2E tests
+  - "**/TestAuthenticationHandler.cs"
+  - "**/TestKeycloakAdminService.cs"
+  - "**/TestAuthProvider.tsx"
+  # Startup configuration - tested through integration/E2E tests
+  - "**/Program.cs"

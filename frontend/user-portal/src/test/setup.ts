@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, beforeAll, vi } from 'vitest';
-import { ReactNode } from 'react';
+import { afterEach, beforeAll } from 'vitest';
 
 // Mock localStorage
 class LocalStorageMock {
@@ -26,16 +25,6 @@ class LocalStorageMock {
 
 beforeAll(() => {
   global.localStorage = new LocalStorageMock() as Storage;
-
-  // Mock ReactKeycloakProvider to just render children
-  vi.mock('@react-keycloak/web', async () => {
-    const actual = await vi.importActual('@react-keycloak/web');
-    return {
-      ...actual,
-      ReactKeycloakProvider: ({ children }: { children: ReactNode }) => children,
-      useKeycloak: vi.fn(),
-    };
-  });
 });
 
 // Cleanup after each test

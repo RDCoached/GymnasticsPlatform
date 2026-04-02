@@ -1,16 +1,15 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiClient } from '../lib/api-client';
+import { useAuth } from '../contexts/AuthContext';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { register, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -43,43 +42,13 @@ export function RegisterPage() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      await apiClient.register({ email, password, fullName });
-      setSuccess(true);
+      await register(email, password, fullName);
+      navigate('/sign-in');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
-      setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="onboarding-container">
-        <div className="form-container success-container">
-          <h2>Registration Successful!</h2>
-          <p className="success-message">
-            Please check your email to verify your account before signing in.
-          </p>
-          <p className="dev-hint">
-            (In development, check MailHog at{' '}
-            <a href="http://localhost:8025" target="_blank" rel="noopener noreferrer" className="accent-link">
-              http://localhost:8025
-            </a>
-            )
-          </p>
-          <button
-            onClick={() => navigate('/sign-in')}
-            className="submit-button"
-          >
-            Go to Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="onboarding-container">
@@ -89,9 +58,9 @@ export function RegisterPage() {
       </div>
 
       <div className="form-container">
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label htmlFor="fullName">Full Name</label>
             <input
@@ -100,7 +69,7 @@ export function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
@@ -112,7 +81,7 @@ export function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
@@ -124,7 +93,7 @@ export function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
             <small className="password-hint">
               Min 8 chars, 1 uppercase, 1 digit, 1 special character
@@ -139,12 +108,12 @@ export function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
-          <button type="submit" disabled={loading} className="submit-button">
-            {loading ? 'Creating account...' : 'Register'}
+          <button type="submit" disabled={isLoading} className="submit-button">
+            {isLoading ? 'Creating account...' : 'Register'}
           </button>
         </form>
 

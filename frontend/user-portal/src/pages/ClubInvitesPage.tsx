@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient, type InviteResponse, type CreateInviteRequest } from '../lib/api-client';
 
 export function ClubInvitesPage() {
-  const { keycloak } = useKeycloak();
+  const { getToken, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const clubId = searchParams.get('clubId');
@@ -22,7 +22,7 @@ export function ClubInvitesPage() {
     description: '',
   });
 
-  const authToken = localStorage.getItem('accessToken') || keycloak.token;
+  const authToken = getToken();
 
   const fetchInvites = useCallback(async () => {
     if (!clubId || !authToken) return;
@@ -87,21 +87,14 @@ export function ClubInvitesPage() {
       await navigator.clipboard.writeText(code);
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
-    } catch (err) {
+    } catch {
       setError('Failed to copy invite code');
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-
-    if (keycloak.authenticated) {
-      keycloak.logout({ redirectUri: window.location.origin + '/sign-in' });
-    } else {
-      window.location.href = '/sign-in';
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/sign-in');
   };
 
   const getInviteTypeName = (type: number) => {
