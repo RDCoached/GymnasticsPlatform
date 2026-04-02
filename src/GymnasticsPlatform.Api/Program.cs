@@ -143,7 +143,7 @@ builder.Services.AddHealthChecks()
 builder.Services.AddCors(options =>
 {
     var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-        ?? ["http://localhost:3001", "http://localhost:3002"];
+        ?? ["http://localhost:3001", "http://localhost:3002", "http://localhost:5173"];
 
     options.AddDefaultPolicy(policy =>
     {
