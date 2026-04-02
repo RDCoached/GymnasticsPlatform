@@ -142,15 +142,25 @@ builder.Services.AddHealthChecks()
 // Add CORS
 builder.Services.AddCors(options =>
 {
-    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-        ?? ["http://localhost:3001", "http://localhost:3002", "http://localhost:5173"];
-
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins)
-            .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
-            .WithHeaders("Content-Type", "Authorization", "X-Tenant-Id")
-            .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            // In development, allow all origins for easier testing
+            policy.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
+        else
+        {
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? ["http://localhost:3001", "http://localhost:3002", "http://localhost:5173"];
+
+            policy.WithOrigins(allowedOrigins)
+                .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                .WithHeaders("Content-Type", "Authorization", "X-Tenant-Id")
+                .AllowCredentials();
+        }
     });
 });
 
