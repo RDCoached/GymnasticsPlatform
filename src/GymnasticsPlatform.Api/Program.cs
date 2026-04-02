@@ -1,4 +1,5 @@
 using Auth.Infrastructure.Persistence;
+using GymnasticsPlatform.Api;
 using GymnasticsPlatform.Api.Authorization;
 using GymnasticsPlatform.Api.Extensions;
 using GymnasticsPlatform.Api.Middleware;
@@ -67,8 +68,6 @@ builder.Services.AddOpenApi(options =>
 });
 
 // Add Authentication
-var isE2EMode = builder.Configuration.GetValue<bool>("E2E_MODE");
-
 if (isE2EMode)
 {
     // E2E Mode: Use test authentication that allows all requests
