@@ -369,12 +369,12 @@ export function ClubInvitesPage() {
                             style={{
                               padding: '6px 12px',
                               fontSize: '0.8rem',
-                              background: copiedCode === invite.code ? '#27ae60' : 'var(--button-bg)',
-                              color: copiedCode === invite.code ? 'white' : 'var(--button-text)',
-                              border: '1px solid var(--border)',
+                              background: copiedCode === invite.code ? '#27ae60' : 'rgba(170, 59, 255, 0.08)',
+                              color: copiedCode === invite.code ? 'white' : 'var(--accent)',
+                              border: copiedCode === invite.code ? '1px solid #27ae60' : '1px solid var(--accent)',
                               borderRadius: '4px',
                               cursor: 'pointer',
-                              fontWeight: 500,
+                              fontWeight: 600,
                               whiteSpace: 'nowrap',
                             }}
                             title="Copy invite code to clipboard"
