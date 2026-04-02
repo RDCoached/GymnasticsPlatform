@@ -13,6 +13,7 @@ export function ClubInvitesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
 
   const [emailFormData, setEmailFormData] = useState({
     email: '',
@@ -86,6 +87,28 @@ export function ClubInvitesPage() {
       setTimeout(() => setCopiedCode(null), 2000);
     } catch {
       setError('Failed to copy invite code');
+    }
+  };
+
+  const handleResendEmail = async (inviteId: string, email: string) => {
+    if (!clubId || !authToken) return;
+
+    setResendingInvite(inviteId);
+    setError(null);
+
+    try {
+      // Resend uses the same endpoint - it will send another email with the same code
+      await apiClient.sendEmailInvite(authToken, clubId, {
+        email,
+        inviteType: invites.find(i => i.id === inviteId)?.inviteType ?? 2,
+        description: 'Resent invitation',
+      });
+
+      alert(`Invitation resent to ${email}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend invitation');
+    } finally {
+      setResendingInvite(null);
     }
   };
 
@@ -227,17 +250,16 @@ export function ClubInvitesPage() {
           <p style={{ marginTop: '1rem', color: 'var(--text)' }}>No invites created yet.</p>
         ) : (
           <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Code</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Type</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Email</th>
-                  <th style={{ textAlign: 'center', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Uses</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Expires</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Description</th>
-                  <th style={{ textAlign: 'center', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Action</th>
+                <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(170, 59, 255, 0.03)' }}>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Code</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Role</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expires</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Used</th>
+                  <th style={{ textAlign: 'right', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -245,47 +267,142 @@ export function ClubInvitesPage() {
                   const expired = isExpired(invite.expiresAt);
                   const full = isFull(invite);
                   const inactive = expired || full;
+                  const canResend = invite.email && !expired && !full;
 
                   return (
-                    <tr key={invite.id} style={{ borderBottom: '1px solid var(--border)', opacity: inactive ? 0.6 : 1 }}>
-                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                        {invite.code}
+                    <tr key={invite.id} style={{ borderBottom: '1px solid var(--border)', opacity: inactive ? 0.5 : 1 }}>
+                      <td style={{ padding: '12px', fontWeight: 500 }}>
+                        {invite.email || <span style={{ color: '#999', fontStyle: 'italic' }}>No email</span>}
                       </td>
-                      <td style={{ padding: '8px 10px' }}>
-                        {getInviteTypeName(invite.inviteType)}
+                      <td style={{ padding: '12px' }}>
+                        <code style={{
+                          background: 'rgba(170, 59, 255, 0.1)',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontFamily: 'monospace',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: 'var(--accent)'
+                        }}>
+                          {invite.code}
+                        </code>
                       </td>
-                      <td style={{ padding: '8px 10px', fontSize: '0.9rem' }}>
-                        {invite.email || '-'}
+                      <td style={{ textAlign: 'center', padding: '12px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          background: invite.inviteType === 1 ? 'rgba(52, 152, 219, 0.1)' : 'rgba(155, 89, 182, 0.1)',
+                          color: invite.inviteType === 1 ? '#3498db' : '#9b59b6',
+                        }}>
+                          {getInviteTypeName(invite.inviteType)}
+                        </span>
                       </td>
-                      <td style={{ textAlign: 'center', padding: '8px 10px' }}>
-                        {invite.timesUsed} / {invite.maxUses}
-                      </td>
-                      <td style={{ padding: '8px 10px', fontSize: '0.9rem' }}>
-                        {formatDate(invite.expiresAt)}
-                      </td>
-                      <td style={{ padding: '8px 10px' }}>
+                      <td style={{ textAlign: 'center', padding: '12px' }}>
                         {expired ? (
-                          <span style={{ color: '#e74c3c', fontWeight: 500 }}>Expired</span>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            background: 'rgba(231, 76, 60, 0.1)',
+                            color: '#e74c3c',
+                          }}>
+                            Expired
+                          </span>
                         ) : full ? (
-                          <span style={{ color: '#e67e22', fontWeight: 500 }}>Full</span>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            background: 'rgba(230, 126, 34, 0.1)',
+                            color: '#e67e22',
+                          }}>
+                            Full
+                          </span>
                         ) : (
-                          <span style={{ color: '#27ae60', fontWeight: 500 }}>Active</span>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            background: 'rgba(39, 174, 96, 0.1)',
+                            color: '#27ae60',
+                          }}>
+                            Active
+                          </span>
                         )}
                       </td>
-                      <td style={{ padding: '8px 10px', fontSize: '0.9rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {invite.description || '-'}
+                      <td style={{ padding: '12px', color: expired ? '#e74c3c' : 'var(--text)' }}>
+                        {new Date(invite.expiresAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
                       </td>
-                      <td style={{ textAlign: 'center', padding: '8px 10px' }}>
-                        <button
-                          onClick={() => copyToClipboard(invite.code)}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            fontSize: '0.9rem',
-                            background: copiedCode === invite.code ? '#27ae60' : undefined,
-                          }}
-                        >
-                          {copiedCode === invite.code ? '✓ Copied' : 'Copy Code'}
-                        </button>
+                      <td style={{ textAlign: 'center', padding: '12px' }}>
+                        <span style={{
+                          fontWeight: 500,
+                          color: invite.timesUsed > 0 ? '#27ae60' : '#999'
+                        }}>
+                          {invite.timesUsed} / {invite.maxUses}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => copyToClipboard(invite.code)}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.8rem',
+                              background: copiedCode === invite.code ? '#27ae60' : 'var(--button-bg)',
+                              color: copiedCode === invite.code ? 'white' : 'var(--button-text)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 500,
+                              whiteSpace: 'nowrap',
+                            }}
+                            title="Copy invite code to clipboard"
+                          >
+                            {copiedCode === invite.code ? '✓ Copied' : 'Copy'}
+                          </button>
+                          {canResend && (
+                            <button
+                              onClick={() => handleResendEmail(invite.id, invite.email!)}
+                              disabled={resendingInvite === invite.id}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '0.8rem',
+                                background: 'var(--accent)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: resendingInvite === invite.id ? 'not-allowed' : 'pointer',
+                                fontWeight: 500,
+                                opacity: resendingInvite === invite.id ? 0.6 : 1,
+                                whiteSpace: 'nowrap',
+                              }}
+                              title="Resend invitation email"
+                            >
+                              {resendingInvite === invite.id ? 'Sending...' : 'Resend'}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

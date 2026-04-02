@@ -100,7 +100,6 @@ describe('ClubInvitesPage', () => {
     expect(await screen.findByText('ABC123')).toBeInTheDocument();
     expect(screen.getByText('3 / 10')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Test invite')).toBeInTheDocument();
 
     const tableRows = screen.getAllByRole('row');
     const inviteRow = tableRows.find(row => row.textContent?.includes('ABC123'));
@@ -117,7 +116,7 @@ describe('ClubInvitesPage', () => {
       expect(screen.getByText('ABC123')).toBeInTheDocument();
     });
 
-    const copyButton = screen.getByRole('button', { name: /copy code/i });
+    const copyButton = screen.getByRole('button', { name: /^copy$/i });
     fireEvent.click(copyButton);
 
     await waitFor(() => {
