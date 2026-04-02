@@ -40,7 +40,7 @@ export function SignInPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
@@ -52,7 +52,7 @@ export function SignInPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 

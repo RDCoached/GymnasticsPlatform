@@ -113,7 +113,7 @@ export function RegisterPage() {
           </div>
 
           <button type="submit" disabled={isLoading} className="submit-button">
-            {loading ? 'Creating account...' : 'Register'}
+            {isLoading ? 'Creating account...' : 'Register'}
           </button>
         </form>
 
