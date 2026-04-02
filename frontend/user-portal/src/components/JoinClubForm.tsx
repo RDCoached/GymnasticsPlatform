@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../constants';
 
 interface JoinClubFormProps {
@@ -11,7 +11,7 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
   const [inviteCode, setInviteCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { keycloak } = useKeycloak();
+  const { getToken } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,8 +25,7 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Get token from localStorage (email/password) or Keycloak (Google OAuth)
-      const token = localStorage.getItem('accessToken') || keycloak.token;
+      const token = getToken();
 
       if (!token) {
         throw new Error('Not authenticated');

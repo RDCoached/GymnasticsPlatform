@@ -1,4 +1,4 @@
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, type CurrentUserResponse } from '../lib/api-client';
@@ -7,15 +7,14 @@ import { apiClient, type CurrentUserResponse } from '../lib/api-client';
  * Dashboard component displays user information and quick actions
  */
 export function Dashboard() {
-  const { keycloak } = useKeycloak();
+  const { getToken, logout, user } = useAuth();
   const navigate = useNavigate();
   const [apiResponse, setApiResponse] = useState<Record<string, unknown> | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUserResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get authentication source (localStorage for email/password, Keycloak for OAuth)
-  const authToken = localStorage.getItem('accessToken') || keycloak.token;
+  const authToken = getToken();
   const userFromStorage = useMemo(() => {
     const userJson = localStorage.getItem('user');
     return userJson ? JSON.parse(userJson) : null;
@@ -56,27 +55,15 @@ export function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    // Clear localStorage for email/password auth
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-
-    // Logout from Keycloak for OAuth
-    if (keycloak.authenticated) {
-      keycloak.logout({ redirectUri: window.location.origin + '/sign-in' });
-    } else {
-      // Force full page reload to reset app state and redirect to sign-in
-      window.location.href = '/sign-in';
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/sign-in');
   };
 
-  // Get user info from localStorage (email/password) or Keycloak token (OAuth)
-  const token = keycloak.tokenParsed;
-  const tenantId = token?.tenant_id || 'from-api';
-  const username = token?.preferred_username || userFromStorage?.fullName || 'User';
-  const email = token?.email || userFromStorage?.email || 'No email';
-  const roles = token?.realm_access?.roles || [];
+  const tenantId = currentUser?.tenantId || 'from-api';
+  const username = user?.fullName || userFromStorage?.fullName || 'User';
+  const email = user?.email || userFromStorage?.email || 'No email';
+  const roles: string[] = [];
 
   return (
     <div className="container">
@@ -101,7 +88,7 @@ export function Dashboard() {
             <dd>{tenantId || <em>No tenant (platform admin)</em>}</dd>
 
             <dt>Auth Method:</dt>
-            <dd>{keycloak.authenticated ? 'Google OAuth' : 'Email/Password'}</dd>
+            <dd>Email/Password</dd>
 
             {roles.length > 0 && (
               <>

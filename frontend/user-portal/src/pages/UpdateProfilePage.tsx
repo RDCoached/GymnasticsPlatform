@@ -1,11 +1,11 @@
 import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { apiClient, type ProfileResponse } from '../lib/api-client';
 
 export function UpdateProfilePage() {
   const navigate = useNavigate();
-  const { keycloak } = useKeycloak();
+  const { getToken, logout } = useAuth();
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [fullName, setFullName] = useState('');
@@ -19,7 +19,7 @@ export function UpdateProfilePage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('accessToken') || keycloak.token;
+      const token = getToken();
 
       if (!token) {
         throw new Error('Not authenticated');
@@ -33,7 +33,7 @@ export function UpdateProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [keycloak.token]);
+  }, [getToken]);
 
   useEffect(() => {
     fetchProfile();
@@ -52,7 +52,7 @@ export function UpdateProfilePage() {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('accessToken') || keycloak.token;
+      const token = getToken();
 
       if (!token) {
         throw new Error('Not authenticated');
@@ -81,16 +81,9 @@ export function UpdateProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-
-    if (keycloak.authenticated) {
-      keycloak.logout({ redirectUri: window.location.origin + '/sign-in' });
-    } else {
-      window.location.href = '/sign-in';
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/sign-in');
   };
 
   if (loading) {
