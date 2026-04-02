@@ -1,23 +1,31 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateClubForm } from './CreateClubForm';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 
-vi.mock('@react-keycloak/web');
+vi.mock('../contexts/AuthContext');
 
 const API_BASE_URL = 'http://localhost:5137';
 
 describe('CreateClubForm', () => {
   const mockOnComplete = vi.fn();
+  const mockGetToken = vi.fn();
   const mockToken = 'mock-jwt-token';
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useKeycloak).mockReturnValue({
-      keycloak: {
-        token: mockToken,
-      },
-    } as never);
+    mockGetToken.mockReturnValue(mockToken);
+
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      register: vi.fn(),
+      getToken: mockGetToken,
+    });
+
     global.fetch = vi.fn();
   });
 
@@ -35,7 +43,6 @@ describe('CreateClubForm', () => {
     const input = screen.getByLabelText(/club name/i);
     const submitButton = screen.getByRole('button', { name: /create club/i });
 
-    // Button should be disabled when field contains only whitespace
     fireEvent.change(input, { target: { value: '   ' } });
 
     await waitFor(() => {
@@ -113,15 +120,12 @@ describe('CreateClubForm', () => {
     fireEvent.change(input, { target: { value: 'Elite Gymnastics' } });
     fireEvent.click(submitButton);
 
-    // Should show loading state
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /creating club\.\.\./i })).toBeInTheDocument();
     });
 
-    // Input should be disabled
     expect(input).toBeDisabled();
 
-    // Resolve the request
     resolveRequest!();
   });
 
@@ -164,5 +168,4 @@ describe('CreateClubForm', () => {
       expect(screen.getByText('Failed to create club')).toBeInTheDocument();
     });
   });
-
 });

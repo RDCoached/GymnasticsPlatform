@@ -1,11 +1,11 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UpdateProfilePage } from './UpdateProfilePage';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../lib/api-client';
 
-vi.mock('@react-keycloak/web');
+vi.mock('../contexts/AuthContext');
 vi.mock('react-router-dom');
 vi.mock('../lib/api-client', () => ({
   apiClient: {
@@ -16,20 +16,27 @@ vi.mock('../lib/api-client', () => ({
 
 describe('UpdateProfilePage', () => {
   const mockNavigate = vi.fn();
+  const mockLogout = vi.fn();
+  const mockGetToken = vi.fn();
   const mockToken = 'mock-jwt-token';
 
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
 
+    mockGetToken.mockReturnValue(mockToken);
+
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      user: null,
+      login: vi.fn(),
+      logout: mockLogout,
+      register: vi.fn(),
+      getToken: mockGetToken,
+    });
+
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-    vi.mocked(useKeycloak).mockReturnValue({
-      keycloak: {
-        token: mockToken,
-        authenticated: false,
-        logout: vi.fn(),
-      },
-    } as never);
   });
 
   it('should show loading state initially', () => {
@@ -126,7 +133,6 @@ describe('UpdateProfilePage', () => {
     const fullNameInput = screen.getByLabelText(/full name/i);
     const submitButton = screen.getByRole('button', { name: /update profile/i });
 
-    // Button should be disabled when field contains only whitespace
     fireEvent.change(fullNameInput, { target: { value: '   ' } });
 
     await waitFor(() => {
@@ -263,7 +269,6 @@ describe('UpdateProfilePage', () => {
       expect(screen.getByText('Profile updated successfully! Redirecting...')).toBeInTheDocument();
     }, { timeout: 10000 });
 
-    // Wait for the setTimeout(2000) to complete
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     }, { timeout: 3000 });
@@ -352,22 +357,14 @@ describe('UpdateProfilePage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('should clear localStorage and redirect when logout is clicked', async () => {
+  it('should call logout and navigate when logout is clicked', async () => {
     const mockProfile = {
       email: 'test@example.com',
       fullName: 'Test User',
       onboardingCompleted: true,
     };
 
-    localStorage.setItem('accessToken', 'token');
-    localStorage.setItem('refreshToken', 'refresh');
-    localStorage.setItem('user', JSON.stringify({ email: 'test@example.com' }));
-
     vi.mocked(apiClient.getProfile).mockResolvedValueOnce(mockProfile);
-
-    const originalLocation = window.location;
-    delete (window as { location?: Location }).location;
-    window.location = { ...originalLocation, href: '' } as Location;
 
     render(<UpdateProfilePage />);
 
@@ -378,15 +375,13 @@ describe('UpdateProfilePage', () => {
     const logoutButton = screen.getByRole('button', { name: /logout/i });
     fireEvent.click(logoutButton);
 
-    expect(localStorage.getItem('accessToken')).toBeNull();
-    expect(localStorage.getItem('refreshToken')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-    expect(window.location.href).toBe('/sign-in');
-
-    window.location = originalLocation;
+    await waitFor(() => {
+      expect(mockLogout).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith('/sign-in');
+    });
   });
 
-  it('should use localStorage token if Keycloak token is not available', async () => {
+  it('should use token from getToken', async () => {
     const mockProfile = {
       email: 'test@example.com',
       fullName: 'Test User',
@@ -394,14 +389,7 @@ describe('UpdateProfilePage', () => {
     };
 
     localStorage.setItem('accessToken', 'stored-token');
-
-    vi.mocked(useKeycloak).mockReturnValue({
-      keycloak: {
-        token: undefined,
-        authenticated: false,
-        logout: vi.fn(),
-      },
-    } as never);
+    mockGetToken.mockReturnValue('stored-token');
 
     vi.mocked(apiClient.getProfile).mockResolvedValueOnce(mockProfile);
 
@@ -413,15 +401,7 @@ describe('UpdateProfilePage', () => {
   });
 
   it('should show error when no token is available', async () => {
-    localStorage.clear();
-
-    vi.mocked(useKeycloak).mockReturnValue({
-      keycloak: {
-        token: undefined,
-        authenticated: false,
-        logout: vi.fn(),
-      },
-    } as never);
+    mockGetToken.mockReturnValue(null);
 
     vi.mocked(apiClient.getProfile).mockRejectedValueOnce(new Error('Not authenticated'));
 
