@@ -21,10 +21,12 @@ test.describe('Critical User Journeys', () => {
     await page.fill('input[type="password"]', password);
     await page.fill('input[id="confirmPassword"]', password);
     await page.fill('input[id="fullName"]', fullName);
-    await page.click('button[type="submit"]');
 
-    // Should redirect to sign-in
-    await expect(page).toHaveURL(/\/sign-in/);
+    // Click submit and wait for navigation
+    await Promise.all([
+      page.waitForURL(/\/sign-in/, { timeout: 10000 }),
+      page.click('button[type="submit"]')
+    ]);
 
     // Step 2: Login
     await page.fill('input[type="email"]', email);
@@ -55,9 +57,12 @@ test.describe('Critical User Journeys', () => {
     await page.fill('input[type="password"]', password);
     await page.fill('input[id="confirmPassword"]', password);
     await page.fill('input[id="fullName"]', fullName);
-    await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL(/\/sign-in/);
+    // Click submit and wait for navigation
+    await Promise.all([
+      page.waitForURL(/\/sign-in/, { timeout: 10000 }),
+      page.click('button[type="submit"]')
+    ]);
 
     // Step 2: Login
     await page.fill('input[type="email"]', email);
