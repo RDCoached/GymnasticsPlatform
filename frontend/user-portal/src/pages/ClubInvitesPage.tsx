@@ -234,7 +234,7 @@ export function ClubInvitesPage() {
             <button
               type="submit"
               disabled={sendingEmail}
-              style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+              style={{ width: '100%', padding: '0.75rem 1.5rem', fontSize: '1rem' }}
             >
               {sendingEmail ? 'Sending...' : 'Send Email Invitation'}
             </button>
