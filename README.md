@@ -41,27 +41,28 @@ A modular monolith application for gymnastics session planning with multi-tenanc
 - Docker Desktop
 - Node.js 20+ (for frontend)
 
-### 1. Start Infrastructure
+### Development Mode (Recommended)
 
+For local development with hot reload, run infrastructure in Docker and applications locally:
+
+**1. Start Infrastructure Only:**
 ```bash
-# Start PostgreSQL, Keycloak, and Grafana stack
-docker-compose up -d
+# Start PostgreSQL, Keycloak, MailHog, and Grafana stack
+docker compose -f docker-compose.dev.yml up -d
 
-# Wait for services to be healthy
-docker-compose ps
+# Wait for services to be healthy (Keycloak takes ~60s to start)
+docker compose -f docker-compose.dev.yml ps
 ```
 
-### 2. Run Backend API
-
+**2. Run Backend API Locally:**
 ```bash
 dotnet run --project src/GymnasticsPlatform.Api
 ```
+API will be available at: http://localhost:5001 (with hot reload)
 
-API will be available at: http://localhost:5001
+**3. Run Frontend Applications Locally:**
 
-### 3. Run Frontend Applications
-
-**User Portal:**
+User Portal:
 ```bash
 cd frontend/user-portal
 npm install
@@ -69,13 +70,27 @@ npm run dev
 ```
 User Portal will be available at: http://localhost:3001
 
-**Admin Portal:**
+Admin Portal:
 ```bash
 cd frontend/admin-portal
 npm install
 npm run dev
 ```
 Admin Portal will be available at: http://localhost:3002
+
+### Full Stack Mode (E2E Testing)
+
+To run everything in Docker (used for E2E tests):
+
+```bash
+# Start all services including API and frontends
+docker compose up -d
+
+# Check status
+docker compose ps
+```
+
+**Note:** This mode builds the API as a container (slower, no hot reload). Use this for E2E testing or production-like validation.
 
 ### 4. Verify Setup
 
