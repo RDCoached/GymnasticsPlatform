@@ -1,15 +1,15 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiClient } from '../lib/api-client';
+import { useAuth } from '../contexts/AuthContext';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { register, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -42,15 +42,11 @@ export function RegisterPage() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      await apiClient.register({ email, password, fullName });
+      await register(email, password, fullName);
       navigate('/sign-in');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -73,7 +69,7 @@ export function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
@@ -85,7 +81,7 @@ export function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
@@ -97,7 +93,7 @@ export function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
             <small className="password-hint">
               Min 8 chars, 1 uppercase, 1 digit, 1 special character
@@ -112,11 +108,11 @@ export function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
             />
           </div>
 
-          <button type="submit" disabled={loading} className="submit-button">
+          <button type="submit" disabled={isLoading} className="submit-button">
             {loading ? 'Creating account...' : 'Register'}
           </button>
         </form>

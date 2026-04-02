@@ -88,6 +88,7 @@ jobs:
           echo $! > ${{ runner.temp }}/frontend.pid
         env:
           VITE_API_URL: http://localhost:5137
+          VITE_E2E_MODE: "true"
 
       - name: Wait for servers to be ready
         run: |
