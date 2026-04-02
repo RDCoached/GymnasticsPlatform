@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../constants';
@@ -12,6 +12,15 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { getToken } = useAuth();
+
+  // Auto-fill invite code from localStorage
+  useEffect(() => {
+    const pendingCode = localStorage.getItem('pendingInviteCode');
+    if (pendingCode) {
+      setInviteCode(pendingCode);
+      localStorage.removeItem('pendingInviteCode');
+    }
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,6 +87,7 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
             disabled={isSubmitting}
             required
             maxLength={20}
+            autoFocus={!inviteCode}
           />
         </div>
 

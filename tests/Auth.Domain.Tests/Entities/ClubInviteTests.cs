@@ -16,7 +16,7 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var invite = ClubInvite.Create(clubId, inviteType, maxUses, expiresAt, null, clock);
+        var invite = ClubInvite.Create(clubId, inviteType, maxUses, expiresAt, null, null, clock);
 
         // Assert
         invite.Should().NotBeNull();
@@ -41,8 +41,8 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var invite1 = ClubInvite.Create(clubId, InviteType.Coach, maxUses, expiresAt, null, clock);
-        var invite2 = ClubInvite.Create(clubId, InviteType.Coach, maxUses, expiresAt, null, clock);
+        var invite1 = ClubInvite.Create(clubId, InviteType.Coach, maxUses, expiresAt, null, null, clock);
+        var invite2 = ClubInvite.Create(clubId, InviteType.Coach, maxUses, expiresAt, null, null, clock);
 
         // Assert
         invite1.Code.Should().NotBe(invite2.Code);
@@ -58,8 +58,8 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var invite1 = ClubInvite.Create(clubId, InviteType.Gymnast, maxUses, expiresAt, null, clock);
-        var invite2 = ClubInvite.Create(clubId, InviteType.Gymnast, maxUses, expiresAt, null, clock);
+        var invite1 = ClubInvite.Create(clubId, InviteType.Gymnast, maxUses, expiresAt, null, null, clock);
+        var invite2 = ClubInvite.Create(clubId, InviteType.Gymnast, maxUses, expiresAt, null, null, clock);
 
         // Assert
         invite1.Id.Should().NotBe(invite2.Id);
@@ -77,7 +77,7 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var act = () => ClubInvite.Create(clubId, InviteType.Coach, invalidMaxUses, expiresAt, null, clock);
+        var act = () => ClubInvite.Create(clubId, InviteType.Coach, invalidMaxUses, expiresAt, null, null, clock);
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -94,7 +94,7 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var act = () => ClubInvite.Create(clubId, InviteType.Gymnast, maxUses, expiresAt, null, clock);
+        var act = () => ClubInvite.Create(clubId, InviteType.Gymnast, maxUses, expiresAt, null, null, clock);
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -113,7 +113,7 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var invite = ClubInvite.Create(clubId, inviteType, maxUses, expiresAt, null, clock);
+        var invite = ClubInvite.Create(clubId, inviteType, maxUses, expiresAt, null, null, clock);
 
         // Assert
         invite.InviteType.Should().Be(inviteType);
@@ -128,7 +128,7 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var invite = ClubInvite.Create(clubId, InviteType.Coach, 10, DateTimeOffset.UtcNow.AddDays(7), description, clock);
+        var invite = ClubInvite.Create(clubId, InviteType.Coach, 10, DateTimeOffset.UtcNow.AddDays(7), description, null, clock);
 
         // Assert
         invite.Description.Should().Be(description);
@@ -142,7 +142,7 @@ public sealed class ClubInviteTests
         var clock = TimeProvider.System;
 
         // Act
-        var invite = ClubInvite.Create(clubId, InviteType.Gymnast, 10, DateTimeOffset.UtcNow.AddDays(7), null, clock);
+        var invite = ClubInvite.Create(clubId, InviteType.Gymnast, 10, DateTimeOffset.UtcNow.AddDays(7), null, null, clock);
 
         // Assert
         invite.Description.Should().BeNull();
@@ -157,6 +157,7 @@ public sealed class ClubInviteTests
             InviteType.Coach,
             maxUses: 10,
             DateTimeOffset.UtcNow.AddDays(7),
+            null,
             null,
             TimeProvider.System);
 
@@ -176,6 +177,7 @@ public sealed class ClubInviteTests
             InviteType.Gymnast,
             maxUses: 10,
             DateTimeOffset.UtcNow.AddDays(7),
+            null,
             null,
             TimeProvider.System);
 
@@ -197,6 +199,7 @@ public sealed class ClubInviteTests
             InviteType.Coach,
             maxUses: 2,
             DateTimeOffset.UtcNow.AddDays(7),
+            null,
             null,
             TimeProvider.System);
         invite.MarkAsUsed(TimeProvider.System);
@@ -220,6 +223,7 @@ public sealed class ClubInviteTests
             maxUses: 10,
             DateTimeOffset.UtcNow.AddSeconds(1),
             null,
+            null,
             TimeProvider.System);
 
         Thread.Sleep(1500);
@@ -242,6 +246,7 @@ public sealed class ClubInviteTests
             maxUses: 10,
             DateTimeOffset.UtcNow.AddDays(7),
             null,
+            null,
             TimeProvider.System);
 
         // Act
@@ -261,6 +266,7 @@ public sealed class ClubInviteTests
             maxUses: 10,
             DateTimeOffset.UtcNow.AddSeconds(1),
             null,
+            null,
             TimeProvider.System);
 
         // Act - check expiration against a time 2 seconds in the future
@@ -279,6 +285,7 @@ public sealed class ClubInviteTests
             InviteType.Coach,
             maxUses: 10,
             DateTimeOffset.UtcNow.AddDays(7),
+            null,
             null,
             TimeProvider.System);
         invite.MarkAsUsed(TimeProvider.System);
@@ -300,6 +307,7 @@ public sealed class ClubInviteTests
             maxUses: 2,
             DateTimeOffset.UtcNow.AddDays(7),
             null,
+            null,
             TimeProvider.System);
         invite.MarkAsUsed(TimeProvider.System);
         invite.MarkAsUsed(TimeProvider.System);
@@ -309,5 +317,138 @@ public sealed class ClubInviteTests
 
         // Assert
         isAtMax.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Create_WithEmail_ForcesMaxUsesToOne()
+    {
+        // Arrange
+        var clubId = Guid.NewGuid();
+        var expiresAt = DateTimeOffset.UtcNow.AddDays(7);
+        var clock = TimeProvider.System;
+
+        // Act
+        var act = () => ClubInvite.Create(
+            clubId,
+            InviteType.Coach,
+            maxUses: 10,
+            expiresAt,
+            null,
+            "test@example.com",
+            clock);
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*Email-specific invites must have MaxUses = 1*");
+    }
+
+    [Fact]
+    public void Create_WithEmail_SetsSentAtToCurrentTime()
+    {
+        // Arrange
+        var clubId = Guid.NewGuid();
+        var expiresAt = DateTimeOffset.UtcNow.AddDays(7);
+        var clock = TimeProvider.System;
+        var now = clock.GetUtcNow();
+
+        // Act
+        var invite = ClubInvite.Create(
+            clubId,
+            InviteType.Coach,
+            maxUses: 1,
+            expiresAt,
+            null,
+            "test@example.com",
+            clock);
+
+        // Assert
+        invite.SentAt.Should().NotBeNull();
+        invite.SentAt.Should().BeCloseTo(now, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void Create_WithEmail_StoresEmail()
+    {
+        // Arrange
+        var clubId = Guid.NewGuid();
+        var email = "newuser@example.com";
+        var clock = TimeProvider.System;
+
+        // Act
+        var invite = ClubInvite.Create(
+            clubId,
+            InviteType.Gymnast,
+            maxUses: 1,
+            DateTimeOffset.UtcNow.AddDays(7),
+            "Welcome aboard",
+            email,
+            clock);
+
+        // Assert
+        invite.Email.Should().Be(email);
+    }
+
+    [Fact]
+    public void Create_WithoutEmail_LeavesEmailNull()
+    {
+        // Arrange
+        var clubId = Guid.NewGuid();
+        var clock = TimeProvider.System;
+
+        // Act
+        var invite = ClubInvite.Create(
+            clubId,
+            InviteType.Gymnast,
+            maxUses: 50,
+            DateTimeOffset.UtcNow.AddDays(7),
+            "Public invite",
+            email: null,
+            clock);
+
+        // Assert
+        invite.Email.Should().BeNull();
+        invite.SentAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void IsSingleUse_WithEmail_ReturnsTrue()
+    {
+        // Arrange
+        var clock = TimeProvider.System;
+        var invite = ClubInvite.Create(
+            Guid.NewGuid(),
+            InviteType.Gymnast,
+            maxUses: 1,
+            clock.GetUtcNow().AddDays(7),
+            null,
+            "test@example.com",
+            clock);
+
+        // Act
+        var isSingleUse = invite.IsSingleUse();
+
+        // Assert
+        isSingleUse.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsSingleUse_WithoutEmail_ReturnsFalse()
+    {
+        // Arrange
+        var clock = TimeProvider.System;
+        var invite = ClubInvite.Create(
+            Guid.NewGuid(),
+            InviteType.Gymnast,
+            maxUses: 50,
+            clock.GetUtcNow().AddDays(7),
+            "Public invite",
+            email: null,
+            clock);
+
+        // Act
+        var isSingleUse = invite.IsSingleUse();
+
+        // Assert
+        isSingleUse.Should().BeFalse();
     }
 }

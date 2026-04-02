@@ -1,15 +1,25 @@
-import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, FormEvent, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { register, loginWithOAuth, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+
+  // Extract and store invite code from URL
+  useEffect(() => {
+    const inviteCodeFromUrl = searchParams.get('inviteCode');
+    if (inviteCodeFromUrl) {
+      // Store in localStorage to survive Keycloak redirect
+      localStorage.setItem('pendingInviteCode', inviteCodeFromUrl);
+    }
+  }, [searchParams]);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {

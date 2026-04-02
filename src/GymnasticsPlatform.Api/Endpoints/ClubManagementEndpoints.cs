@@ -1,9 +1,11 @@
 using Auth.Application.Services;
 using Auth.Domain.Entities;
+using Auth.Infrastructure.Configuration;
 using Auth.Infrastructure.Persistence;
 using Common.Core;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GymnasticsPlatform.Api.Endpoints;
 
@@ -19,6 +21,13 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
             .WithName("CreateClubInvite")
             .WithSummary("Create a new club invite")
             .ProducesValidationProblem();
+
+        group.MapPost("/invites/send-email", SendEmailInvite)
+            .WithName("SendEmailInvite")
+            .WithSummary("Send email invitation to join club")
+            .ProducesValidationProblem()
+            .Produces<EmailInviteResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status429TooManyRequests);
 
         group.MapGet("/invites", ListInvites)
             .WithName("ListClubInvites")
@@ -63,6 +72,7 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
             request.MaxUses,
             expiresAt,
             request.Description,
+            null,
             clock);
 
         db.ClubInvites.Add(invite);
@@ -78,7 +88,9 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
                 invite.TimesUsed,
                 invite.ExpiresAt,
                 invite.CreatedAt,
-                invite.Description));
+                invite.Description,
+                invite.Email,
+                invite.SentAt));
     }
 
     private static async Task<IResult> ListInvites(
@@ -107,7 +119,9 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
                 i.TimesUsed,
                 i.ExpiresAt,
                 i.CreatedAt,
-                i.Description))
+                i.Description,
+                i.Email,
+                i.SentAt))
             .ToListAsync(ct);
 
         return Results.Ok(invites);
@@ -180,6 +194,89 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
 
         return Results.NoContent();
     }
+
+    private static async Task<IResult> SendEmailInvite(
+        Guid clubId,
+        SendEmailInviteRequest request,
+        IValidator<SendEmailInviteRequest> validator,
+        ITenantContext tenantContext,
+        AuthDbContext db,
+        IEmailService emailService,
+        IOptions<EmailSettings> emailSettings,
+        TimeProvider clock,
+        CancellationToken ct)
+    {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+            return Results.ValidationProblem(validationResult.ToDictionary());
+
+        var tenantId = tenantContext.TenantId;
+        if (tenantId is null)
+            return Results.Problem("Tenant context required", statusCode: 400);
+
+        // Verify club exists in current tenant
+        var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
+        if (club is null)
+            return Results.NotFound(new { Message = "Club not found" });
+
+        // Rate limit: max 10 email invites per hour per club
+        var oneHourAgo = clock.GetUtcNow().AddHours(-1);
+        var recentInvites = await db.ClubInvites
+            .Where(i => i.ClubId == clubId && i.Email != null && i.CreatedAt > oneHourAgo)
+            .CountAsync(ct);
+
+        if (recentInvites >= 10)
+            return Results.Problem("Rate limit exceeded. Maximum 10 invites per hour.", statusCode: 429);
+
+        // Prevent duplicate active invites to same email
+        var existingInvite = await db.ClubInvites
+            .Where(i => i.ClubId == clubId
+                && i.Email == request.Email
+                && i.ExpiresAt > clock.GetUtcNow()
+                && i.TimesUsed < i.MaxUses)
+            .FirstOrDefaultAsync(ct);
+
+        if (existingInvite is not null)
+            return Results.Conflict(new { Message = "Active invitation already exists for this email" });
+
+        // Create single-use email invite
+        var expiresAt = clock.GetUtcNow().AddDays(7);
+        var invite = ClubInvite.Create(
+            clubId,
+            request.InviteType,
+            maxUses: 1,
+            expiresAt,
+            request.Description,
+            request.Email,
+            clock);
+
+        db.ClubInvites.Add(invite);
+        await db.SaveChangesAsync(ct);
+
+        // Construct invite URL with auto-fill code
+        var baseUrl = emailSettings.Value.BaseUrl;
+        var inviteUrl = $"{baseUrl}/register?inviteCode={invite.Code}";
+
+        // Send email via Resend
+        await emailService.SendClubInviteAsync(
+            request.Email,
+            club.Name,
+            invite.Code,
+            inviteUrl,
+            request.InviteType,
+            ct);
+
+        return Results.Created(
+            $"/api/clubs/{clubId}/invites/{invite.Id}",
+            new EmailInviteResponse(
+                invite.Id,
+                invite.Code,
+                invite.Email!,
+                invite.InviteType,
+                invite.ExpiresAt,
+                invite.SentAt!.Value,
+                invite.Description));
+    }
 }
 
 public record CreateInviteRequest(
@@ -190,6 +287,20 @@ public record CreateInviteRequest(
 
 public record AssignRoleRequest(Role Role);
 
+public record SendEmailInviteRequest(
+    string Email,
+    InviteType InviteType,
+    string? Description);
+
+public record EmailInviteResponse(
+    Guid Id,
+    string Code,
+    string Email,
+    InviteType InviteType,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset SentAt,
+    string? Description);
+
 public record InviteResponse(
     Guid Id,
     string Code,
@@ -198,4 +309,6 @@ public record InviteResponse(
     int TimesUsed,
     DateTimeOffset ExpiresAt,
     DateTimeOffset CreatedAt,
-    string? Description);
+    string? Description,
+    string? Email,
+    DateTimeOffset? SentAt);

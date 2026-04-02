@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Resend;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -35,6 +36,15 @@ builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.In
 
 // Add Role Service
 builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
+
+// Email Service with Resend
+builder.Services.AddOptions<ResendClientOptions>()
+    .Configure(options => options.ApiToken = builder.Configuration["Resend:ApiKey"]!);
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.AddTransient<IResend, ResendClient>();
+
+builder.Services.Configure<Auth.Infrastructure.Configuration.EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 
 // Add Keycloak Admin Service
 if (isE2EMode)

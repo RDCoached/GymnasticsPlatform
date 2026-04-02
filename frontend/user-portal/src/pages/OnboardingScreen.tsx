@@ -15,6 +15,14 @@ export function OnboardingScreen() {
   const { getToken } = useAuth();
   const { isOnboarding, isLoading } = useOnboardingStatus();
 
+  // Auto-select join-club mode if invite code present
+  useEffect(() => {
+    const pendingInvite = localStorage.getItem('pendingInviteCode');
+    if (pendingInvite && mode === 'select') {
+      setMode('join-club');
+    }
+  }, [mode]);
+
   // Redirect to dashboard if onboarding is already complete
   useEffect(() => {
     if (!isLoading && !isOnboarding) {

@@ -200,6 +200,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
                 maxUses: 5,
                 expiresAt: clock.GetUtcNow().AddDays(7),
                 null,
+                null,
                 clock);
             db.ClubInvites.Add(invite);
             await db.SaveChangesAsync();

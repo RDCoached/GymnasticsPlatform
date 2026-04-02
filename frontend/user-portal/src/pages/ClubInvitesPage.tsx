@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiClient, type InviteResponse, type CreateInviteRequest } from '../lib/api-client';
+import { apiClient, type InviteResponse, type CreateInviteRequest, type SendEmailInviteRequest } from '../lib/api-client';
 
 export function ClubInvitesPage() {
   const { getToken, logout } = useAuth();
@@ -21,6 +21,13 @@ export function ClubInvitesPage() {
     expiryDays: 7,
     description: '',
   });
+
+  const [emailFormData, setEmailFormData] = useState({
+    email: '',
+    inviteType: 2, // Default to Gymnast
+    description: '',
+  });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const authToken = getToken();
 
@@ -79,6 +86,37 @@ export function ClubInvitesPage() {
       setError(err instanceof Error ? err.message : 'Failed to create invite');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleSendEmailInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clubId || !authToken) return;
+
+    setSendingEmail(true);
+    setError(null);
+
+    try {
+      const request: SendEmailInviteRequest = {
+        email: emailFormData.email,
+        inviteType: emailFormData.inviteType,
+        description: emailFormData.description || undefined,
+      };
+
+      await apiClient.sendEmailInvite(authToken, clubId, request);
+
+      // Reset form
+      setEmailFormData({ email: '', inviteType: 2, description: '' });
+
+      // Refresh invites list
+      await fetchInvites();
+
+      // Show success - you could add a success message state if desired
+      alert(`Invitation sent to ${emailFormData.email}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send invitation');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -153,8 +191,80 @@ export function ClubInvitesPage() {
         </div>
       )}
 
+      <section className="user-info" style={{ marginBottom: '2rem' }}>
+        <h2>Send Email Invitation</h2>
+        <p style={{ color: '#666', marginBottom: '1rem', marginTop: '0.5rem' }}>
+          Send a personal invitation to someone's email address.
+          They'll receive a link to register and join your club.
+        </p>
+
+        <form onSubmit={handleSendEmailInvite} style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div>
+              <label htmlFor="inviteEmail" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Email Address *
+              </label>
+              <input
+                id="inviteEmail"
+                type="email"
+                value={emailFormData.email}
+                onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })}
+                placeholder="person@example.com"
+                required
+                disabled={sendingEmail}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="emailInviteType" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Role *
+              </label>
+              <select
+                id="emailInviteType"
+                value={emailFormData.inviteType}
+                onChange={(e) => setEmailFormData({ ...emailFormData, inviteType: Number(e.target.value) })}
+                required
+                disabled={sendingEmail}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+              >
+                <option value={2}>Gymnast</option>
+                <option value={1}>Coach</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="emailDescription" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Personal Message (optional)
+              </label>
+              <textarea
+                id="emailDescription"
+                value={emailFormData.description}
+                onChange={(e) => setEmailFormData({ ...emailFormData, description: e.target.value })}
+                placeholder="Add a personal note to the invitation..."
+                rows={3}
+                disabled={sendingEmail}
+                maxLength={500}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', resize: 'vertical' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={sendingEmail}
+              style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+            >
+              {sendingEmail ? 'Sending...' : 'Send Email Invitation'}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <section className="user-info">
-        <h2>Create New Invite</h2>
+        <h2>Create Generic Invite Code</h2>
+        <p style={{ color: '#666', marginBottom: '1rem', marginTop: '0.5rem' }}>
+          Create a reusable invite code that can be shared with multiple people.
+        </p>
         <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
           <div style={{ display: 'grid', gap: '1rem' }}>
             <div>
@@ -236,11 +346,12 @@ export function ClubInvitesPage() {
           <p style={{ marginTop: '1rem', color: 'var(--text)' }}>No invites created yet.</p>
         ) : (
           <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--border)' }}>
                   <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Code</th>
                   <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Type</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Email</th>
                   <th style={{ textAlign: 'center', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Uses</th>
                   <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Expires</th>
                   <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-h)', fontWeight: 600 }}>Status</th>
@@ -261,6 +372,9 @@ export function ClubInvitesPage() {
                       </td>
                       <td style={{ padding: '8px 10px' }}>
                         {getInviteTypeName(invite.inviteType)}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontSize: '0.9rem' }}>
+                        {invite.email || '-'}
                       </td>
                       <td style={{ textAlign: 'center', padding: '8px 10px' }}>
                         {invite.timesUsed} / {invite.maxUses}

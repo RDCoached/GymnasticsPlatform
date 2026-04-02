@@ -87,6 +87,7 @@ public sealed class RoleAssignmentTests : IClassFixture<TestWebApplicationFactor
                 maxUses: 5,
                 expiresAt: clock.GetUtcNow().AddDays(7),
                 null,
+                null,
                 clock);
             db.ClubInvites.Add(invite);
             await db.SaveChangesAsync();
@@ -154,6 +155,7 @@ public sealed class RoleAssignmentTests : IClassFixture<TestWebApplicationFactor
                 InviteType.Gymnast,
                 maxUses: 5,
                 expiresAt: clock.GetUtcNow().AddDays(7),
+                null,
                 null,
                 clock);
             db.ClubInvites.Add(invite);

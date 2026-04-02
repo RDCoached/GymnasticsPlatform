@@ -10,6 +10,7 @@ public static class ClubInviteFactory
         int? maxUses = null,
         DateTimeOffset? expiresAt = null,
         string? description = null,
+        string? email = null,
         TimeProvider? clock = null)
     {
         var timeProvider = clock ?? TimeProvider.System;
@@ -19,6 +20,7 @@ public static class ClubInviteFactory
             maxUses ?? 10,
             expiresAt ?? timeProvider.GetUtcNow().AddDays(7),
             description,
+            email,
             timeProvider);
     }
 
@@ -30,6 +32,7 @@ public static class ClubInviteFactory
             InviteType.Coach,
             maxUses ?? 10,
             timeProvider.GetUtcNow().AddSeconds(1), // Expires in 1 second
+            null,
             null,
             timeProvider);
     }

@@ -31,6 +31,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     private readonly MockKeycloakAdminService _mockKeycloakService = new();
     public MockKeycloakAdminService MockKeycloakService => _mockKeycloakService;
 
+    private readonly TestEmailService _testEmailService = new();
+    public TestEmailService TestEmailService => _testEmailService;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
@@ -48,6 +51,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             // Replace IKeycloakAdminService with mock
             services.RemoveAll(typeof(IKeycloakAdminService));
             services.AddSingleton<IKeycloakAdminService>(_mockKeycloakService);
+
+            // Replace IEmailService with test implementation
+            services.RemoveAll(typeof(IEmailService));
+            services.AddSingleton<IEmailService>(_testEmailService);
 
             // Replace ITenantContext with test implementation
             services.RemoveAll(typeof(ITenantContext));
@@ -157,6 +164,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public void ResetMockServices()
     {
         _mockKeycloakService.Reset();
+        _testEmailService.SentEmails.Clear();
     }
 
     public async Task InitializeAsync()

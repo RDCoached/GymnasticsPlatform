@@ -11,6 +11,8 @@ public sealed class ClubInvite
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public string? Description { get; private set; }
+    public string? Email { get; private set; }
+    public DateTimeOffset? SentAt { get; private set; }
 
     private ClubInvite() { }
 
@@ -20,6 +22,7 @@ public sealed class ClubInvite
         int maxUses,
         DateTimeOffset expiresAt,
         string? description,
+        string? email,
         TimeProvider clock)
     {
         if (maxUses <= 0)
@@ -27,6 +30,9 @@ public sealed class ClubInvite
 
         if (expiresAt <= clock.GetUtcNow())
             throw new ArgumentException("Expiration date must be in the future.", nameof(expiresAt));
+
+        if (email is not null && maxUses != 1)
+            throw new ArgumentException("Email-specific invites must have MaxUses = 1.", nameof(maxUses));
 
         return new ClubInvite
         {
@@ -38,7 +44,9 @@ public sealed class ClubInvite
             TimesUsed = 0,
             ExpiresAt = expiresAt,
             CreatedAt = clock.GetUtcNow(),
-            Description = description
+            Description = description,
+            Email = email,
+            SentAt = email is not null ? clock.GetUtcNow() : null
         };
     }
 
@@ -56,6 +64,8 @@ public sealed class ClubInvite
     public bool IsExpired(DateTimeOffset currentTime) => currentTime >= ExpiresAt;
 
     public bool IsAtMaxUses() => TimesUsed >= MaxUses;
+
+    public bool IsSingleUse() => Email is not null;
 
     private static string GenerateInviteCode()
     {

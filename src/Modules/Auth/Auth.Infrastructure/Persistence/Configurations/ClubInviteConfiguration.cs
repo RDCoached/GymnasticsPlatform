@@ -50,6 +50,13 @@ internal sealed class ClubInviteConfiguration : IEntityTypeConfiguration<ClubInv
             .HasColumnName("description")
             .HasMaxLength(500);
 
+        builder.Property(ci => ci.Email)
+            .HasColumnName("email")
+            .HasMaxLength(255);
+
+        builder.Property(ci => ci.SentAt)
+            .HasColumnName("sent_at");
+
         // Foreign key relationship
         builder.HasOne<Club>()
             .WithMany()
@@ -66,5 +73,8 @@ internal sealed class ClubInviteConfiguration : IEntityTypeConfiguration<ClubInv
 
         builder.HasIndex(ci => ci.ExpiresAt)
             .HasDatabaseName("ix_club_invites_expires_at");
+
+        builder.HasIndex(ci => ci.Email)
+            .HasDatabaseName("ix_club_invites_email");
     }
 }

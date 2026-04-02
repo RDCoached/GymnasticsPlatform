@@ -73,6 +73,24 @@ export interface InviteResponse {
   expiresAt: string;
   createdAt: string;
   description?: string | null;
+  email?: string | null;
+  sentAt?: string | null;
+}
+
+export interface SendEmailInviteRequest {
+  email: string;
+  inviteType: number; // 1 = Coach, 2 = Gymnast
+  description?: string;
+}
+
+export interface EmailInviteResponse {
+  id: string;
+  code: string;
+  email: string;
+  inviteType: number;
+  expiresAt: string;
+  sentAt: string;
+  description?: string | null;
 }
 
 export class ApiClient {
@@ -198,6 +216,25 @@ export class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to fetch invites' }));
       throw new Error(error.detail || 'Failed to fetch invites');
+    }
+
+    return response.json();
+  }
+
+  async sendEmailInvite(
+    token: string,
+    clubId: string,
+    request: SendEmailInviteRequest
+  ): Promise<EmailInviteResponse> {
+    const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites/send-email`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to send email invite' }));
+      throw new Error(error.detail || 'Failed to send email invite');
     }
 
     return response.json();
