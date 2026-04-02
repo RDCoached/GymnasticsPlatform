@@ -68,7 +68,7 @@ export function Dashboard() {
   return (
     <div className="container">
       <header>
-        <h1>Gymnastics Platform - User Portal</h1>
+        <h1>Dashboard</h1>
         <button onClick={handleLogout}>
           Logout
         </button>
