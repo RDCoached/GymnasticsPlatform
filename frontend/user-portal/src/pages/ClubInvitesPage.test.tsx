@@ -209,7 +209,9 @@ describe('ClubInvitesPage', () => {
     render(<ClubInvitesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Gymnast')).toBeInTheDocument();
+      const tableRows = screen.getAllByRole('row');
+      const inviteRow = tableRows.find(row => row.textContent?.includes('ABC123'));
+      expect(inviteRow?.textContent).toContain('Gymnast');
     });
   });
 
