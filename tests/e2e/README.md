@@ -78,7 +78,7 @@ npx playwright test --project=webkit
 ## Prerequisites
 
 Before running E2E tests, ensure:
-1. Frontend is running on `http://localhost:5173`
+1. Frontend is running on `http://localhost:3001` (user portal) or `http://localhost:3002` (admin portal)
 2. Backend API is running on `http://localhost:5001`
 
 The Playwright config will automatically start these if not running.

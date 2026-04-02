@@ -16,7 +16,7 @@ export interface OnboardingStatusResponse {
   tenantId: string;
 }
 
-const API_BASE_URL = 'http://localhost:5137';
+const API_BASE_URL = 'http://localhost:5001';
 
 export class ApiClient {
   constructor(private readonly request: APIRequestContext) {}

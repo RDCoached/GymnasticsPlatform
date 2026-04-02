@@ -1,7 +1,7 @@
 import { useState, ReactNode } from 'react';
 import { AuthContext, AuthContextType, User } from '../contexts/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5137';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 interface AuthState {
   accessToken: string | null;

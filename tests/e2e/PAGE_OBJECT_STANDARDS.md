@@ -166,8 +166,9 @@ async register(...): Promise<void> {
 
 **DO NOT CHANGE** these ports without updating all configuration files:
 
-- **Backend API**: 5137 (src/GymnasticsPlatform.Api/Properties/launchSettings.json)
-- **Frontend**: 5173 (Vite default)
+- **Backend API**: 5001 (src/GymnasticsPlatform.Api/Properties/launchSettings.json)
+- **Frontend (User Portal)**: 3001 (frontend/user-portal/vite.config.ts)
+- **Frontend (Admin Portal)**: 3002 (frontend/admin-portal/vite.config.ts)
 - **Keycloak**: 8080 (docker-compose.yml)
 - **PostgreSQL**: 5432 (docker-compose.yml)
 

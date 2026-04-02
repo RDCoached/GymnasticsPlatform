@@ -12,7 +12,7 @@ export default defineConfig({
     ['list']
   ],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -40,13 +40,13 @@ export default defineConfig({
   webServer: process.env.CI ? undefined : (process.env.USE_EXISTING_SERVERS ? undefined : [
     {
       command: 'cd ../../frontend/user-portal && npm run dev',
-      url: 'http://localhost:5173',
+      url: 'http://localhost:3001',
       reuseExistingServer: true,
       timeout: 120000,
     },
     {
       command: 'cd ../../src/GymnasticsPlatform.Api && dotnet run',
-      url: 'http://localhost:5137/health',
+      url: 'http://localhost:5001/health',
       reuseExistingServer: true,
       timeout: 120000,
     },

@@ -239,7 +239,7 @@ npx playwright show-trace trace.zip
 ## Prerequisites
 
 The tests expect:
-1. Frontend running on `http://localhost:5173` (auto-started by config)
+1. Frontend running on `http://localhost:3001` (user portal, auto-started by config)
 2. Backend API running on `http://localhost:5001` (auto-started by config)
 
 If servers are already running, Playwright will reuse them.

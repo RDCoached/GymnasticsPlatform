@@ -254,7 +254,8 @@ bash scripts/configure-redirect-uris.sh
 
 This configures both frontend clients to accept multiple development ports:
 - Ports 3001-3009 (local development flexibility)
-- Ports 5173, 5174 (Vite defaults)
+- Ports 3001, 3002 (configured ports for user and admin portals)
+- Ports 5173, 5174 (legacy Vite defaults, kept for backwards compatibility)
 
 **Why multiple ports?** If a port is already in use, Vite automatically uses the next available port. Supporting a range allows multiple developers or instances to run simultaneously.
 

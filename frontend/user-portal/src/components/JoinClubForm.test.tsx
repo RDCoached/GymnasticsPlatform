@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 vi.mock('../contexts/AuthContext');
 
-const API_BASE_URL = 'http://localhost:5137';
+const API_BASE_URL = 'http://localhost:5001';
 
 describe('JoinClubForm', () => {
   const mockOnComplete = vi.fn();

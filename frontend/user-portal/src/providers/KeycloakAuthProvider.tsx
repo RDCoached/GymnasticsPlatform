@@ -34,7 +34,7 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
   const login = async (email: string, password: string) => {
     // For email/password login, we call the backend API directly
     // This is handled by the backend /api/auth/login endpoint
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5137';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
@@ -88,7 +88,7 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
   };
 
   const register = async (email: string, password: string, fullName: string) => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5137';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
