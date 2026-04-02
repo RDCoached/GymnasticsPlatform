@@ -250,21 +250,33 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
             request.Email,
             clock);
 
-        db.ClubInvites.Add(invite);
-        await db.SaveChangesAsync(ct);
-
         // Construct invite URL with auto-fill code
         var baseUrl = emailSettings.Value.BaseUrl;
         var inviteUrl = $"{baseUrl}/register?inviteCode={invite.Code}";
 
-        // Send email via Resend
-        await emailService.SendClubInviteAsync(
-            request.Email,
-            club.Name,
-            invite.Code,
-            inviteUrl,
-            request.InviteType,
-            ct);
+        // Use transaction to ensure invite is only saved if email sends successfully
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            db.ClubInvites.Add(invite);
+            await db.SaveChangesAsync(ct);
+
+            // Send email via Resend - if this fails, transaction will rollback
+            await emailService.SendClubInviteAsync(
+                request.Email,
+                club.Name,
+                invite.Code,
+                inviteUrl,
+                request.InviteType,
+                ct);
+
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
 
         return Results.Created(
             $"/api/clubs/{clubId}/invites/{invite.Id}",
