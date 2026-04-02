@@ -32,28 +32,24 @@ jobs:
 
       - name: Start Keycloak
         run: |
+          # Start Keycloak with in-memory H2 database for E2E tests (faster, simpler)
           docker run -d \
             --name keycloak \
-            --network host \
+            -p 8080:8080 \
             -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
             -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-            -e KC_DB=postgres \
-            -e KC_DB_URL="jdbc:postgresql://localhost:5432/gymnastics_test?currentSchema=keycloak" \
-            -e KC_DB_USERNAME=postgres \
-            -e KC_DB_PASSWORD=postgres \
             -e KC_HTTP_ENABLED=true \
             -e KC_HEALTH_ENABLED=true \
             -e KC_HOSTNAME_STRICT=false \
-            -e KC_HOSTNAME_URL=http://localhost:8080 \
             -e KEYCLOAK_ADMIN=admin \
             -e KEYCLOAK_ADMIN_PASSWORD=admin \
             quay.io/keycloak/keycloak:26.0.7 \
             start-dev
 
           echo "Waiting for Keycloak to be ready..."
-          timeout 180 bash -c 'until curl -sf http://localhost:8080/health/ready 2>/dev/null; do echo "Waiting..."; sleep 5; done'
-          echo "Keycloak is ready!"
-          sleep 5
+          timeout 120 bash -c 'until curl -sf http://localhost:8080/health/ready 2>/dev/null; do echo "  Waiting for Keycloak..."; sleep 3; done'
+          echo "✓ Keycloak is ready!"
+          sleep 3
 
       - name: Configure Keycloak Realm
         run: |
