@@ -32,8 +32,18 @@ export function TestAuthProvider({ children }: { children: ReactNode }) {
     setAuthState(state);
     if (state.accessToken) {
       localStorage.setItem('test_auth', JSON.stringify(state));
+      // Also set in the format other parts of the app expect
+      localStorage.setItem('accessToken', state.accessToken);
+      localStorage.setItem('refreshToken', state.refreshToken || '');
+      localStorage.setItem('user', JSON.stringify({
+        ...state.user,
+        onboardingCompleted: false // New users need onboarding
+      }));
     } else {
       localStorage.removeItem('test_auth');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
     }
   };
 
