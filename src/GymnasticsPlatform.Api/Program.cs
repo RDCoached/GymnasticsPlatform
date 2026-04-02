@@ -17,6 +17,9 @@ using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Check if running in E2E test mode
+var isE2EMode = builder.Configuration.GetValue<bool>("E2E_MODE");
+
 // Add HTTP Context Accessor
 builder.Services.AddHttpContextAccessor();
 
@@ -33,10 +36,19 @@ builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.In
 builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
 
 // Add Keycloak Admin Service
-builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
+if (isE2EMode)
 {
-    client.Timeout = TimeSpan.FromMinutes(2);
-});
+    // E2E Mode: Use test Keycloak service that doesn't require actual Keycloak
+    builder.Services.AddScoped<Auth.Application.Services.IKeycloakAdminService, GymnasticsPlatform.Api.Services.TestKeycloakAdminService>();
+}
+else
+{
+    // Production Mode: Use real Keycloak Admin API
+    builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
+    {
+        client.Timeout = TimeSpan.FromMinutes(2);
+    });
+}
 
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
@@ -55,27 +67,39 @@ builder.Services.AddOpenApi(options =>
 });
 
 // Add Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
-        // Use internal Keycloak address for fetching signing keys
-        options.Authority = keycloakConfig["Authority"];
-        options.Audience = keycloakConfig["Audience"];
-        options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
-        options.MapInboundClaims = false; // Preserve original JWT claim names
+var isE2EMode = builder.Configuration.GetValue<bool>("E2E_MODE");
 
-        var validIssuers = keycloakConfig.GetSection("ValidIssuers").Get<string[]>();
-
-        options.TokenValidationParameters = new TokenValidationParameters
+if (isE2EMode)
+{
+    // E2E Mode: Use test authentication that allows all requests
+    builder.Services.AddAuthentication("Test")
+        .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthenticationHandler>("Test", options => { });
+}
+else
+{
+    // Production Mode: Use Keycloak JWT authentication
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuers = validIssuers
-        };
-    });
+            var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
+            // Use internal Keycloak address for fetching signing keys
+            options.Authority = keycloakConfig["Authority"];
+            options.Audience = keycloakConfig["Audience"];
+            options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
+            options.MapInboundClaims = false; // Preserve original JWT claim names
+
+            var validIssuers = keycloakConfig.GetSection("ValidIssuers").Get<string[]>();
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuers = validIssuers
+            };
+        });
+}
 
 // Register Authorization Handler
 builder.Services.AddSingleton<IAuthorizationHandler, GymnasticsPlatform.Api.Authorization.TenantRoleAuthorizationHandler>();

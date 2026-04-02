@@ -30,87 +30,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Start Keycloak
-        run: |
-          # Start Keycloak with in-memory H2 database for E2E tests (faster, simpler)
-          docker run -d \
-            --name keycloak \
-            -p 8080:8080 \
-            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-            -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-            -e KC_HTTP_ENABLED=true \
-            -e KC_HEALTH_ENABLED=true \
-            -e KC_HOSTNAME_STRICT=false \
-            -e KEYCLOAK_ADMIN=admin \
-            -e KEYCLOAK_ADMIN_PASSWORD=admin \
-            quay.io/keycloak/keycloak:26.0.7 \
-            start-dev
-
-          echo "Waiting for Keycloak to be ready..."
-          timeout 120 bash -c 'until curl -sf http://localhost:8080/health/ready 2>/dev/null; do echo "  Waiting for Keycloak..."; sleep 3; done'
-          echo "✓ Keycloak is ready!"
-          sleep 3
-
-      - name: Configure Keycloak Realm
-        run: |
-          # Get admin access token
-          TOKEN=$(curl -X POST "http://localhost:8080/realms/master/protocol/openid-connect/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "username=admin" \
-            -d "password=admin" \
-            -d "grant_type=password" \
-            -d "client_id=admin-cli" \
-            | jq -r '.access_token')
-
-          # Create gymnastics realm
-          curl -X POST "http://localhost:8080/admin/realms" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "realm": "gymnastics",
-              "enabled": true,
-              "registrationAllowed": true,
-              "registrationEmailAsUsername": true,
-              "resetPasswordAllowed": true,
-              "rememberMe": true,
-              "editUsernameAllowed": false,
-              "loginWithEmailAllowed": true
-            }'
-
-          # Create gymnastics-api client
-          curl -X POST "http://localhost:8080/admin/realms/gymnastics/clients" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "clientId": "gymnastics-api",
-              "enabled": true,
-              "publicClient": false,
-              "standardFlowEnabled": true,
-              "directAccessGrantsEnabled": true,
-              "serviceAccountsEnabled": true,
-              "protocol": "openid-connect"
-            }'
-
-          # Create user-portal client with PKCE
-          curl -X POST "http://localhost:8080/admin/realms/gymnastics/clients" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "clientId": "user-portal",
-              "enabled": true,
-              "publicClient": true,
-              "standardFlowEnabled": true,
-              "directAccessGrantsEnabled": false,
-              "redirectUris": ["http://localhost:5173/*", "http://localhost:3001/*"],
-              "webOrigins": ["http://localhost:5173", "http://localhost:3001"],
-              "protocol": "openid-connect",
-              "attributes": {
-                "pkce.code.challenge.method": "S256"
-              }
-            }'
-
-          echo "Keycloak realm configured successfully!"
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -164,15 +83,7 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Development
           ASPNETCORE_URLS: http://localhost:5137
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=gymnastics_test;Username=postgres;Password=postgres"
-          Authentication__Keycloak__Authority: "http://localhost:8080/realms/gymnastics"
-          Authentication__Keycloak__Audience: "gymnastics-api"
-          Authentication__Keycloak__RequireHttpsMetadata: "false"
-          Authentication__Keycloak__ValidIssuers__0: "http://localhost:8080/realms/gymnastics"
-          Keycloak__AdminBaseUrl: "http://localhost:8080"
-          Keycloak__Realm: "gymnastics"
-          Keycloak__AdminClientId: "admin-cli"
-          Keycloak__AdminUsername: "admin"
-          Keycloak__AdminPassword: "admin"
+          E2E_MODE: "true"
 
       - name: Start frontend server
         run: |
@@ -181,9 +92,6 @@ jobs:
           echo $! > ${{ runner.temp }}/frontend.pid
         env:
           VITE_API_URL: http://localhost:5137
-          VITE_KEYCLOAK_URL: http://localhost:8080
-          VITE_KEYCLOAK_REALM: gymnastics
-          VITE_KEYCLOAK_CLIENT_ID: user-portal
 
       - name: Wait for servers to be ready
         run: |
@@ -195,13 +103,10 @@ jobs:
           timeout 60 bash -c 'until curl -sf -I http://localhost:5173 | head -1 | grep -q "200"; do echo "  Frontend not ready, retrying..."; sleep 2; done'
           echo "✓ Frontend is ready!"
 
-          echo "Verifying Keycloak connectivity..."
-          curl -sf http://localhost:8080/health/ready > /dev/null && echo "✓ Keycloak is accessible!"
-
           echo "Giving servers additional time to stabilize..."
-          sleep 10
+          sleep 5
 
-          echo "All services are ready for E2E tests!"
+          echo "✓ All services are ready for E2E tests!"
 
       - name: Run E2E tests
         working-directory: tests/e2e
@@ -215,8 +120,6 @@ jobs:
         run: |
           kill $(cat ${{ runner.temp }}/backend.pid) 2>/dev/null || true
           kill $(cat ${{ runner.temp }}/frontend.pid) 2>/dev/null || true
-          docker stop keycloak 2>/dev/null || true
-          docker rm keycloak 2>/dev/null || true
 
       - name: Upload test results
         if: always()
