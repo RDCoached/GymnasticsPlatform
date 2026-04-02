@@ -100,11 +100,17 @@ export function TestAuthProvider({ children }: { children: ReactNode }) {
 
   const getToken = () => authState.accessToken;
 
+  const loginWithOAuth = async (provider: 'google') => {
+    // Not supported in test mode
+    throw new Error('OAuth login not available in E2E test mode');
+  };
+
   const value: AuthContextType = {
     isAuthenticated: !!authState.accessToken,
     isLoading,
     user: authState.user,
     login,
+    loginWithOAuth,
     logout,
     register,
     getToken,

@@ -11,6 +11,7 @@ export interface AuthContextType {
   isLoading: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithOAuth: (provider: 'google') => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
   getToken: () => string | null;

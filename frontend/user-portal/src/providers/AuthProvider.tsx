@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { TestAuthProvider } from './TestAuthProvider';
+import { KeycloakAuthProvider } from './KeycloakAuthProvider';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -9,7 +10,7 @@ interface AuthProviderProps {
  * Main AuthProvider that chooses the appropriate authentication strategy.
  *
  * - If VITE_E2E_MODE is set: Use TestAuthProvider (no Keycloak)
- * - Otherwise: Use KeycloakAuthProvider (production)
+ * - Otherwise: Use KeycloakAuthProvider (production with OAuth support)
  *
  * This abstraction allows the app to run without Keycloak for E2E testing.
  */
@@ -21,8 +22,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return <TestAuthProvider>{children}</TestAuthProvider>;
   }
 
-  // In production, we'd use KeycloakAuthProvider here
-  // For now, default to TestAuthProvider since Keycloak integration is being refactored
-  console.log('[Auth] Keycloak not configured - using TestAuthProvider');
-  return <TestAuthProvider>{children}</TestAuthProvider>;
+  console.log('[Auth] Running in production mode - using KeycloakAuthProvider');
+  return <KeycloakAuthProvider>{children}</KeycloakAuthProvider>;
 }
