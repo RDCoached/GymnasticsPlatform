@@ -62,10 +62,6 @@ jobs:
         working-directory: frontend/user-portal
         run: npm ci
 
-      - name: Build frontend
-        working-directory: frontend/user-portal
-        run: npm run build
-
       - name: Install E2E test dependencies
         working-directory: tests/e2e
         run: npm ci

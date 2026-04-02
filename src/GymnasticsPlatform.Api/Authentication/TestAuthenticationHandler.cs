@@ -21,13 +21,24 @@ public sealed class TestAuthenticationHandler : AuthenticationHandler<Authentica
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        // Use X-Test-User-Id header if present, otherwise use a default
+        // This allows tests to use different user IDs to avoid conflicts
+        var testUserId = Context.Request.Headers["X-Test-User-Id"].FirstOrDefault()
+                         ?? $"e2e-test-user-{Guid.NewGuid()}";
+
+        var email = Context.Request.Headers["X-Test-User-Email"].FirstOrDefault()
+                    ?? $"{testUserId}@test.com";
+
+        var name = Context.Request.Headers["X-Test-User-Name"].FirstOrDefault()
+                   ?? "E2E Test User";
+
         // Create a test user with necessary claims for E2E tests
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "e2e-test-user"),
-            new Claim("sub", "e2e-test-user"),
-            new Claim("email", "e2e@test.com"),
-            new Claim("name", "E2E Test User"),
+            new Claim(ClaimTypes.NameIdentifier, testUserId),
+            new Claim("sub", testUserId),
+            new Claim("email", email),
+            new Claim("name", name),
             new Claim(ClaimTypes.Role, "platform_admin") // Give admin role for all tests
         };
 
