@@ -194,7 +194,7 @@ export function ClubInvitesPage() {
                 placeholder="person@example.com"
                 required
                 disabled={sendingEmail}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -208,7 +208,7 @@ export function ClubInvitesPage() {
                 onChange={(e) => setEmailFormData({ ...emailFormData, inviteType: Number(e.target.value) })}
                 required
                 disabled={sendingEmail}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box' }}
               >
                 <option value={2}>Gymnast</option>
                 <option value={1}>Coach</option>
@@ -227,14 +227,14 @@ export function ClubInvitesPage() {
                 rows={3}
                 disabled={sendingEmail}
                 maxLength={500}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', resize: 'vertical' }}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', resize: 'vertical', boxSizing: 'border-box' }}
               />
             </div>
 
             <button
               type="submit"
               disabled={sendingEmail}
-              style={{ width: '100%', padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', boxSizing: 'border-box' }}
             >
               {sendingEmail ? 'Sending...' : 'Send Email Invitation'}
             </button>
