@@ -69,14 +69,13 @@ public sealed class RoleAuthorizationTests : IClassFixture<TestWebApplicationFac
         var client = _factory.CreateAuthenticatedUserClient(userId, tenantId);
         var request = new
         {
+            Email = "test@example.com",
             InviteType = InviteType.Coach,
-            MaxUses = 10,
-            ExpiryDays = 7,
             Description = "Test invite"
         };
 
-        // Act - Try to create an invite (ClubAdmin only endpoint)
-        var response = await client.PostAsJsonAsync($"/api/clubs/{clubId}/invites", request);
+        // Act - Try to send an email invite (ClubAdmin only endpoint)
+        var response = await client.PostAsJsonAsync($"/api/clubs/{clubId}/invites/send-email", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -133,14 +132,13 @@ public sealed class RoleAuthorizationTests : IClassFixture<TestWebApplicationFac
         var client = _factory.CreateAuthenticatedUserClient(userId, tenantId);
         var request = new
         {
+            Email = "test@example.com",
             InviteType = InviteType.Coach,
-            MaxUses = 10,
-            ExpiryDays = 7,
             Description = "Test invite"
         };
 
-        // Act - Try to create an invite without ClubAdmin role
-        var response = await client.PostAsJsonAsync($"/api/clubs/{clubId}/invites", request);
+        // Act - Try to send an email invite without ClubAdmin role
+        var response = await client.PostAsJsonAsync($"/api/clubs/{clubId}/invites/send-email", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -183,14 +181,13 @@ public sealed class RoleAuthorizationTests : IClassFixture<TestWebApplicationFac
         var client = _factory.CreateAuthenticatedUserClient(userId, tenantId);
         var request = new
         {
+            Email = "test@example.com",
             InviteType = InviteType.Coach,
-            MaxUses = 10,
-            ExpiryDays = 7,
             Description = "Test invite"
         };
 
         // Act
-        var response = await client.PostAsJsonAsync($"/api/clubs/{clubId}/invites", request);
+        var response = await client.PostAsJsonAsync($"/api/clubs/{clubId}/invites/send-email", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);

@@ -13,8 +13,8 @@ vi.mock('react-router-dom', () => ({
 }));
 vi.mock('../lib/api-client', () => ({
   apiClient: {
-    createInvite: vi.fn(),
     listInvites: vi.fn(),
+    sendEmailInvite: vi.fn(),
   },
 }));
 
@@ -85,7 +85,6 @@ describe('ClubInvitesPage', () => {
 
     expect(screen.getByRole('heading', { name: /club invites/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /send email invitation/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /create generic invite code/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /active invites/i })).toBeInTheDocument();
 
     await waitFor(() => {
@@ -108,48 +107,6 @@ describe('ClubInvitesPage', () => {
     expect(inviteRow?.textContent).toContain('Coach');
   });
 
-  it('should create a new invite when form is submitted', async () => {
-    vi.mocked(apiClient.listInvites).mockResolvedValue([]);
-    vi.mocked(apiClient.createInvite).mockResolvedValue(mockInvite);
-
-    render(<ClubInvitesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/no invites created yet/i)).toBeInTheDocument();
-    });
-
-    const inviteTypeSelect = screen.getByLabelText(/invite type/i);
-    const maxUsesInput = screen.getByLabelText(/max uses/i);
-    const expiryDaysInput = screen.getByLabelText(/expiry days/i);
-    const descriptionInput = screen.getByLabelText(/description/i);
-
-    fireEvent.change(inviteTypeSelect, { target: { value: '2' } });
-    fireEvent.change(maxUsesInput, { target: { value: '20' } });
-    fireEvent.change(expiryDaysInput, { target: { value: '30' } });
-    fireEvent.change(descriptionInput, { target: { value: 'New invite' } });
-
-    const submitButton = screen.getByRole('button', { name: /create invite/i });
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(apiClient.createInvite).toHaveBeenCalledWith(
-        mockToken,
-        clubId,
-        {
-          inviteType: 2,
-          maxUses: 20,
-          expiryDays: 30,
-          description: 'New invite',
-        }
-      );
-    });
-
-    await waitFor(() => {
-      expect(maxUsesInput).toHaveValue(10);
-      expect(expiryDaysInput).toHaveValue(7);
-      expect(descriptionInput).toHaveValue('');
-    });
-  });
 
   it('should copy invite code to clipboard when copy button is clicked', async () => {
     vi.mocked(apiClient.listInvites).mockResolvedValue([mockInvite]);
@@ -237,27 +194,6 @@ describe('ClubInvitesPage', () => {
     });
   });
 
-  it('should show loading state while creating invite', async () => {
-    vi.mocked(apiClient.listInvites).mockResolvedValue([]);
-    vi.mocked(apiClient.createInvite).mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve(mockInvite), 100))
-    );
-
-    render(<ClubInvitesPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/no invites created yet/i)).toBeInTheDocument();
-    });
-
-    const submitButton = screen.getByRole('button', { name: /create invite/i });
-    fireEvent.click(submitButton);
-
-    expect(screen.getByText(/creating\.\.\./i)).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByText(/create invite/i)).toBeInTheDocument();
-    });
-  });
 
   it('should logout when logout button is clicked', async () => {
     vi.mocked(apiClient.listInvites).mockResolvedValue([]);

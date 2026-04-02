@@ -324,11 +324,6 @@ public sealed class ClubInvitationTests : IClassFixture<TestWebApplicationFactor
             $"/api/clubs/{clubId}/invites/send-email",
             new SendEmailInviteRequest("email-invite@example.com", InviteType.Coach, "Email invite"));
 
-        // Create generic invite
-        await client.PostAsJsonAsync(
-            $"/api/clubs/{clubId}/invites",
-            new CreateInviteRequest(InviteType.Gymnast, 10, 7, "Generic invite"));
-
         // Act
         var response = await client.GetAsync($"/api/clubs/{clubId}/invites");
 
@@ -336,16 +331,12 @@ public sealed class ClubInvitationTests : IClassFixture<TestWebApplicationFactor
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var invites = await response.Content.ReadFromJsonAsync<List<InviteResponse>>();
         invites.Should().NotBeNull();
-        invites.Should().HaveCount(2);
+        invites.Should().HaveCount(1);
 
-        var emailInvite = invites!.Single(i => i.Email != null);
+        var emailInvite = invites!.Single();
         emailInvite.Email.Should().Be("email-invite@example.com");
         emailInvite.MaxUses.Should().Be(1);
         emailInvite.SentAt.Should().NotBeNull();
-
-        var genericInvite = invites.Single(i => i.Email == null);
-        genericInvite.MaxUses.Should().Be(10);
-        genericInvite.SentAt.Should().BeNull();
     }
 
     private async Task<(HttpClient client, Guid clubId)> CreateTestClubAsync()

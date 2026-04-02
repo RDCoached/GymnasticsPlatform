@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiClient, type InviteResponse, type CreateInviteRequest, type SendEmailInviteRequest } from '../lib/api-client';
+import { apiClient, type InviteResponse, type SendEmailInviteRequest } from '../lib/api-client';
 
 export function ClubInvitesPage() {
   const { getToken, logout } = useAuth();
@@ -12,15 +12,7 @@ export function ClubInvitesPage() {
   const [invites, setInvites] = useState<InviteResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
-    inviteType: 1, // 1 = Coach
-    maxUses: 10,
-    expiryDays: 7,
-    description: '',
-  });
 
   const [emailFormData, setEmailFormData] = useState({
     email: '',
@@ -55,39 +47,6 @@ export function ClubInvitesPage() {
     fetchInvites();
   }, [clubId, fetchInvites]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clubId || !authToken) return;
-
-    setCreating(true);
-    setError(null);
-
-    try {
-      const request: CreateInviteRequest = {
-        inviteType: formData.inviteType,
-        maxUses: formData.maxUses,
-        expiryDays: formData.expiryDays,
-        description: formData.description || undefined,
-      };
-
-      await apiClient.createInvite(authToken, clubId, request);
-
-      // Reset form
-      setFormData({
-        inviteType: 1,
-        maxUses: 10,
-        expiryDays: 7,
-        description: '',
-      });
-
-      // Refresh invites list
-      await fetchInvites();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create invite');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleSendEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,84 +214,6 @@ export function ClubInvitesPage() {
               style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
             >
               {sendingEmail ? 'Sending...' : 'Send Email Invitation'}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="user-info">
-        <h2>Create Generic Invite Code</h2>
-        <p style={{ color: '#666', marginBottom: '1rem', marginTop: '0.5rem' }}>
-          Create a reusable invite code that can be shared with multiple people.
-        </p>
-        <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            <div>
-              <label htmlFor="inviteType" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                Invite Type
-              </label>
-              <select
-                id="inviteType"
-                value={formData.inviteType}
-                onChange={(e) => setFormData({ ...formData, inviteType: Number(e.target.value) })}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-              >
-                <option value={1}>Coach</option>
-                <option value={2}>Gymnast</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="maxUses" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                Max Uses (1-1000)
-              </label>
-              <input
-                type="number"
-                id="maxUses"
-                min="1"
-                max="1000"
-                value={formData.maxUses}
-                onChange={(e) => setFormData({ ...formData, maxUses: Number(e.target.value) })}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="expiryDays" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                Expiry Days (1-365)
-              </label>
-              <input
-                type="number"
-                id="expiryDays"
-                min="1"
-                max="365"
-                value={formData.expiryDays}
-                onChange={(e) => setFormData({ ...formData, expiryDays: Number(e.target.value) })}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="description" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                Description (optional)
-              </label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                maxLength={500}
-                rows={3}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', resize: 'vertical' }}
-                placeholder="Optional description for this invite..."
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={creating}
-              style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
-            >
-              {creating ? 'Creating...' : 'Create Invite'}
             </button>
           </div>
         </form>

@@ -17,11 +17,6 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
             .WithTags("Club Management")
             .RequireAuthorization("ClubAdminPolicy");
 
-        group.MapPost("/invites", CreateInvite)
-            .WithName("CreateClubInvite")
-            .WithSummary("Create a new club invite")
-            .ProducesValidationProblem();
-
         group.MapPost("/invites/send-email", SendEmailInvite)
             .WithName("SendEmailInvite")
             .WithSummary("Send email invitation to join club")
@@ -41,56 +36,6 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
         group.MapDelete("/members/{userId}/roles/{role}", RemoveRole)
             .WithName("RemoveMemberRole")
             .WithSummary("Remove a role from a club member");
-    }
-
-    private static async Task<IResult> CreateInvite(
-        Guid clubId,
-        CreateInviteRequest request,
-        IValidator<CreateInviteRequest> validator,
-        ITenantContext tenantContext,
-        AuthDbContext db,
-        TimeProvider clock,
-        CancellationToken ct)
-    {
-        var validationResult = await validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-            return Results.ValidationProblem(validationResult.ToDictionary());
-
-        var tenantId = tenantContext.TenantId;
-        if (tenantId is null)
-            return Results.Problem("Tenant context is required", statusCode: 400);
-
-        // Verify club exists and belongs to current tenant
-        var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == clubId, ct);
-        if (club is null)
-            return Results.NotFound(new { Message = "Club not found" });
-
-        var expiresAt = clock.GetUtcNow().AddDays(request.ExpiryDays);
-        var invite = ClubInvite.Create(
-            clubId,
-            request.InviteType,
-            request.MaxUses,
-            expiresAt,
-            request.Description,
-            null,
-            clock);
-
-        db.ClubInvites.Add(invite);
-        await db.SaveChangesAsync(ct);
-
-        return Results.Created(
-            $"/api/clubs/{clubId}/invites/{invite.Id}",
-            new InviteResponse(
-                invite.Id,
-                invite.Code,
-                invite.InviteType,
-                invite.MaxUses,
-                invite.TimesUsed,
-                invite.ExpiresAt,
-                invite.CreatedAt,
-                invite.Description,
-                invite.Email,
-                invite.SentAt));
     }
 
     private static async Task<IResult> ListInvites(
@@ -290,12 +235,6 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
                 invite.Description));
     }
 }
-
-public record CreateInviteRequest(
-    InviteType InviteType,
-    int MaxUses,
-    int ExpiryDays,
-    string? Description);
 
 public record AssignRoleRequest(Role Role);
 

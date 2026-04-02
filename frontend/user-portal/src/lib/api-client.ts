@@ -57,12 +57,6 @@ export interface CurrentUserResponse {
   roles: string[];
 }
 
-export interface CreateInviteRequest {
-  inviteType: number; // 1 = Coach, 2 = Gymnast
-  maxUses: number;
-  expiryDays: number;
-  description?: string;
-}
 
 export interface InviteResponse {
   id: string;
@@ -193,20 +187,6 @@ export class ApiClient {
     return response.json();
   }
 
-  async createInvite(token: string, clubId: string, request: CreateInviteRequest): Promise<InviteResponse> {
-    const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to create invite' }));
-      throw new Error(error.detail || 'Failed to create invite');
-    }
-
-    return response.json();
-  }
 
   async listInvites(token: string, clubId: string): Promise<InviteResponse[]> {
     const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites`, {
