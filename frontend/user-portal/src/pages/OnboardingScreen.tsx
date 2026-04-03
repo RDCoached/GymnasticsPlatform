@@ -31,8 +31,9 @@ export function OnboardingScreen() {
   }, [isLoading, isOnboarding, navigate]);
 
   const handleOnboardingComplete = () => {
-    // Navigate to dashboard - middleware will pick up new tenant from database
-    navigate('/dashboard');
+    // Force page reload to refresh auth state with new tenant
+    // This ensures the backend picks up the updated tenant from the database
+    window.location.href = '/dashboard';
   };
 
   const handleIndividualMode = async () => {
