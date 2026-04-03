@@ -26,4 +26,10 @@
     <ProjectReference Include="..\..\src\Modules\Auth\Auth.Infrastructure\Auth.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
