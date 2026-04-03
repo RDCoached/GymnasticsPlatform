@@ -99,6 +99,10 @@ describe('OnboardingScreen', () => {
   });
 
   it('should call API and navigate to dashboard when Individual Mode is clicked', async () => {
+    // Mock window.location.href assignment
+    delete (window as any).location;
+    window.location = { href: '' } as any;
+
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ tenantId: 'individual-tenant-id', role: 'individual' }),
@@ -122,7 +126,7 @@ describe('OnboardingScreen', () => {
       );
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(window.location.href).toBe('/dashboard');
   });
 
   it('should not navigate when individual mode API call fails', async () => {
@@ -150,6 +154,10 @@ describe('OnboardingScreen', () => {
   });
 
   it('should navigate to dashboard when CreateClubForm completes', () => {
+    // Mock window.location.href assignment
+    delete (window as any).location;
+    window.location = { href: '' } as any;
+
     render(<OnboardingScreen />);
 
     const createButton = screen.getByRole('button', { name: /create a new club/i });
@@ -158,10 +166,14 @@ describe('OnboardingScreen', () => {
     const completeButton = screen.getByRole('button', { name: /complete create club/i });
     fireEvent.click(completeButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(window.location.href).toBe('/dashboard');
   });
 
   it('should navigate to dashboard when JoinClubForm completes', () => {
+    // Mock window.location.href assignment
+    delete (window as any).location;
+    window.location = { href: '' } as any;
+
     render(<OnboardingScreen />);
 
     const joinButton = screen.getByRole('button', { name: /join club/i });
@@ -170,6 +182,6 @@ describe('OnboardingScreen', () => {
     const completeButton = screen.getByRole('button', { name: /complete join club/i });
     fireEvent.click(completeButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(window.location.href).toBe('/dashboard');
   });
 });
