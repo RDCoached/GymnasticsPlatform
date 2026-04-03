@@ -216,6 +216,14 @@ builder.Logging.AddOpenTelemetry(logging =>
     });
 });
 
+// Add HTTP logging for observability
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+    logging.RequestBodyLogLimit = 4096;
+    logging.ResponseBodyLogLimit = 4096;
+});
+
 var app = builder.Build();
 
 // Apply migrations in development
@@ -228,6 +236,9 @@ if (app.Environment.IsDevelopment())
 
 // Configure the HTTP request pipeline
 app.UseExceptionHandler();
+
+// Enable HTTP request/response logging
+app.UseHttpLogging();
 
 app.MapOpenApi();
 
