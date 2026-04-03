@@ -15,7 +15,10 @@ interface AuthProviderProps {
  * This abstraction allows the app to run without Keycloak for E2E testing.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
-  const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
+  const e2eEnvVar = import.meta.env.VITE_E2E_MODE;
+  const isE2EMode = e2eEnvVar === 'true';
+
+  console.log('[Auth] VITE_E2E_MODE:', e2eEnvVar, 'isE2EMode:', isE2EMode);
 
   if (isE2EMode) {
     console.log('[Auth] Running in E2E test mode - using TestAuthProvider');
