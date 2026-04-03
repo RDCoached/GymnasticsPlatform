@@ -69,6 +69,7 @@ export function TestAuthProvider({ children }: { children: ReactNode }) {
           id: data.user.id,
           email: data.user.email,
           fullName: data.user.fullName,
+          onboardingCompleted: data.user.onboardingCompleted ?? false,
         },
       });
     } finally {

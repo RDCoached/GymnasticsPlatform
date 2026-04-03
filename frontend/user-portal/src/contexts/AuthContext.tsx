@@ -4,6 +4,7 @@ export interface User {
   email: string;
   fullName: string;
   id: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface AuthContextType {
