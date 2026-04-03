@@ -37,15 +37,15 @@ builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastr
 // Email Service configuration
 builder.Services.Configure<Auth.Infrastructure.Configuration.EmailSettings>(builder.Configuration.GetSection("Email"));
 
-var resendApiKey = builder.Configuration["Resend:ApiKey"];
-if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(resendApiKey))
+if (builder.Environment.IsDevelopment())
 {
-    // Use console-only email service in development when no API key is configured
-    builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ConsoleEmailService>();
+    // Use MailHog SMTP in development - emails viewable at http://localhost:8025
+    builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.MailHogEmailService>();
 }
 else
 {
-    // Use real Resend email service
+    // Use Resend email service in production
+    var resendApiKey = builder.Configuration["Resend:ApiKey"];
     builder.Services.AddOptions<ResendClientOptions>()
         .Configure(options => options.ApiToken = resendApiKey ?? throw new InvalidOperationException("Resend:ApiKey is required for production"));
     builder.Services.AddHttpClient<ResendClient>();
