@@ -15,6 +15,8 @@ This guide explains how to run E2E tests in a containerized environment that exa
 ./scripts/run-e2e-local.sh
 ```
 
+**Note**: The script automatically stops your dev environment (ports 5001 and 3001) before starting E2E services. This is necessary because E2E uses the same ports as dev to match the CI environment exactly.
+
 This script will:
 1. Clean up any existing E2E containers
 2. Build fresh backend and frontend Docker images

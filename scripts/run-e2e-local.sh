@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+echo "🛑 Stopping dev environment to free up ports..."
+# Kill any processes on E2E ports
+lsof -ti :5001 | xargs kill -9 2>/dev/null || true
+lsof -ti :3001 | xargs kill -9 2>/dev/null || true
+
+# Stop dev docker-compose if running
+if [ -f "docker-compose.yml" ]; then
+  docker-compose down 2>/dev/null || true
+fi
+
 echo "🧹 Cleaning up any existing E2E containers..."
 docker-compose -f docker-compose.e2e.yml down -v
 
