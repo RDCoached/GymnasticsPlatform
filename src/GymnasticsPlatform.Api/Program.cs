@@ -37,23 +37,14 @@ builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.In
 // Add Role Service
 builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
 
-// Email Service
-builder.Services.Configure<Auth.Infrastructure.Configuration.EmailSettings>(builder.Configuration.GetSection("Email"));
+// Email Service with Resend
+builder.Services.AddOptions<ResendClientOptions>()
+    .Configure(options => options.ApiToken = builder.Configuration["Resend:ApiKey"] ?? string.Empty);
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.AddTransient<IResend, ResendClient>();
 
-if (builder.Environment.IsDevelopment())
-{
-    // Development: Use MailHog for local email testing
-    builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.MailHogEmailService>();
-}
-else
-{
-    // Production: Use Resend for real email delivery
-    builder.Services.AddOptions<ResendClientOptions>()
-        .Configure(options => options.ApiToken = builder.Configuration["Resend:ApiKey"]!);
-    builder.Services.AddHttpClient<ResendClient>();
-    builder.Services.AddTransient<IResend, ResendClient>();
-    builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
-}
+builder.Services.Configure<Auth.Infrastructure.Configuration.EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 
 // Add Keycloak Admin Service
 if (isE2EMode)
