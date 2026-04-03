@@ -34,14 +34,24 @@ builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.In
 // Add Role Service
 builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
 
-// Email Service with Resend
-builder.Services.AddOptions<ResendClientOptions>()
-    .Configure(options => options.ApiToken = builder.Configuration["Resend:ApiKey"] ?? string.Empty);
-builder.Services.AddHttpClient<ResendClient>();
-builder.Services.AddTransient<IResend, ResendClient>();
-
+// Email Service configuration
 builder.Services.Configure<Auth.Infrastructure.Configuration.EmailSettings>(builder.Configuration.GetSection("Email"));
-builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
+
+var resendApiKey = builder.Configuration["Resend:ApiKey"];
+if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(resendApiKey))
+{
+    // Use console-only email service in development when no API key is configured
+    builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ConsoleEmailService>();
+}
+else
+{
+    // Use real Resend email service
+    builder.Services.AddOptions<ResendClientOptions>()
+        .Configure(options => options.ApiToken = resendApiKey ?? throw new InvalidOperationException("Resend:ApiKey is required for production"));
+    builder.Services.AddHttpClient<ResendClient>();
+    builder.Services.AddTransient<IResend, ResendClient>();
+    builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
+}
 
 // Add Keycloak Admin Service
 builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
