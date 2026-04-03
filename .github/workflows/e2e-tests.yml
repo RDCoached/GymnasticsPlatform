@@ -87,11 +87,12 @@ jobs:
       - name: Start frontend server
         run: |
           cd frontend/user-portal
+          # Override .env file to enable E2E mode
+          echo "VITE_E2E_MODE=true" > .env.local
           npm run dev &
           echo $! > ${{ runner.temp }}/frontend.pid
         env:
           VITE_API_URL: http://localhost:5001
-          VITE_E2E_MODE: "true"
 
       - name: Wait for servers to be ready
         run: |
