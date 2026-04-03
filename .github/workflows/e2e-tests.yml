@@ -76,7 +76,7 @@ jobs:
       - name: Start backend server
         run: |
           cd src/GymnasticsPlatform.Api
-          dotnet run --no-build --configuration Release &
+          dotnet run --no-build --configuration Release > ${{ runner.temp }}/backend.log 2>&1 &
           echo $! > ${{ runner.temp }}/backend.pid
         env:
           ASPNETCORE_ENVIRONMENT: Development
@@ -114,6 +114,12 @@ jobs:
         env:
           CI: true
           DATABASE_CONNECTION_STRING: "Host=localhost;Port=5432;Database=gymnastics_test;Username=postgres;Password=postgres"
+
+      - name: Show backend logs on failure
+        if: failure()
+        run: |
+          echo "=== Backend Logs ==="
+          cat ${{ runner.temp }}/backend.log || echo "No backend log file found"
 
       - name: Stop servers
         if: always()
