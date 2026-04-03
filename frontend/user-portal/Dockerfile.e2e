@@ -1,0 +1,21 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+ARG VITE_API_URL
+ARG VITE_E2E_MODE
+
+RUN echo "VITE_API_URL=${VITE_API_URL}" > .env.local && \
+    echo "VITE_E2E_MODE=${VITE_E2E_MODE}" >> .env.local
+
+RUN apk add --no-cache curl
+
+EXPOSE 3001
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

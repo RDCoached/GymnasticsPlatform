@@ -2,6 +2,27 @@
 
 Comprehensive end-to-end tests for the Gymnastics Platform using Playwright.
 
+## Quick Start
+
+### Option 1: Container-Based Testing (Recommended)
+
+Run tests in a containerized environment that exactly mirrors CI:
+
+```bash
+# From project root
+./scripts/run-e2e-local.sh
+```
+
+This is the recommended approach as it eliminates environment-specific issues. See [CONTAINER_TESTING.md](./CONTAINER_TESTING.md) for details.
+
+### Option 2: Local Development Testing
+
+Run tests against locally running services:
+
+1. Ensure backend is running: `dotnet run --project src/GymnasticsPlatform.Api`
+2. Ensure frontend is running: `cd frontend/user-portal && npm run dev`
+3. Run tests: `cd tests/e2e && npm test`
+
 ## Setup
 
 ```bash
