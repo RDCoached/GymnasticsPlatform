@@ -17,7 +17,14 @@ export function SignInPage() {
       await login(email, password);
       navigate('/onboarding');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+
+      // If it's an unauthorized error, suggest email verification
+      if (errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized') || errorMessage.toLowerCase().includes('invalid credentials')) {
+        setError('Login failed. Please check your credentials. If you just registered, make sure to verify your email first (check MailHog at http://localhost:8025 in development).');
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 

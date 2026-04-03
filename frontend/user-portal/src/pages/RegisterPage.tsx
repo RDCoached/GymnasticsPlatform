@@ -11,6 +11,7 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   // Extract and store invite code from URL
   useEffect(() => {
@@ -40,6 +41,7 @@ export function RegisterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
 
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -54,7 +56,7 @@ export function RegisterPage() {
 
     try {
       await register(email, password, fullName);
-      navigate('/sign-in');
+      setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     }
@@ -78,8 +80,35 @@ export function RegisterPage() {
 
       <div className="form-container">
         {error && <div className="error-message" role="alert">{error}</div>}
+        {success && (
+          <div className="success-message" role="alert">
+            <strong>Registration successful!</strong>
+            <p style={{ marginTop: '0.5rem' }}>
+              Please check your email to verify your account before signing in.
+            </p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', opacity: 0.9 }}>
+              In development: Open{' '}
+              <a
+                href="http://localhost:8025"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'underline' }}
+              >
+                MailHog
+              </a>
+              {' '}to view the verification email.
+            </p>
+            <Link
+              to="/sign-in"
+              className="accent-link"
+              style={{ display: 'inline-block', marginTop: '1rem' }}
+            >
+              Go to Sign In →
+            </Link>
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} noValidate style={{ display: success ? 'none' : 'block' }}>
           <div className="form-group">
             <label htmlFor="fullName">Full Name</label>
             <input

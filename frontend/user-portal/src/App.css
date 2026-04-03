@@ -343,6 +343,22 @@ em {
   text-align: center;
 }
 
+.success-message {
+  background: #efe;
+  border: 1px solid #cfc;
+  color: #383;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.success-message strong {
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
 .submit-button {
   width: 100%;
   padding: 0.75rem 1.5rem;

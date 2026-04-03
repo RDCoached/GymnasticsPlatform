@@ -238,14 +238,13 @@ describe('Dashboard', () => {
     const mockApiResponse = {
       userId: 'user-123',
       email: 'test@example.com',
-      fullName: 'Test User',
-      onboardingCompleted: true,
+      name: 'Test User',
       tenantId: 'tenant-456',
       roles: ['ClubAdmin'],
+      clubId: 'club-789',
     };
 
     vi.mocked(apiClient.getCurrentUser).mockResolvedValueOnce(mockApiResponse);
-    localStorage.setItem('clubId', 'club-789');
 
     render(<Dashboard />);
 
