@@ -27,6 +27,13 @@ export function Dashboard() {
     try {
       const user = await apiClient.getCurrentUser(authToken);
       setCurrentUser(user);
+
+      // Save clubId to localStorage if present
+      if (user.clubId) {
+        localStorage.setItem('clubId', user.clubId);
+      } else {
+        localStorage.removeItem('clubId');
+      }
     } catch (err) {
       console.error('Failed to fetch current user:', err);
     }

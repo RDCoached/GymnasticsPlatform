@@ -55,6 +55,7 @@ export interface CurrentUserResponse {
   name: string;
   tenantId: string;
   roles: string[];
+  clubId?: string;
 }
 
 

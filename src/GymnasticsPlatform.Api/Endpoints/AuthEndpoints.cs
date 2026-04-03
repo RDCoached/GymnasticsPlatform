@@ -291,12 +291,17 @@ public sealed class AuthEndpoints : IEndpointGroup
         // Get user roles
         var roles = await roleService.GetUserRolesAsync(tenantId.Value, userId, ct);
 
+        // Get club if user owns one
+        var club = await db.Clubs
+            .FirstOrDefaultAsync(c => c.OwnerUserId == userId, ct);
+
         var response = new CurrentUserResponse(
             UserId: userId,
             Email: userProfile.Email,
             Name: userProfile.FullName,
             TenantId: tenantId.Value,
-            Roles: roles.Select(r => r.ToString()).ToList());
+            Roles: roles.Select(r => r.ToString()).ToList(),
+            ClubId: club?.Id);
 
         return Results.Ok(response);
     }
@@ -307,4 +312,5 @@ public record CurrentUserResponse(
     string Email,
     string Name,
     Guid TenantId,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    Guid? ClubId);
