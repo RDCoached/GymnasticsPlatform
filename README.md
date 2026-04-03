@@ -78,21 +78,7 @@ npm run dev
 ```
 Admin Portal will be available at: http://localhost:3002
 
-### Full Stack Mode (E2E Testing)
-
-To run everything in Docker (used for E2E tests):
-
-```bash
-# Start all services including API and frontends
-docker compose up -d
-
-# Check status
-docker compose ps
-```
-
-**Note:** This mode builds the API as a container (slower, no hot reload). Use this for E2E testing or production-like validation.
-
-### 4. Verify Setup
+### Verify Setup
 
 **Health Check:**
 ```bash
