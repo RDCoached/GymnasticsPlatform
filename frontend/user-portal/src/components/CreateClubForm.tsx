@@ -69,7 +69,7 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
   };
 
   return (
-    <div className="form-container">
+    <div className="form-container-wide">
       <h2>Create Your Club</h2>
       <p>Give your gymnastics club a name to get started.</p>
 

@@ -51,7 +51,7 @@
 }
 
 #root {
-  width: 1126px;
+  width: 1440px;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
@@ -108,4 +108,24 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+@media (min-width: 768px) {
+  :root {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
 }

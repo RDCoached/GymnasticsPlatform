@@ -13,6 +13,7 @@ export function Dashboard() {
   const [currentUser, setCurrentUser] = useState<CurrentUserResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showApiSection, setShowApiSection] = useState(false);
 
   const authToken = getToken();
   const userFromStorage = useMemo(() => {
@@ -73,7 +74,7 @@ export function Dashboard() {
   const roles: string[] = [];
 
   return (
-    <div className="container">
+    <div className="container-wide">
       <header>
         <h1>Dashboard</h1>
         <button onClick={handleLogout}>
@@ -84,33 +85,41 @@ export function Dashboard() {
       <main>
         <section className="user-info">
           <h2>User Information</h2>
-          <dl>
-            <dt>Username:</dt>
-            <dd>{username}</dd>
+          <div className="user-info-grid">
+            <div className="info-item">
+              <dt>Username:</dt>
+              <dd>{username}</dd>
+            </div>
 
-            <dt>Email:</dt>
-            <dd>{email}</dd>
+            <div className="info-item">
+              <dt>Email:</dt>
+              <dd>{email}</dd>
+            </div>
 
-            <dt>Tenant ID:</dt>
-            <dd>{tenantId || <em>No tenant (platform admin)</em>}</dd>
+            <div className="info-item">
+              <dt>Tenant ID:</dt>
+              <dd>{tenantId || <em>No tenant (platform admin)</em>}</dd>
+            </div>
 
-            <dt>Auth Method:</dt>
-            <dd>Email/Password</dd>
+            <div className="info-item">
+              <dt>Auth Method:</dt>
+              <dd>Email/Password</dd>
+            </div>
 
             {roles.length > 0 && (
-              <>
+              <div className="info-item">
                 <dt>Roles (Keycloak):</dt>
                 <dd>{roles.filter(r => !r.startsWith('default-') && !r.startsWith('uma_')).join(', ')}</dd>
-              </>
+              </div>
             )}
 
             {currentUser && currentUser.roles.length > 0 && (
-              <>
+              <div className="info-item">
                 <dt>App Roles:</dt>
                 <dd>{currentUser.roles.join(', ')}</dd>
-              </>
+              </div>
             )}
-          </dl>
+          </div>
         </section>
 
         <section style={{ marginBottom: '2rem' }}>
@@ -145,32 +154,41 @@ export function Dashboard() {
         </section>
 
         <section className="api-test">
-          <h2>API Integration</h2>
-          <p>Token available for API calls:</p>
-          <code className="token-preview">
-            Bearer {authToken?.substring(0, 50)}...
-          </code>
+          <div
+            className="collapsible-header"
+            onClick={() => setShowApiSection(!showApiSection)}
+          >
+            <h2>API Integration</h2>
+            <span>{showApiSection ? '▼' : '▶'}</span>
+          </div>
 
-          <button onClick={testApiCall} disabled={loading} className="test-button">
-            {loading ? 'Calling API...' : 'Test API Call'}
-          </button>
+          <div className={`collapsible-content ${showApiSection ? '' : 'collapsed'}`}>
+            <p>Token available for API calls:</p>
+            <code className="token-preview">
+              Bearer {authToken?.substring(0, 50)}...
+            </code>
 
-          {error && (
-            <div className="error">
-              <strong>Error:</strong> {error}
-            </div>
-          )}
+            <button onClick={testApiCall} disabled={loading} className="test-button">
+              {loading ? 'Calling API...' : 'Test API Call'}
+            </button>
 
-          {apiResponse && (
-            <div className="api-response">
-              <h3>API Response:</h3>
-              <pre>{JSON.stringify(apiResponse, null, 2)}</pre>
-            </div>
-          )}
+            {error && (
+              <div className="error">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
 
-          <p className="info">
-            Click the button above to test calling the authenticated API endpoint.
-          </p>
+            {apiResponse && (
+              <div className="api-response">
+                <h3>API Response:</h3>
+                <pre>{JSON.stringify(apiResponse, null, 2)}</pre>
+              </div>
+            )}
+
+            <p className="info">
+              Click the button above to test calling the authenticated API endpoint.
+            </p>
+          </div>
         </section>
       </main>
     </div>

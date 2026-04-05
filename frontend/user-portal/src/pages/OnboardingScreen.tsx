@@ -12,8 +12,13 @@ type OnboardingMode = 'select' | 'create-club' | 'join-club';
 export function OnboardingScreen() {
   const [mode, setMode] = useState<OnboardingMode>('select');
   const navigate = useNavigate();
-  const { getToken } = useAuth();
+  const { getToken, logout } = useAuth();
   const { isOnboarding, isLoading } = useOnboardingStatus();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/sign-in');
+  };
 
   // Auto-select join-club mode if invite code present
   useEffect(() => {
@@ -66,12 +71,18 @@ export function OnboardingScreen() {
 
   // Show loading while checking onboarding status
   if (isLoading) {
-    return <div className="onboarding-container">Loading...</div>;
+    return <div className="container-wide">Loading...</div>;
   }
 
   if (mode === 'create-club') {
     return (
-      <div className="onboarding-container">
+      <div className="container-wide">
+        <header>
+          <h1 style={{ marginRight: '1rem', flex: 1 }}>Create Your Club</h1>
+          <button onClick={handleLogout} style={{ flexShrink: 0 }}>
+            Logout
+          </button>
+        </header>
         <button onClick={() => setMode('select')} className="back-button">
           ← Back
         </button>
@@ -82,7 +93,13 @@ export function OnboardingScreen() {
 
   if (mode === 'join-club') {
     return (
-      <div className="onboarding-container">
+      <div className="container-wide">
+        <header>
+          <h1 style={{ marginRight: '1rem', flex: 1 }}>Join a Club</h1>
+          <button onClick={handleLogout} style={{ flexShrink: 0 }}>
+            Logout
+          </button>
+        </header>
         <button onClick={() => setMode('select')} className="back-button">
           ← Back
         </button>
@@ -92,11 +109,17 @@ export function OnboardingScreen() {
   }
 
   return (
-    <div className="onboarding-container">
-      <header className="onboarding-header">
-        <h1>Welcome to Gymnastics Platform!</h1>
-        <p>Let's get you set up. Choose how you'd like to use the platform:</p>
+    <div className="container-wide">
+      <header>
+        <h1 style={{ marginRight: '1rem', flex: 1 }}>Welcome!</h1>
+        <button onClick={handleLogout} style={{ flexShrink: 0 }}>
+          Logout
+        </button>
       </header>
+
+      <div className="onboarding-header" style={{ marginTop: '1rem' }}>
+        <p>Let's get you set up. Choose how you'd like to use the platform:</p>
+      </div>
 
       <div className="onboarding-options">
         <div className="option-card" onClick={() => setMode('create-club')}>

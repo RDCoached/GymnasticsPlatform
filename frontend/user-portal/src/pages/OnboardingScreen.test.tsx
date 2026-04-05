@@ -57,7 +57,7 @@ describe('OnboardingScreen', () => {
   it('should render three onboarding options', () => {
     render(<OnboardingScreen />);
 
-    expect(screen.getByRole('heading', { name: /welcome to gymnastics platform/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /welcome/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /create a club/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /join a club/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /individual mode/i })).toBeInTheDocument();

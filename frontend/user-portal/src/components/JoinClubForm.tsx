@@ -71,7 +71,7 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
   };
 
   return (
-    <div className="form-container">
+    <div className="form-container-wide">
       <h2>Join a Club</h2>
       <p>Enter the invite code you received to join a club.</p>
 

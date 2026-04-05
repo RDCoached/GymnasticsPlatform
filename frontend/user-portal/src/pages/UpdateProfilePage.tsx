@@ -88,7 +88,7 @@ export function UpdateProfilePage() {
 
   if (loading) {
     return (
-      <div className="container">
+      <div className="container-wide">
         <header>
           <h1 style={{ marginRight: '1rem', flex: 1 }}>Update Profile</h1>
           <button onClick={handleLogout} style={{ flexShrink: 0 }}>
@@ -103,7 +103,7 @@ export function UpdateProfilePage() {
   }
 
   return (
-    <div className="container">
+    <div className="container-wide">
       <header>
         <h1 style={{ marginRight: '1rem', flex: 1 }}>Update Profile</h1>
         <button onClick={handleLogout} style={{ flexShrink: 0 }}>
@@ -116,7 +116,7 @@ export function UpdateProfilePage() {
           ← Back to Dashboard
         </button>
 
-        <div className="form-container">
+        <div className="form-container-wide">
           <h2>Your Profile</h2>
           <p>Update your personal information</p>
 

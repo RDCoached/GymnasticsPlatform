@@ -141,7 +141,7 @@ export function ClubInvitesPage() {
 
   if (!clubId) {
     return (
-      <div className="container">
+      <div className="container-wide">
         <div className="error">
           <strong>Error:</strong> Club ID is required. Please navigate from the dashboard.
         </div>
@@ -150,7 +150,7 @@ export function ClubInvitesPage() {
   }
 
   return (
-    <div className="container">
+    <div className="container-wide">
       <header>
         <h1 style={{ marginRight: '1rem', flex: 1 }}>Club Invites</h1>
         <button onClick={handleLogout} style={{ flexShrink: 0 }}>
@@ -181,7 +181,7 @@ export function ClubInvitesPage() {
         </p>
 
         <form onSubmit={handleSendEmailInvite} style={{ marginTop: '1.5rem' }}>
-          <div style={{ display: 'grid', gap: '1rem' }}>
+          <div className="form-row-2-col" style={{ marginBottom: '1rem' }}>
             <div>
               <label htmlFor="inviteEmail" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
                 Email Address *
@@ -214,31 +214,31 @@ export function ClubInvitesPage() {
                 <option value={1}>Coach</option>
               </select>
             </div>
-
-            <div>
-              <label htmlFor="emailDescription" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                Personal Message (optional)
-              </label>
-              <textarea
-                id="emailDescription"
-                value={emailFormData.description}
-                onChange={(e) => setEmailFormData({ ...emailFormData, description: e.target.value })}
-                placeholder="Add a personal note to the invitation..."
-                rows={3}
-                disabled={sendingEmail}
-                maxLength={500}
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', resize: 'vertical', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={sendingEmail}
-              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', boxSizing: 'border-box' }}
-            >
-              {sendingEmail ? 'Sending...' : 'Send Email Invitation'}
-            </button>
           </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label htmlFor="emailDescription" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+              Personal Message (optional)
+            </label>
+            <textarea
+              id="emailDescription"
+              value={emailFormData.description}
+              onChange={(e) => setEmailFormData({ ...emailFormData, description: e.target.value })}
+              placeholder="Add a personal note to the invitation..."
+              rows={3}
+              disabled={sendingEmail}
+              maxLength={500}
+              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--border)', resize: 'vertical', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={sendingEmail}
+            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', boxSizing: 'border-box' }}
+          >
+            {sendingEmail ? 'Sending...' : 'Send Email Invitation'}
+          </button>
         </form>
       </section>
 
@@ -249,8 +249,10 @@ export function ClubInvitesPage() {
         ) : invites.length === 0 ? (
           <p style={{ marginTop: '1rem', color: 'var(--text)' }}>No invites created yet.</p>
         ) : (
-          <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <>
+            {/* Desktop Table View */}
+            <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
+              <table className="invites-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(170, 59, 255, 0.03)' }}>
                   <th style={{ textAlign: 'left', padding: '10px 12px', color: 'var(--text-h)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</th>
@@ -410,6 +412,162 @@ export function ClubInvitesPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="invites-cards" style={{ marginTop: '1rem' }}>
+            {invites.map((invite) => {
+              const expired = isExpired(invite.expiresAt);
+              const full = isFull(invite);
+              const inactive = expired || full;
+              const canResend = invite.email && !expired && !full;
+
+              return (
+                <div key={invite.id} className="invite-card" style={{ opacity: inactive ? 0.5 : 1 }}>
+                  <div className="invite-card-header">
+                    <div>
+                      <div className="invite-card-email">
+                        {invite.email || <span style={{ color: '#999', fontStyle: 'italic' }}>No email</span>}
+                      </div>
+                      <code className="invite-card-code">{invite.code}</code>
+                    </div>
+                  </div>
+
+                  <div className="invite-card-row">
+                    <span className="invite-card-label">Role</span>
+                    <span className="invite-card-value">
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        background: invite.inviteType === 1 ? 'rgba(52, 152, 219, 0.1)' : 'rgba(155, 89, 182, 0.1)',
+                        color: invite.inviteType === 1 ? '#3498db' : '#9b59b6',
+                      }}>
+                        {getInviteTypeName(invite.inviteType)}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="invite-card-row">
+                    <span className="invite-card-label">Status</span>
+                    <span className="invite-card-value">
+                      {expired ? (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          background: 'rgba(231, 76, 60, 0.1)',
+                          color: '#e74c3c',
+                        }}>
+                          Expired
+                        </span>
+                      ) : full ? (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          background: 'rgba(230, 126, 34, 0.1)',
+                          color: '#e67e22',
+                        }}>
+                          Full
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          background: 'rgba(39, 174, 96, 0.1)',
+                          color: '#27ae60',
+                        }}>
+                          Active
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="invite-card-row">
+                    <span className="invite-card-label">Expires</span>
+                    <span className="invite-card-value" style={{ color: expired ? '#e74c3c' : 'var(--text-h)' }}>
+                      {new Date(invite.expiresAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="invite-card-row">
+                    <span className="invite-card-label">Used</span>
+                    <span className="invite-card-value">
+                      <span style={{
+                        fontWeight: 500,
+                        color: invite.timesUsed > 0 ? '#27ae60' : '#999'
+                      }}>
+                        {invite.timesUsed} / {invite.maxUses}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="invite-card-actions">
+                    <button
+                      onClick={() => copyToClipboard(invite.code)}
+                      style={{
+                        flex: 1,
+                        padding: '8px 16px',
+                        fontSize: '0.9rem',
+                        background: copiedCode === invite.code ? '#27ae60' : 'rgba(170, 59, 255, 0.08)',
+                        color: copiedCode === invite.code ? 'white' : 'var(--accent)',
+                        border: copiedCode === invite.code ? '1px solid #27ae60' : '1px solid var(--accent)',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                      title="Copy invite code to clipboard"
+                    >
+                      {copiedCode === invite.code ? '✓ Copied' : 'Copy Code'}
+                    </button>
+                    {canResend && (
+                      <button
+                        onClick={() => handleResendEmail(invite.id, invite.email!)}
+                        disabled={resendingInvite === invite.id}
+                        style={{
+                          flex: 1,
+                          padding: '8px 16px',
+                          fontSize: '0.9rem',
+                          background: 'var(--accent)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: resendingInvite === invite.id ? 'not-allowed' : 'pointer',
+                          fontWeight: 500,
+                          opacity: resendingInvite === invite.id ? 0.6 : 1,
+                        }}
+                        title="Resend invitation email"
+                      >
+                        {resendingInvite === invite.id ? 'Sending...' : 'Resend Email'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
         )}
       </section>
     </div>

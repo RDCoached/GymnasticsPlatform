@@ -97,9 +97,10 @@ describe('ClubInvitesPage', () => {
 
     render(<ClubInvitesPage />);
 
-    expect(await screen.findByText('ABC123')).toBeInTheDocument();
-    expect(screen.getByText('3 / 10')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    const codes = await screen.findAllByText('ABC123');
+    expect(codes.length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3 / 10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
 
     const tableRows = screen.getAllByRole('row');
     const inviteRow = tableRows.find(row => row.textContent?.includes('ABC123'));
@@ -113,15 +114,16 @@ describe('ClubInvitesPage', () => {
     render(<ClubInvitesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('ABC123')).toBeInTheDocument();
+      const codes = screen.getAllByText('ABC123');
+      expect(codes.length).toBeGreaterThan(0);
     });
 
-    const copyButton = screen.getByRole('button', { name: /^copy$/i });
-    fireEvent.click(copyButton);
+    const copyButtons = screen.getAllByRole('button', { name: /copy/i });
+    fireEvent.click(copyButtons[0]);
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABC123');
-      expect(screen.getByText(/✓ copied/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/✓ copied/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -136,7 +138,7 @@ describe('ClubInvitesPage', () => {
     render(<ClubInvitesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Expired')).toBeInTheDocument();
+      expect(screen.getAllByText('Expired').length).toBeGreaterThan(0);
     });
   });
 
@@ -151,7 +153,7 @@ describe('ClubInvitesPage', () => {
     render(<ClubInvitesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Full')).toBeInTheDocument();
+      expect(screen.getAllByText('Full').length).toBeGreaterThan(0);
     });
   });
 
