@@ -70,6 +70,23 @@ builder.Services.AddDbContext<TrainingDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         o => o.UseVector()));
 
+// Training module services
+builder.Services.Configure<Training.Infrastructure.Configuration.OllamaSettings>(builder.Configuration.GetSection("Ollama"));
+builder.Services.Configure<Training.Infrastructure.Configuration.CouchDbSettings>(builder.Configuration.GetSection("CouchDb"));
+
+builder.Services.AddHttpClient<Training.Application.Services.IEmbeddingService, Training.Infrastructure.Services.OllamaEmbeddingService>();
+builder.Services.AddHttpClient<Training.Application.Services.ILlmService, Training.Infrastructure.Services.OllamaLlmService>();
+
+builder.Services.AddScoped<Training.Infrastructure.Services.VectorSearchService>();
+builder.Services.AddScoped<Training.Application.Services.IProgrammeDocumentStore>(provider =>
+{
+    var settings = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Training.Infrastructure.Configuration.CouchDbSettings>>();
+    var httpClient = new HttpClient();
+    return new Training.Infrastructure.DocumentStore.CouchDbProgrammeDocumentStore(httpClient, settings);
+});
+builder.Services.AddScoped<Training.Application.Services.IProgrammeService, Training.Infrastructure.Services.ProgrammeService>();
+builder.Services.AddScoped<Training.Application.Services.IProgrammeBuilderService, Training.Infrastructure.Services.ProgrammeBuilderService>();
+
 // Add OpenAPI
 builder.Services.AddOpenApi(options =>
 {
