@@ -39,6 +39,7 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Send/receive cookies
       body: JSON.stringify({ email, password }),
     });
 
@@ -49,18 +50,9 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
 
     const data = await response.json();
 
-    // Store tokens in localStorage
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify({
-      id: data.user.id,
-      email: data.user.email,
-      fullName: data.user.fullName,
-      onboardingCompleted: false,
-    }));
-
+    // No token storage - cookie is set automatically by server
     setUser({
-      id: data.user.id,
+      id: data.user.id || '',
       email: data.user.email,
       fullName: data.user.fullName,
     });
@@ -71,13 +63,19 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
   };
 
   const logout = async () => {
-    // Clear localStorage for email/password auth
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('clubId');
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-    // Logout from Keycloak if authenticated
+    // Call backend logout to clear session
+    try {
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include', // Send cookie
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
+    // Logout from Keycloak if authenticated via OAuth
     if (keycloak.authenticated) {
       await keycloak.logout({
         redirectUri: window.location.origin + '/sign-in',
@@ -93,6 +91,7 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Send/receive cookies
       body: JSON.stringify({ email, password, fullName }),
     });
 
@@ -103,16 +102,16 @@ function KeycloakAuthContent({ children }: KeycloakAuthProviderProps) {
   };
 
   const getToken = () => {
-    // Prefer Keycloak token if authenticated via OAuth
+    // Only return Keycloak token for OAuth authentication
+    // Email/password auth uses HTTP-only cookies (no token needed in JS)
     if (keycloak.authenticated && keycloak.token) {
       return keycloak.token;
     }
-    // Fall back to localStorage token for email/password auth
-    return localStorage.getItem('accessToken');
+    return null;
   };
 
   const value: AuthContextType = {
-    isAuthenticated: keycloak.authenticated || !!localStorage.getItem('accessToken'),
+    isAuthenticated: keycloak.authenticated || !!user,
     isLoading: !initialized,
     user,
     login,

@@ -1,0 +1,202 @@
+{
+  "dashboard": {
+    "title": "Database Performance",
+    "tags": ["database", "postgresql", "efcore"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Query Duration (P95)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(npgsql_command_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le))",
+            "legendFormat": "P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(npgsql_command_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le))",
+            "legendFormat": "P99",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(npgsql_command_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le))",
+            "legendFormat": "P50",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Queries Per Second",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(npgsql_command_duration_seconds_count{job=\"gymnastics-api\"}[5m]))",
+            "legendFormat": "Queries/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "qps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Connection Pool Usage",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 8, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "(npgsql_connection_pool_active_connections{job=\"gymnastics-api\"} / npgsql_connection_pool_max_connections{job=\"gymnastics-api\"}) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 90, "color": "red"}
+              ]
+            },
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active Connections",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 8, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "npgsql_connection_pool_active_connections{job=\"gymnastics-api\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Idle Connections",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 8, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "npgsql_connection_pool_idle_connections{job=\"gymnastics-api\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Max Connections",
+        "type": "stat",
+        "gridPos": {"x": 16, "y": 8, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "npgsql_connection_pool_max_connections{job=\"gymnastics-api\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Slow Queries (>1s)",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 14, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "topk(10, sum by (command_text) (rate(npgsql_command_duration_seconds_count{duration_seconds>1,job=\"gymnastics-api\"}[5m])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "renameByName": {
+                "command_text": "Query",
+                "Value": "Executions/sec"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Query Duration Distribution",
+        "type": "heatmap",
+        "gridPos": {"x": 12, "y": 14, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(npgsql_command_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le)",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Connection Errors",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 22, "w": 24, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(npgsql_connection_errors_total{job=\"gymnastics-api\"}[5m])) by (error_type)",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "errors/sec",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      }
+    ]
+  }
+}

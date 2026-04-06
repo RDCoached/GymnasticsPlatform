@@ -1,0 +1,213 @@
+{
+  "dashboard": {
+    "title": "Business Metrics",
+    "tags": ["business", "kpi", "analytics"],
+    "timezone": "browser",
+    "refresh": "1m",
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "New Registrations (Daily)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/register\",http_response_status_code=\"201\"}[1d]))",
+            "legendFormat": "Registrations",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Users (Daily)",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "count(count_over_time({job=\"gymnastics-api\"} | json | http_route=\"/api/auth/me\" [1d]))",
+            "legendFormat": "DAU",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Clubs Created (Today)",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/create-club\",http_response_status_code=\"200\"}[1d]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "blue"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Users Joined Clubs (Today)",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/join-club\",http_response_status_code=\"200\"}[1d]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Individual Mode Users (Today)",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/individual\",http_response_status_code=\"200\"}[1d]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Successful Logins (Today)",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"200\"}[1d]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Onboarding Completion Rate",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 12, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "(sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=~\"/api/onboarding/(create-club|join-club|individual)\",http_response_status_code=\"200\"}[7d])) / sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/register\",http_response_status_code=\"201\"}[7d]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 50, "color": "yellow"},
+                {"value": 80, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Onboarding Choice Distribution",
+        "type": "piechart",
+        "gridPos": {"x": 8, "y": 12, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum by (http_route) (increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=~\"/api/onboarding/(create-club|join-club|individual)\",http_response_status_code=\"200\"}[7d]))",
+            "legendFormat": "{{http_route}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right"},
+          "pieType": "pie"
+        }
+      },
+      {
+        "id": 9,
+        "title": "Weekly Registration Trend",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 12, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/register\",http_response_status_code=\"201\"}[1d]))",
+            "legendFormat": "Daily Registrations",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "User Retention (7-Day)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 18, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"200\"}[7d]))",
+            "legendFormat": "Returning Users (7d)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      }
+    ]
+  }
+}

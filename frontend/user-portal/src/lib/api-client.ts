@@ -125,17 +125,24 @@ export class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private getAuthHeaders(token: string): HeadersInit {
-    return {
+  private getAuthHeaders(token?: string | null): HeadersInit {
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     };
+
+    // Only add Authorization header if token is provided (for OAuth)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
   }
 
   async register(request: RegisterRequest): Promise<RegisterResponse> {
     const response = await fetch(`${this.baseUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(request),
     });
 
@@ -151,6 +158,7 @@ export class ApiClient {
     const response = await fetch(`${this.baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(request),
     });
 
@@ -166,6 +174,7 @@ export class ApiClient {
     const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(request),
     });
 
@@ -177,9 +186,10 @@ export class ApiClient {
     return response.json();
   }
 
-  async getCurrentUser(token: string): Promise<CurrentUserResponse> {
+  async getCurrentUser(token?: string | null): Promise<CurrentUserResponse> {
     const response = await fetch(`${this.baseUrl}/api/auth/me`, {
       headers: this.getAuthHeaders(token),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -190,9 +200,10 @@ export class ApiClient {
     return response.json();
   }
 
-  async getProfile(token: string): Promise<ProfileResponse> {
+  async getProfile(token?: string | null): Promise<ProfileResponse> {
     const response = await fetch(`${this.baseUrl}/api/profile`, {
       headers: this.getAuthHeaders(token),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -203,10 +214,11 @@ export class ApiClient {
     return response.json();
   }
 
-  async updateProfile(token: string, request: UpdateProfileRequest): Promise<ProfileResponse> {
+  async updateProfile(token: string | null | undefined, request: UpdateProfileRequest): Promise<ProfileResponse> {
     const response = await fetch(`${this.baseUrl}/api/profile`, {
       method: 'PUT',
       headers: this.getAuthHeaders(token),
+      credentials: 'include',
       body: JSON.stringify(request),
     });
 
@@ -219,9 +231,10 @@ export class ApiClient {
   }
 
 
-  async listInvites(token: string, clubId: string): Promise<InviteResponse[]> {
+  async listInvites(token: string | null | undefined, clubId: string): Promise<InviteResponse[]> {
     const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites`, {
       headers: this.getAuthHeaders(token),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -233,13 +246,14 @@ export class ApiClient {
   }
 
   async sendEmailInvite(
-    token: string,
+    token: string | null | undefined,
     clubId: string,
     request: SendEmailInviteRequest
   ): Promise<EmailInviteResponse> {
     const response = await fetch(`${this.baseUrl}/api/clubs/${clubId}/invites/send-email`, {
       method: 'POST',
       headers: this.getAuthHeaders(token),
+      credentials: 'include',
       body: JSON.stringify(request),
     });
 

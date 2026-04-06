@@ -76,6 +76,7 @@ describe('JoinClubForm', () => {
             'Authorization': `Bearer ${mockToken}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({ inviteCode: 'ABC123' }),
         }
       );

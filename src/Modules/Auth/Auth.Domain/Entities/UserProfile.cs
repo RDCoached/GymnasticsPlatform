@@ -75,4 +75,10 @@ public sealed class UserProfile : IMultiTenant
 
         FullName = fullName;
     }
+
+    public void ResetOnboarding()
+    {
+        OnboardingCompleted = false;
+        OnboardingChoice = null;
+    }
 }

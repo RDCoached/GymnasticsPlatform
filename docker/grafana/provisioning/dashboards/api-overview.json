@@ -1,0 +1,223 @@
+{
+  "dashboard": {
+    "title": "API Overview",
+    "tags": ["api", "performance", "overview"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate (req/s)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\"}[5m])) by (http_route, http_request_method)",
+            "legendFormat": "{{http_request_method}} {{http_route}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Error Rate (%)",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\"}[5m])) * 100",
+            "legendFormat": "5xx Error Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"4..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\"}[5m])) * 100",
+            "legendFormat": "4xx Error Rate",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {"mode": "palette-classic"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time (P95)",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le, http_route))",
+            "legendFormat": "{{http_route}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Total Requests (Last 5m)",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\"}[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "blue"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Error Count (Last 5m)",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"5..\"}[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Active Connections",
+        "type": "gauge",
+        "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "http_server_active_requests{job=\"gymnastics-api\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 50, "color": "yellow"},
+                {"value": 100, "color": "red"}
+              ]
+            },
+            "max": 200
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Request Duration Distribution",
+        "type": "heatmap",
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le)",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Top 10 Slowest Endpoints",
+        "type": "table",
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "topk(10, histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"gymnastics-api\"}[5m])) by (le, http_route)))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "indexByName": {},
+              "renameByName": {
+                "http_route": "Endpoint",
+                "Value": "P95 Latency (s)"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Recent 5xx Errors",
+        "type": "logs",
+        "gridPos": {"x": 0, "y": 20, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "{job=\"gymnastics-api\"} |= \"error\" | json | http_response_status_code >= 500",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "showCommonLabels": false,
+          "wrapLogMessage": true,
+          "prettifyLogMessage": false,
+          "enableLogDetails": true,
+          "dedupStrategy": "none",
+          "sortOrder": "Descending"
+        }
+      }
+    ]
+  }
+}

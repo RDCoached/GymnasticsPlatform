@@ -122,11 +122,12 @@ describe('OnboardingScreen', () => {
             'Authorization': `Bearer ${mockToken}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
         }
       );
     });
 
-    expect(window.location.href).toBe('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
   });
 
   it('should not navigate when individual mode API call fails', async () => {
@@ -154,10 +155,6 @@ describe('OnboardingScreen', () => {
   });
 
   it('should navigate to dashboard when CreateClubForm completes', () => {
-    // Mock window.location.href assignment
-    delete (window as any).location;
-    window.location = { href: '' } as any;
-
     render(<OnboardingScreen />);
 
     const createButton = screen.getByRole('button', { name: /create a new club/i });
@@ -166,14 +163,10 @@ describe('OnboardingScreen', () => {
     const completeButton = screen.getByRole('button', { name: /complete create club/i });
     fireEvent.click(completeButton);
 
-    expect(window.location.href).toBe('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
   });
 
   it('should navigate to dashboard when JoinClubForm completes', () => {
-    // Mock window.location.href assignment
-    delete (window as any).location;
-    window.location = { href: '' } as any;
-
     render(<OnboardingScreen />);
 
     const joinButton = screen.getByRole('button', { name: /join club/i });
@@ -182,6 +175,6 @@ describe('OnboardingScreen', () => {
     const completeButton = screen.getByRole('button', { name: /complete join club/i });
     fireEvent.click(completeButton);
 
-    expect(window.location.href).toBe('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
   });
 });
