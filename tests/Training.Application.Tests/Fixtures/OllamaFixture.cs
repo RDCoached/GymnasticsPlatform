@@ -26,8 +26,11 @@ public sealed class OllamaFixture : IAsyncLifetime
         var port = _container.GetMappedPublicPort(11434);
         BaseUrl = $"http://localhost:{port}";
 
-        // Pull the embedding model
-        await PullModelAsync("all-minilm:l6-v2");
+        // Pull required models (can be done in parallel)
+        await Task.WhenAll(
+            PullModelAsync("all-minilm:l6-v2"),
+            PullModelAsync("llama3.2:3b")
+        );
     }
 
     public async Task DisposeAsync()
