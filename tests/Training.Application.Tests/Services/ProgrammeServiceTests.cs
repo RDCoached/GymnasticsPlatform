@@ -51,7 +51,8 @@ public sealed class ProgrammeServiceTests : IAsyncLifetime
         });
         _embeddingService = new OllamaEmbeddingService(httpClient, ollamaSettings);
 
-        _service = new ProgrammeService(_dbContext, _documentStore, _embeddingService);
+        var skillService = Substitute.For<ISkillService>();
+        _service = new ProgrammeService(_dbContext, _documentStore, _embeddingService, skillService);
     }
 
     [Fact]
