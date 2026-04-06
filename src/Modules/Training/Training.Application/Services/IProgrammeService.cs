@@ -54,6 +54,22 @@ public interface IProgrammeService
     Task<ProgrammeMetadata> ActivateAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Marks a programme as completed.
+    /// </summary>
+    /// <param name="id">Programme metadata ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated programme metadata</returns>
+    Task<ProgrammeMetadata> CompleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Archives a completed programme.
+    /// </summary>
+    /// <param name="id">Programme metadata ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated programme metadata</returns>
+    Task<ProgrammeMetadata> ArchiveAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists all programmes for a specific gymnast.
     /// </summary>
     /// <param name="gymnastId">Gymnast ID</param>

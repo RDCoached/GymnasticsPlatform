@@ -157,6 +157,36 @@ public sealed class ProgrammeService : IProgrammeService
         return metadata;
     }
 
+    public async Task<ProgrammeMetadata> CompleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var metadata = await _dbContext.ProgrammeMetadata
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        if (metadata is null)
+            throw new InvalidOperationException($"Programme with ID {id} not found");
+
+        metadata.Complete();
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return metadata;
+    }
+
+    public async Task<ProgrammeMetadata> ArchiveAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var metadata = await _dbContext.ProgrammeMetadata
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        if (metadata is null)
+            throw new InvalidOperationException($"Programme with ID {id} not found");
+
+        metadata.Archive();
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return metadata;
+    }
+
     public async Task<IReadOnlyList<ProgrammeMetadata>> ListByGymnastAsync(
         Guid gymnastId,
         CancellationToken cancellationToken = default)

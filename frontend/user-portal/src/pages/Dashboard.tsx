@@ -145,6 +145,34 @@ export function Dashboard() {
               </div>
             )}
 
+            {currentUser && (currentUser.roles.includes('Coach') || currentUser.roles.includes('ClubAdmin') || currentUser.roles.includes('IndividualAdmin')) ? (
+              <div className="option-card" onClick={() => navigate('/gymnasts')}>
+                <h2>Manage Gymnasts</h2>
+                <p>Add, edit, and manage your gymnasts.</p>
+                <button className="option-button">Manage Gymnasts</button>
+              </div>
+            ) : (
+              <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                <h2>Manage Gymnasts</h2>
+                <p>Add, edit, and manage your gymnasts.</p>
+                <button className="option-button" disabled>Coach Access Only</button>
+              </div>
+            )}
+
+            {currentUser && (currentUser.roles.includes('Coach') || currentUser.roles.includes('ClubAdmin') || currentUser.roles.includes('IndividualAdmin')) ? (
+              <div className="option-card" onClick={() => navigate('/programme-builder')}>
+                <h2>🤖 Build Programme</h2>
+                <p>Create AI-powered training programmes with RAG assistance.</p>
+                <button className="option-button">Build Programme</button>
+              </div>
+            ) : (
+              <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                <h2>🤖 Build Programme</h2>
+                <p>Create AI-powered training programmes.</p>
+                <button className="option-button" disabled>Coach Access Only</button>
+              </div>
+            )}
+
             <div className="option-card" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
               <h2>View Sessions</h2>
               <p>Track your training sessions and progress.</p>

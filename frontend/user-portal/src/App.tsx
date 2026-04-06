@@ -7,6 +7,8 @@ import { OnboardingScreen } from './pages/OnboardingScreen';
 import { Dashboard } from './pages/Dashboard';
 import { UpdateProfilePage } from './pages/UpdateProfilePage';
 import { ClubInvitesPage } from './pages/ClubInvitesPage';
+import { GymnastsPage } from './pages/GymnastsPage';
+import { ProgrammeBuilderPage } from './pages/ProgrammeBuilderPage';
 import { SignInPage } from './pages/SignInPage';
 import { RegisterPage } from './pages/RegisterPage';
 import './App.css';
@@ -54,6 +56,22 @@ function RoutesComponent() {
             element={
               <OnboardingGuard>
                 <ClubInvitesPage />
+              </OnboardingGuard>
+            }
+          />
+          <Route
+            path="/gymnasts"
+            element={
+              <OnboardingGuard>
+                <GymnastsPage />
+              </OnboardingGuard>
+            }
+          />
+          <Route
+            path="/programme-builder"
+            element={
+              <OnboardingGuard>
+                <ProgrammeBuilderPage />
               </OnboardingGuard>
             }
           />

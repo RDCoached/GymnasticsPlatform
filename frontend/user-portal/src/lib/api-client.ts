@@ -88,6 +88,36 @@ export interface EmailInviteResponse {
   description?: string | null;
 }
 
+export interface GymnastResponse {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface CreateGymnastRequest {
+  email: string;
+  fullName: string;
+}
+
+export interface UpdateGymnastRequest {
+  fullName: string;
+}
+
+export interface StartProgrammeBuilderRequest {
+  gymnastId: string;
+  goals: string;
+  ragScope?: 'gymnast' | 'tenant';
+}
+
+export interface BuilderSessionResult {
+  sessionId: string;
+  suggestion: string;
+}
+
+export interface ContinueProgrammeBuilderRequest {
+  message: string;
+}
+
 export class ApiClient {
   private baseUrl: string;
 
@@ -219,6 +249,116 @@ export class ApiClient {
     }
 
     return response.json();
+  }
+
+  async listGymnasts(token: string): Promise<GymnastResponse[]> {
+    const response = await fetch(`${this.baseUrl}/api/gymnasts`, {
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to fetch gymnasts' }));
+      throw new Error(error.detail || 'Failed to fetch gymnasts');
+    }
+
+    return response.json();
+  }
+
+  async createGymnast(token: string, request: CreateGymnastRequest): Promise<GymnastResponse> {
+    const response = await fetch(`${this.baseUrl}/api/gymnasts`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to create gymnast' }));
+      throw new Error(error.detail || 'Failed to create gymnast');
+    }
+
+    return response.json();
+  }
+
+  async updateGymnast(token: string, id: string, request: UpdateGymnastRequest): Promise<GymnastResponse> {
+    const response = await fetch(`${this.baseUrl}/api/gymnasts/${id}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to update gymnast' }));
+      throw new Error(error.detail || 'Failed to update gymnast');
+    }
+
+    return response.json();
+  }
+
+  async deleteGymnast(token: string, id: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/api/gymnasts/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to delete gymnast' }));
+      throw new Error(error.detail || 'Failed to delete gymnast');
+    }
+  }
+
+  async startProgrammeBuilder(
+    token: string,
+    request: StartProgrammeBuilderRequest
+  ): Promise<BuilderSessionResult> {
+    const response = await fetch(`${this.baseUrl}/api/programme-builder/start`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to start programme builder' }));
+      throw new Error(error.detail || 'Failed to start programme builder');
+    }
+
+    return response.json();
+  }
+
+  async continueProgrammeBuilder(
+    token: string,
+    sessionId: string,
+    request: ContinueProgrammeBuilderRequest
+  ): Promise<BuilderSessionResult> {
+    const response = await fetch(`${this.baseUrl}/api/programme-builder/continue/${sessionId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to continue session' }));
+      throw new Error(error.detail || 'Failed to continue session');
+    }
+
+    return response.json();
+  }
+
+  async acceptProgrammeBuilder(
+    token: string,
+    sessionId: string
+  ): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/api/programme-builder/accept/${sessionId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to accept programme' }));
+      throw new Error(error.detail || 'Failed to accept programme');
+    }
+
+    const result = await response.json();
+    return result; // Returns programmeId (string)
   }
 }
 
