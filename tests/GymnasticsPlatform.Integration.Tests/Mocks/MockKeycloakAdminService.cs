@@ -1,9 +1,9 @@
-using Auth.Application.Services;
-using Common.Core;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Auth.Application.Services;
+using Common.Core;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GymnasticsPlatform.Integration.Tests.Mocks;
 
@@ -17,6 +17,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
     private readonly Dictionary<string, string> _userCredentials = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, bool> _emailVerificationStatus = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _refreshTokens = new();
+    private readonly Dictionary<string, string> _emailToUserId = new(StringComparer.OrdinalIgnoreCase);
 
     public Task UpdateUserTenantIdAsync(string keycloakUserId, Guid newTenantId, CancellationToken ct = default)
     {
@@ -41,7 +42,8 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         var userId = Guid.NewGuid().ToString();
         _registeredEmails.Add(email);
         _userCredentials[email] = password;
-        _emailVerificationStatus[email] = false; // Starts unverified
+        _emailVerificationStatus[email] = false;
+        _emailToUserId[email] = userId;
 
         return Task.FromResult(Result.Success(userId));
     }
@@ -76,9 +78,8 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
                 "Invalid credentials"));
         }
 
-        // Generate tokens
-        var keycloakUserId = Guid.NewGuid().ToString();
-        var accessToken = GenerateValidJwtToken(keycloakUserId, email);
+        var userId = _emailToUserId[email];
+        var accessToken = GenerateValidJwtToken(userId, email);
         var refreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
 
         _refreshTokens[refreshToken] = email;
@@ -104,10 +105,9 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
                 "Invalid or expired refresh token"));
         }
 
-        // Generate new tokens
         var email = _refreshTokens[refreshToken];
-        var keycloakUserId = Guid.NewGuid().ToString();
-        var newAccessToken = GenerateValidJwtToken(keycloakUserId, email);
+        var userId = _emailToUserId[email];
+        var newAccessToken = GenerateValidJwtToken(userId, email);
         var newRefreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
 
         _refreshTokens.Remove(refreshToken);
@@ -177,5 +177,6 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         _userCredentials.Clear();
         _emailVerificationStatus.Clear();
         _refreshTokens.Clear();
+        _emailToUserId.Clear();
     }
 }

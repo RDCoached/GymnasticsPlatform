@@ -80,6 +80,9 @@ public sealed class ExerciseContent
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
+    [JsonPropertyName("skillId")]
+    public Guid? SkillId { get; set; }
+
     [JsonPropertyName("sets")]
     public int Sets { get; set; }
 

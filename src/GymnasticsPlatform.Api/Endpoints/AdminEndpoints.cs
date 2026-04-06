@@ -3,6 +3,7 @@ using Auth.Domain.Entities;
 using Auth.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Training.Infrastructure.Seeders;
 
 namespace GymnasticsPlatform.Api.Endpoints;
 
@@ -43,6 +44,11 @@ public sealed class AdminEndpoints : IEndpointGroup
         group.MapGet("/users/{userId}/audit-log", GetUserAuditLog)
             .WithName("GetUserAuditLog")
             .WithSummary("Get audit log for a user");
+
+        group.MapPost("/seed-skills", SeedSkills)
+            .WithName("SeedSkills")
+            .WithSummary("Seed the skills catalog with common gymnastics skills")
+            .Produces<SeedSkillsResponse>();
     }
 
     private static async Task<IResult> ListUsers(
@@ -348,8 +354,41 @@ public sealed class AdminEndpoints : IEndpointGroup
             }
         });
     }
+
+    private static async Task<IResult> SeedSkills(
+        SkillSeeder seeder,
+        ILogger<AdminEndpoints> logger,
+        CancellationToken ct)
+    {
+        try
+        {
+            // Use a system tenant/user ID for seeded skills
+            var systemTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+            logger.LogInformation("Starting skills catalog seeding via admin endpoint");
+            await seeder.SeedAsync(systemTenantId, systemUserId, ct);
+
+            return Results.Ok(new SeedSkillsResponse(
+                Message: "Skills catalog seeded successfully",
+                SystemTenantId: systemTenantId,
+                SystemUserId: systemUserId));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to seed skills catalog");
+            return Results.Problem(
+                statusCode: StatusCodes.Status500InternalServerError,
+                detail: $"Failed to seed skills: {ex.Message}");
+        }
+    }
 }
 
 public sealed record AssignRolesRequest(string[] RoleNames);
 public sealed record RemoveRolesRequest(string[] RoleNames);
 public sealed record CompleteOnboardingRequest(string Choice);
+
+public record SeedSkillsResponse(
+    string Message,
+    Guid SystemTenantId,
+    Guid SystemUserId);

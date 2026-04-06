@@ -1,0 +1,29 @@
+# Gitleaks configuration for GymnasticsPlatform
+# See https://github.com/gitleaks/gitleaks for documentation
+
+title = "Gitleaks Configuration for GymnasticsPlatform"
+
+[extend]
+# Use default gitleaks rules as base
+useDefault = true
+
+[[rules]]
+# Allow documentation examples with placeholder tokens
+id = "docs-placeholder-tokens"
+description = "Allow documentation examples with placeholder tokens in angle brackets"
+regex = '''Authorization:\s+Bearer\s+<[A-Z_]+>'''
+path = '''docs/.*\.md$'''
+
+[allowlist]
+description = "Allowlist for false positives"
+
+# Allowlist specific documentation files with API examples
+paths = [
+  '''docs/SKILLS_SEEDING\.md''',
+]
+
+# Allowlist placeholder patterns commonly used in documentation
+regexes = [
+  '''<YOUR_[A-Z_]+>''',
+  '''Bearer\s+<[A-Z_]+>''',
+]

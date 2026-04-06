@@ -13,6 +13,8 @@ public sealed class TrainingDbContext(
     public DbSet<ProgrammeMetadata> ProgrammeMetadata => Set<ProgrammeMetadata>();
     public DbSet<CoachGymnastRelationship> CoachGymnastRelationships => Set<CoachGymnastRelationship>();
     public DbSet<ProgrammeBuilderSession> ProgrammeBuilderSessions => Set<ProgrammeBuilderSession>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<SkillSection> SkillSections => Set<SkillSection>();
 
     private Guid CurrentTenantId => _tenantContext.TenantId ?? throw new InvalidOperationException("TenantId is required");
 

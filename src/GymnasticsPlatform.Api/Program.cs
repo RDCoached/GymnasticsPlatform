@@ -111,6 +111,10 @@ builder.Services.AddScoped<Training.Application.Services.IProgrammeDocumentStore
 builder.Services.AddScoped<Training.Application.Services.IProgrammeService, Training.Infrastructure.Services.ProgrammeService>();
 builder.Services.AddScoped<Training.Application.Services.IProgrammeBuilderService, Training.Infrastructure.Services.ProgrammeBuilderService>();
 
+// Skills Catalog Service
+builder.Services.AddScoped<Training.Application.Services.ISkillService, Training.Infrastructure.Services.SkillService>();
+builder.Services.AddScoped<Training.Infrastructure.Seeders.SkillSeeder>();
+
 // Add OpenAPI
 builder.Services.AddOpenApi(options =>
 {

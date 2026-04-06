@@ -43,8 +43,9 @@ public sealed class ProgrammeServiceTests_Management : IAsyncLifetime
 
         _documentStore = Substitute.For<IProgrammeDocumentStore>();
         _embeddingService = Substitute.For<IEmbeddingService>();
+        var skillService = Substitute.For<ISkillService>();
 
-        _service = new ProgrammeService(_dbContext, _documentStore, _embeddingService);
+        _service = new ProgrammeService(_dbContext, _documentStore, _embeddingService, skillService);
     }
 
     [Fact]
