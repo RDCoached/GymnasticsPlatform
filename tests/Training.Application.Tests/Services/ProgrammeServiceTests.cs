@@ -1,28 +1,33 @@
 using Common.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Pgvector.EntityFrameworkCore;
 using Training.Application.Services;
 using Training.Application.Tests.Fixtures;
 using Training.Domain.Documents;
 using Training.Domain.Enums;
+using Training.Infrastructure.Configuration;
 using Training.Infrastructure.Persistence;
 using Training.Infrastructure.Services;
 
 namespace Training.Application.Tests.Services;
 
-public sealed class ProgrammeServiceTests : IClassFixture<PostgreSqlFixture>, IAsyncLifetime
+[Collection("Database")]
+public sealed class ProgrammeServiceTests : IAsyncLifetime
 {
     private readonly PostgreSqlFixture _pgFixture;
+    private readonly OllamaFixture _ollamaFixture;
     private readonly TrainingDbContext _dbContext;
     private readonly IProgrammeDocumentStore _documentStore;
     private readonly IEmbeddingService _embeddingService;
     private readonly ProgrammeService _service;
     private readonly Guid _testTenantId;
 
-    public ProgrammeServiceTests(PostgreSqlFixture pgFixture)
+    public ProgrammeServiceTests(PostgreSqlFixture pgFixture, OllamaFixture ollamaFixture)
     {
         _pgFixture = pgFixture;
+        _ollamaFixture = ollamaFixture;
         _testTenantId = Guid.NewGuid();
 
         var tenantContext = Substitute.For<ITenantContext>();
@@ -36,10 +41,15 @@ public sealed class ProgrammeServiceTests : IClassFixture<PostgreSqlFixture>, IA
 
         _documentStore = Substitute.For<IProgrammeDocumentStore>();
 
-        _embeddingService = Substitute.For<IEmbeddingService>();
-        _embeddingService
-            .GenerateEmbeddingAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(CreateMockEmbedding());
+        // Use real Ollama embedding service instead of mock
+        var httpClient = new HttpClient();
+        var ollamaSettings = Options.Create(new OllamaSettings
+        {
+            BaseUrl = _ollamaFixture.BaseUrl,
+            EmbeddingModel = "all-minilm:l6-v2",
+            TimeoutSeconds = 120
+        });
+        _embeddingService = new OllamaEmbeddingService(httpClient, ollamaSettings);
 
         _service = new ProgrammeService(_dbContext, _documentStore, _embeddingService);
     }
@@ -68,9 +78,11 @@ public sealed class ProgrammeServiceTests : IClassFixture<PostgreSqlFixture>, IA
         Assert.Equal(ProgrammeStatus.Draft, result.Status);
         Assert.NotNull(result.EmbeddingVector);
         Assert.Equal(384, result.EmbeddingVector.Length);
+        // Verify embedding values are in valid range for all-minilm:l6-v2
+        Assert.All(result.EmbeddingVector, value => Assert.True(value >= -1.0f && value <= 1.0f));
 
         await _documentStore.Received(1).CreateAsync(Arg.Any<ProgrammeDocument>(), Arg.Any<CancellationToken>());
-        await _embeddingService.Received(1).GenerateEmbeddingAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        // Note: Can't verify call count on real embedding service, but embedding generation is verified by the assertions above
 
         var savedMetadata = await _dbContext.ProgrammeMetadata.FirstOrDefaultAsync();
         Assert.NotNull(savedMetadata);
@@ -294,13 +306,4 @@ public sealed class ProgrammeServiceTests : IClassFixture<PostgreSqlFixture>, IA
         };
     }
 
-    private static float[] CreateMockEmbedding()
-    {
-        var embedding = new float[384];
-        for (var i = 0; i < embedding.Length; i++)
-        {
-            embedding[i] = i * 0.01f;
-        }
-        return embedding;
-    }
 }
