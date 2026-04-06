@@ -1,6 +1,7 @@
 using Auth.Application.Services;
 using Auth.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Training.Infrastructure.Seeders;
 
 namespace GymnasticsPlatform.Api.Endpoints;
 
@@ -23,6 +24,11 @@ public sealed class AdminEndpoints : IEndpointGroup
             .Produces<SyncTenantResponse>()
             .ProducesProblem(404)
             .ProducesProblem(500);
+
+        group.MapPost("/seed-skills", SeedSkills)
+            .WithName("SeedSkills")
+            .WithSummary("Seed the skills catalog with common gymnastics skills")
+            .Produces<SeedSkillsResponse>();
     }
 
     private static async Task<IResult> ListUsers(
@@ -89,6 +95,34 @@ public sealed class AdminEndpoints : IEndpointGroup
                 detail: $"Failed to sync tenant: {ex.Message}");
         }
     }
+
+    private static async Task<IResult> SeedSkills(
+        SkillSeeder seeder,
+        ILogger<AdminEndpoints> logger,
+        CancellationToken ct)
+    {
+        try
+        {
+            // Use a system tenant/user ID for seeded skills
+            var systemTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            var systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+            logger.LogInformation("Starting skills catalog seeding via admin endpoint");
+            await seeder.SeedAsync(systemTenantId, systemUserId, ct);
+
+            return Results.Ok(new SeedSkillsResponse(
+                Message: "Skills catalog seeded successfully",
+                SystemTenantId: systemTenantId,
+                SystemUserId: systemUserId));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to seed skills catalog");
+            return Results.Problem(
+                statusCode: StatusCodes.Status500InternalServerError,
+                detail: $"Failed to seed skills: {ex.Message}");
+        }
+    }
 }
 
 public record UserProfileResponse(
@@ -105,3 +139,8 @@ public record SyncTenantResponse(
     string Email,
     Guid TenantId,
     string Message);
+
+public record SeedSkillsResponse(
+    string Message,
+    Guid SystemTenantId,
+    Guid SystemUserId);
