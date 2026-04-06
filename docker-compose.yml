@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: gymnastics-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gymnastics}
@@ -68,6 +68,39 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  couchdb:
+    image: couchdb:3.4
+    container_name: gymnastics-couchdb
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-changeme}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-changeme}@localhost:5984/_up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gymnastics-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   api:
     build:
@@ -193,3 +226,5 @@ volumes:
   loki_data:
   tempo_data:
   prometheus_data:
+  couchdb_data:
+  ollama_data:

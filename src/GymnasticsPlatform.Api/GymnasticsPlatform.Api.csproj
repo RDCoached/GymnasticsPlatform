@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Modules\Auth\Auth.Api\Auth.Api.csproj" />
     <ProjectReference Include="..\Modules\Sessions\Sessions.Api\Sessions.Api.csproj" />
     <ProjectReference Include="..\Common\Common.Core\Common.Core.csproj" />
+    <ProjectReference Include="..\Modules\Training\Training.Infrastructure\Training.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
