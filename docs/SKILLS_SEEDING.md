@@ -27,7 +27,7 @@ POST /api/admin/seed-skills
 **Using curl:**
 ```bash
 curl -X POST https://your-api-url/api/admin/seed-skills \
-  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+  -H "Authorization: Bearer <YOUR_ADMIN_TOKEN>"
 ```
 
 **Response:**
