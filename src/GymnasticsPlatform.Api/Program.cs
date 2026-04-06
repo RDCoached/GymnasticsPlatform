@@ -45,6 +45,12 @@ builder.Services.Configure<GymnasticsPlatform.Api.Configuration.KeycloakSettings
     options.ClientSecret = keycloakConfig["ClientSecret"] ?? "";
 });
 
+// Add HttpClient for Keycloak token operations
+builder.Services.AddHttpClient("Keycloak", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 // Add User Tenant Service
 builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.Infrastructure.Services.UserTenantService>();
 
@@ -279,8 +285,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseAuthentication();
-app.UseMiddleware<SessionAuthMiddleware>();
+app.UseMiddleware<SessionAuthMiddleware>(); // Session auth first (primary)
+app.UseAuthentication(); // JWT second (fallback for OAuth)
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 

@@ -4,7 +4,10 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace GymnasticsPlatform.Api.Services;
 
-public sealed class SessionService(IDistributedCache cache, TimeProvider timeProvider) : ISessionService
+public sealed class SessionService(
+    IDistributedCache cache,
+    TimeProvider timeProvider,
+    ILogger<SessionService> logger) : ISessionService
 {
     private const string SessionKeyPrefix = "session:";
 
@@ -26,6 +29,10 @@ public sealed class SessionService(IDistributedCache cache, TimeProvider timePro
         };
 
         await cache.SetStringAsync($"{SessionKeyPrefix}{sessionId}", json, options, ct);
+
+        logger.LogInformation("Session created for user {KeycloakUserId} with session ID {SessionId}",
+            keycloakUserId, sessionId);
+
         return sessionId;
     }
 
@@ -33,7 +40,10 @@ public sealed class SessionService(IDistributedCache cache, TimeProvider timePro
     {
         var json = await cache.GetStringAsync($"{SessionKeyPrefix}{sessionId}", ct);
         if (string.IsNullOrEmpty(json))
+        {
+            logger.LogWarning("Session {SessionId} not found in cache", sessionId);
             return null;
+        }
 
         return JsonSerializer.Deserialize<SessionData>(json);
     }
@@ -47,11 +57,16 @@ public sealed class SessionService(IDistributedCache cache, TimeProvider timePro
         };
 
         await cache.SetStringAsync($"{SessionKeyPrefix}{sessionId}", json, options, ct);
+
+        logger.LogDebug("Session {SessionId} updated (expires at {ExpiresAt})",
+            sessionId, data.ExpiresAt);
     }
 
     public async Task DeleteSessionAsync(string sessionId, CancellationToken ct = default)
     {
         await cache.RemoveAsync($"{SessionKeyPrefix}{sessionId}", ct);
+
+        logger.LogInformation("Session {SessionId} deleted", sessionId);
     }
 
     private static string GenerateSessionId()

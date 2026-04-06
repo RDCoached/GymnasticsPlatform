@@ -9,9 +9,13 @@ namespace GymnasticsPlatform.Api.Middleware;
 public sealed class SessionAuthMiddleware(
     RequestDelegate next,
     IOptions<KeycloakSettings> keycloakSettings,
+    IHttpClientFactory httpClientFactory,
+    TimeProvider timeProvider,
     ILogger<SessionAuthMiddleware> logger)
 {
     private readonly KeycloakSettings _keycloakSettings = keycloakSettings.Value;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly TimeProvider _timeProvider = timeProvider;
 
     public async Task InvokeAsync(
         HttpContext context,
@@ -32,23 +36,27 @@ public sealed class SessionAuthMiddleware(
             return;
         }
 
-        if (sessionData.ExpiresAt <= TimeProvider.System.GetUtcNow())
+        if (sessionData.ExpiresAt <= _timeProvider.GetUtcNow())
         {
             try
             {
+                logger.LogInformation("Refreshing expired token for session {SessionId}", sessionId);
+
                 var refreshedToken = await RefreshTokenAsync(
                     sessionData.RefreshToken,
                     _keycloakSettings,
+                    _httpClientFactory,
                     context.RequestAborted);
 
                 sessionData = sessionData with
                 {
                     AccessToken = refreshedToken.AccessToken,
                     RefreshToken = refreshedToken.RefreshToken,
-                    ExpiresAt = TimeProvider.System.GetUtcNow().AddSeconds(refreshedToken.ExpiresIn)
+                    ExpiresAt = _timeProvider.GetUtcNow().AddSeconds(refreshedToken.ExpiresIn)
                 };
 
                 await sessionService.UpdateSessionAsync(sessionId, sessionData, context.RequestAborted);
+                logger.LogInformation("Successfully refreshed token for session {SessionId}", sessionId);
             }
             catch (Exception ex)
             {
@@ -58,6 +66,15 @@ public sealed class SessionAuthMiddleware(
                 await next(context);
                 return;
             }
+        }
+        else
+        {
+            // Update session expiration on activity (sliding window)
+            sessionData = sessionData with
+            {
+                ExpiresAt = _timeProvider.GetUtcNow().AddMinutes(20)
+            };
+            await sessionService.UpdateSessionAsync(sessionId, sessionData, context.RequestAborted);
         }
 
         var claims = new List<Claim>
@@ -78,9 +95,10 @@ public sealed class SessionAuthMiddleware(
     private static async Task<TokenResponse> RefreshTokenAsync(
         string refreshToken,
         KeycloakSettings settings,
+        IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        using var httpClient = new HttpClient();
+        var httpClient = httpClientFactory.CreateClient("Keycloak");
         var tokenEndpoint = $"{settings.Authority}/protocol/openid-connect/token";
 
         var requestBody = new Dictionary<string, string>
