@@ -79,7 +79,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         }
 
         var userId = _emailToUserId[email];
-        var accessToken = GenerateJwtToken(userId, email);
+        var accessToken = GenerateValidJwtToken(userId, email);
         var refreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
 
         _refreshTokens[refreshToken] = email;
@@ -107,7 +107,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
 
         var email = _refreshTokens[refreshToken];
         var userId = _emailToUserId[email];
-        var newAccessToken = GenerateJwtToken(userId, email);
+        var newAccessToken = GenerateValidJwtToken(userId, email);
         var newRefreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
 
         _refreshTokens.Remove(refreshToken);
@@ -141,6 +141,28 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
     }
 
     // Test helper methods
+    private static string GenerateValidJwtToken(string keycloakUserId, string email)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("test-secret-key-for-integration-tests-12345678"));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, keycloakUserId),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: "test-keycloak",
+            audience: "user-portal",
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
     public void VerifyEmail(string email)
     {
         if (_emailVerificationStatus.ContainsKey(email))
@@ -156,30 +178,5 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         _emailVerificationStatus.Clear();
         _refreshTokens.Clear();
         _emailToUserId.Clear();
-    }
-
-    private static string GenerateJwtToken(string userId, string email)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes("mock-secret-key-for-testing-only-must-be-at-least-32-characters");
-
-        var claims = new[]
-        {
-            new Claim("sub", userId),
-            new Claim("email", email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
     }
 }
