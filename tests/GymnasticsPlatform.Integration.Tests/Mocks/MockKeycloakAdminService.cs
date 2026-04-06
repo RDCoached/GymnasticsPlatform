@@ -1,5 +1,9 @@
 using Auth.Application.Services;
 using Common.Core;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace GymnasticsPlatform.Integration.Tests.Mocks;
 
@@ -73,7 +77,8 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         }
 
         // Generate tokens
-        var accessToken = $"mock-access-token-{Guid.NewGuid()}";
+        var keycloakUserId = Guid.NewGuid().ToString();
+        var accessToken = GenerateValidJwtToken(keycloakUserId, email);
         var refreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
 
         _refreshTokens[refreshToken] = email;
@@ -100,10 +105,11 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         }
 
         // Generate new tokens
-        var newAccessToken = $"mock-access-token-{Guid.NewGuid()}";
+        var email = _refreshTokens[refreshToken];
+        var keycloakUserId = Guid.NewGuid().ToString();
+        var newAccessToken = GenerateValidJwtToken(keycloakUserId, email);
         var newRefreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
 
-        var email = _refreshTokens[refreshToken];
         _refreshTokens.Remove(refreshToken);
         _refreshTokens[newRefreshToken] = email;
 
@@ -135,6 +141,28 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
     }
 
     // Test helper methods
+    private static string GenerateValidJwtToken(string keycloakUserId, string email)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("test-secret-key-for-integration-tests-12345678"));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, keycloakUserId),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: "test-keycloak",
+            audience: "user-portal",
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
     public void VerifyEmail(string email)
     {
         if (_emailVerificationStatus.ContainsKey(email))
