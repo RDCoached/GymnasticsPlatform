@@ -1,4 +1,6 @@
 using Auth.Infrastructure.Persistence;
+using Training.Infrastructure.Persistence;
+using Pgvector.EntityFrameworkCore;
 using GymnasticsPlatform.Api;
 using GymnasticsPlatform.Api.Authorization;
 using GymnasticsPlatform.Api.Extensions;
@@ -62,6 +64,11 @@ builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, 
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDbContext<TrainingDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        o => o.UseVector()));
 
 // Add OpenAPI
 builder.Services.AddOpenApi(options =>
@@ -220,6 +227,9 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
     await authDb.Database.MigrateAsync();
+
+    var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
+    await trainingDb.Database.MigrateAsync();
 }
 
 // Configure the HTTP request pipeline
