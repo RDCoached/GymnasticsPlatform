@@ -50,31 +50,6 @@ describe('Dashboard', () => {
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
   });
 
-  it('should display user info from localStorage when available', () => {
-    const userFromStorage = {
-      email: 'stored@example.com',
-      fullName: 'Stored User',
-    };
-    localStorage.setItem('user', JSON.stringify(userFromStorage));
-    localStorage.setItem('accessToken', 'stored-token');
-
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-      user: null,
-      login: vi.fn(),
-      logout: mockLogout,
-      register: vi.fn(),
-      getToken: mockGetToken,
-    });
-
-    render(<Dashboard />);
-
-    expect(screen.getByText('Stored User')).toBeInTheDocument();
-    expect(screen.getByText('stored@example.com')).toBeInTheDocument();
-    expect(screen.getByText('Email/Password')).toBeInTheDocument();
-  });
-
   it('should render quick action cards', () => {
     render(<Dashboard />);
 

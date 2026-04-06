@@ -76,6 +76,7 @@ describe('CreateClubForm', () => {
             'Authorization': `Bearer ${mockToken}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({ name: 'Elite Gymnastics' }),
         }
       );
