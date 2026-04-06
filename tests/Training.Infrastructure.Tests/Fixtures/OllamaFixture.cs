@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Images;
 using DotNet.Testcontainers.Containers;
 
 namespace Training.Infrastructure.Tests.Fixtures;
@@ -12,8 +13,7 @@ public sealed class OllamaFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _container = new ContainerBuilder()
-            .WithImage("ollama/ollama:latest")
+        _container = new ContainerBuilder(image: new DockerImage("ollama/ollama:latest"))
             .WithPortBinding(11434, true)
             .WithWaitStrategy(Wait.ForUnixContainer()
                 .UntilHttpRequestIsSucceeded(r => r
