@@ -1,4 +1,5 @@
 using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Images;
 using DotNet.Testcontainers.Containers;
 
 namespace Training.Infrastructure.Tests.Fixtures;
@@ -17,8 +18,7 @@ public sealed class CouchDbFixture : IAsyncLifetime
 
     public CouchDbFixture()
     {
-        _container = new ContainerBuilder()
-            .WithImage("couchdb:3.4")
+        _container = new ContainerBuilder(image: new DockerImage("couchdb:3.4"))
             .WithPortBinding(5984, true)
             .WithEnvironment("COUCHDB_USER", Username)
             .WithEnvironment("COUCHDB_PASSWORD", Password)

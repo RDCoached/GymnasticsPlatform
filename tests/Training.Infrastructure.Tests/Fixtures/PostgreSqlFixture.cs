@@ -1,3 +1,4 @@
+using DotNet.Testcontainers.Images;
 using Testcontainers.PostgreSql;
 
 namespace Training.Infrastructure.Tests.Fixtures;
@@ -10,8 +11,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
 
     public PostgreSqlFixture()
     {
-        _container = new PostgreSqlBuilder()
-            .WithImage("pgvector/pgvector:pg16")
+        _container = new PostgreSqlBuilder(image: new DockerImage("pgvector/pgvector:pg16"))
             .WithDatabase("training_test")
             .WithUsername("testuser")
             .WithPassword("testpass")
