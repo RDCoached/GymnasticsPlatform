@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Training.Domain.Enums;
 using Training.Infrastructure.Persistence;
+using Auth.Domain.Entities;
 
 namespace GymnasticsPlatform.Integration.Tests;
 
@@ -43,12 +44,22 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
             throw new InvalidOperationException($"User profile not found for email: {email}");
         }
 
+        // Assign Coach role to user in database
+        var userRole = UserRole.Create(
+            userProfile.TenantId,
+            userProfile.KeycloakUserId,
+            Role.Coach,
+            assignedBy: "system-test",
+            TimeProvider.System);
+
+        db.UserRoles.Add(userRole);
+        await db.SaveChangesAsync();
+
         // Add coach authentication headers
         client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.KeycloakUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", fullName);
-        client.DefaultRequestHeaders.Add("X-Test-Roles", "Coach");
 
         return client;
     }
@@ -58,8 +69,9 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
     {
         // Arrange
         var client = await CreateCoachClientAsync();
+        var uniqueTitle = $"Handstand-{Guid.NewGuid().ToString()[..8]}";
         var request = new CreateSkillRequest(
-            Title: "Handstand",
+            Title: uniqueTitle,
             Description: "Hold handstand position for 30 seconds with proper form",
             EffectivenessRating: 4,
             Sections: new[] { GymnasticSection.Floor, GymnasticSection.Bars }.ToList(),
@@ -72,7 +84,7 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var skill = await response.Content.ReadFromJsonAsync<SkillResponse>();
         skill.Should().NotBeNull();
-        skill!.Title.Should().Be("Handstand");
+        skill!.Title.Should().Be(uniqueTitle);
         skill.EffectivenessRating.Should().Be(4);
         skill.Sections.Should().Contain(GymnasticSection.Floor);
         skill.Sections.Should().Contain(GymnasticSection.Bars);
@@ -102,10 +114,11 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
     {
         // Arrange
         var client = await CreateCoachClientAsync();
+        var uniqueTitle = $"Back Flip-{Guid.NewGuid().ToString()[..8]}";
 
         // Create a skill first
         var createRequest = new CreateSkillRequest(
-            Title: "Back Flip",
+            Title: uniqueTitle,
             Description: "Complete back flip with landing",
             EffectivenessRating: 5,
             Sections: new[] { GymnasticSection.Floor }.ToList(),
@@ -121,7 +134,7 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
         var skill = await response.Content.ReadFromJsonAsync<SkillResponse>();
         skill.Should().NotBeNull();
         skill!.Id.Should().Be(createdSkill.Id);
-        skill.Title.Should().Be("Back Flip");
+        skill.Title.Should().Be(uniqueTitle);
     }
 
     [Fact]
@@ -143,17 +156,18 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
     {
         // Arrange
         var client = await CreateCoachClientAsync();
+        var uniqueSuffix = Guid.NewGuid().ToString()[..8];
 
         // Create test skills
         await client.PostAsJsonAsync("/api/skills", new CreateSkillRequest(
-            "Handstand Push-up",
+            $"Handstand Push-up-{uniqueSuffix}",
             "Perform push-up in handstand position",
             4,
             new[] { GymnasticSection.Floor }.ToList(),
             null));
 
         await client.PostAsJsonAsync("/api/skills", new CreateSkillRequest(
-            "Beam Walk",
+            $"Beam Walk-{uniqueSuffix}",
             "Walk across balance beam",
             3,
             new[] { GymnasticSection.Beam }.ToList(),
@@ -172,7 +186,8 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
         var results = await response.Content.ReadFromJsonAsync<List<SkillSearchResultResponse>>();
         results.Should().NotBeNull();
         results.Should().NotBeEmpty();
-        results!.All(r => r.SimilarityScore is >= 0 and <= 1).Should().BeTrue();
+        // Cosine similarity ranges from -1 (opposite) to 1 (identical)
+        results!.All(r => r.SimilarityScore is >= -1 and <= 1).Should().BeTrue();
     }
 
     [Fact]
@@ -180,10 +195,11 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
     {
         // Arrange
         var client = await CreateCoachClientAsync();
+        var uniqueTitle = $"Test Skill-{Guid.NewGuid().ToString()[..8]}";
 
         // Create a skill
         var createRequest = new CreateSkillRequest(
-            "Test Skill",
+            uniqueTitle,
             "Test description",
             3,
             new[] { GymnasticSection.Floor }.ToList(),
@@ -210,10 +226,11 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
     {
         // Arrange
         var client = await CreateCoachClientAsync();
+        var uniqueTitle = $"Deletable Skill-{Guid.NewGuid().ToString()[..8]}";
 
         // Create a skill
         var createRequest = new CreateSkillRequest(
-            "Deletable Skill",
+            uniqueTitle,
             "Can be deleted",
             3,
             new[] { GymnasticSection.Floor }.ToList(),
@@ -237,17 +254,18 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
     {
         // Arrange
         var client = await CreateCoachClientAsync();
+        var uniqueSuffix = Guid.NewGuid().ToString()[..8];
 
         // Create test skills
         await client.PostAsJsonAsync("/api/skills", new CreateSkillRequest(
-            "Skill 1",
+            $"Skill 1-{uniqueSuffix}",
             "Description 1",
             4,
             new[] { GymnasticSection.Floor }.ToList(),
             null));
 
         await client.PostAsJsonAsync("/api/skills", new CreateSkillRequest(
-            "Skill 2",
+            $"Skill 2-{uniqueSuffix}",
             "Description 2",
             3,
             new[] { GymnasticSection.Bars }.ToList(),
