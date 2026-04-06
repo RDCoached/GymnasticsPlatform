@@ -22,7 +22,11 @@ public sealed class CouchDbFixture : IAsyncLifetime
             .WithPortBinding(5984, true)
             .WithEnvironment("COUCHDB_USER", Username)
             .WithEnvironment("COUCHDB_PASSWORD", Password)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(5984))
+            .WithWaitStrategy(Wait.ForUnixContainer()
+                .UntilHttpRequestIsSucceeded(r => r
+                    .ForPort(5984)
+                    .ForPath("/_up")
+                    .WithBasicAuthentication(Username, Password)))
             .Build();
     }
 
