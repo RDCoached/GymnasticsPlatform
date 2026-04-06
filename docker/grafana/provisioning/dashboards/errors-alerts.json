@@ -1,0 +1,266 @@
+{
+  "dashboard": {
+    "title": "Errors & Alerts",
+    "tags": ["errors", "alerts", "monitoring"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Error Rate by Status Code",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"4..|5..\"}[5m]))",
+            "legendFormat": "{{http_response_status_code}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Total Errors (Last Hour)",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"4..|5..\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 100, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "5xx Errors (Last Hour)",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"5..\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Error Distribution by Type",
+        "type": "piechart",
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (http_response_status_code) (increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"4..|5..\"}[24h]))",
+            "legendFormat": "{{http_response_status_code}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+          "pieType": "pie"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Top 10 Error Endpoints",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "topk(10, sum by (http_route, http_response_status_code) (increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=~\"4..|5..\"}[1h])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "renameByName": {
+                "http_route": "Endpoint",
+                "http_response_status_code": "Status",
+                "Value": "Error Count"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Recent Error Logs",
+        "type": "logs",
+        "gridPos": {"x": 0, "y": 16, "w": 24, "h": 10},
+        "targets": [
+          {
+            "expr": "{job=\"gymnastics-api\"} |~ \"(?i)(error|exception|fail)\" | json | line_format \"{{.timestamp}} [{{.level}}] {{.message}}\"",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "showCommonLabels": false,
+          "wrapLogMessage": true,
+          "prettifyLogMessage": false,
+          "enableLogDetails": true,
+          "dedupStrategy": "none",
+          "sortOrder": "Descending"
+        }
+      },
+      {
+        "id": 7,
+        "title": "400 Bad Request",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 26, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=\"400\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "401 Unauthorized",
+        "type": "stat",
+        "gridPos": {"x": 4, "y": 26, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=\"401\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "403 Forbidden",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 26, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=\"403\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "404 Not Found",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 26, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=\"404\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "409 Conflict",
+        "type": "stat",
+        "gridPos": {"x": 16, "y": 26, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=\"409\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "500 Internal Server Error",
+        "type": "stat",
+        "gridPos": {"x": 20, "y": 26, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_response_status_code=\"500\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "red"}
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

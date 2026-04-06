@@ -5,6 +5,7 @@ using Common.Core;
 using FluentValidation;
 using GymnasticsPlatform.Api.Extensions;
 using GymnasticsPlatform.Api.Models;
+using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,11 @@ public sealed class AuthEndpoints : IEndpointGroup
             .WithName("RefreshToken")
             .WithSummary("Refresh access token using refresh token")
             .AllowAnonymous();
+
+        group.MapPost("/logout", Logout)
+            .WithName("Logout")
+            .WithSummary("Logout and clear session")
+            .RequireAuthorization();
 
         group.MapPost("/forgot-password", ForgotPassword)
             .WithName("ForgotPassword")
@@ -132,7 +138,9 @@ public sealed class AuthEndpoints : IEndpointGroup
         LoginRequest request,
         IValidator<LoginRequest> validator,
         IKeycloakAdminService keycloakService,
+        ISessionService sessionService,
         AuthDbContext db,
+        HttpContext httpContext,
         TimeProvider clock,
         CancellationToken ct)
     {
@@ -165,6 +173,11 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var tokenResponse = authResult.Value!;
 
+        // Decode JWT to get Keycloak user ID from the 'sub' claim
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(tokenResponse.AccessToken);
+        var keycloakUserId = jwtToken.Subject; // 'sub' claim contains Keycloak user ID
+
         // Get or create user profile (ignore tenant filter since login is anonymous)
         // Use case-insensitive email comparison
         var userProfile = await db.UserProfiles
@@ -176,6 +189,23 @@ public sealed class AuthEndpoints : IEndpointGroup
             userProfile.RecordLogin(clock.GetUtcNow());
             await db.SaveChangesAsync(ct);
         }
+
+        // Create server-side session with Keycloak user ID
+        var sessionId = await sessionService.CreateSessionAsync(
+            keycloakUserId: keycloakUserId,
+            accessToken: tokenResponse.AccessToken,
+            refreshToken: tokenResponse.RefreshToken,
+            expiry: TimeSpan.FromSeconds(tokenResponse.ExpiresIn),
+            ct);
+
+        // Set HTTP-only cookie (20 minute sliding expiration)
+        httpContext.Response.Cookies.Append("session_id", sessionId, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = httpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            MaxAge = TimeSpan.FromMinutes(20)
+        });
 
         var userInfo = new UserInfo(
             Email: request.Email,
@@ -190,6 +220,20 @@ public sealed class AuthEndpoints : IEndpointGroup
             User: userInfo);
 
         return Results.Ok(response);
+    }
+
+    private static async Task<IResult> Logout(
+        HttpContext httpContext,
+        ISessionService sessionService,
+        CancellationToken ct)
+    {
+        if (httpContext.Request.Cookies.TryGetValue("session_id", out var sessionId))
+        {
+            await sessionService.DeleteSessionAsync(sessionId, ct);
+            httpContext.Response.Cookies.Delete("session_id");
+        }
+
+        return Results.Ok(new { message = "Logged out successfully" });
     }
 
     private static async Task<IResult> RefreshToken(
