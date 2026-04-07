@@ -36,25 +36,26 @@ export function OnboardingScreen() {
   }, [isLoading, isOnboarding, navigate]);
 
   const handleOnboardingComplete = () => {
-    // Force page reload to refresh auth state with new tenant
-    // This ensures the backend picks up the updated tenant from the database
-    window.location.href = '/dashboard';
+    // Navigate to dashboard - session will have updated tenant context
+    navigate('/dashboard', { replace: true });
   };
 
   const handleIndividualMode = async () => {
     try {
       const token = getToken();
 
-      if (!token) {
-        throw new Error('Not authenticated');
+      // Build headers - include Authorization only if token exists (OAuth)
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/onboarding/individual`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include', // Send session cookie
       });
 
       if (!response.ok) {

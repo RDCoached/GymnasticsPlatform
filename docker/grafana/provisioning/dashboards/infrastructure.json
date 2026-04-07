@@ -1,0 +1,228 @@
+{
+  "dashboard": {
+    "title": "Infrastructure & Runtime",
+    "tags": ["infrastructure", "dotnet", "runtime"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "CPU Usage",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"gymnastics-api\"}[5m]) * 100",
+            "legendFormat": "CPU %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {"mode": "palette-classic"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 90, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Memory Usage",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "process_working_set_bytes{job=\"gymnastics-api\"} / 1024 / 1024",
+            "legendFormat": "Working Set (MB)",
+            "refId": "A"
+          },
+          {
+            "expr": "process_private_memory_bytes{job=\"gymnastics-api\"} / 1024 / 1024",
+            "legendFormat": "Private Memory (MB)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "GC Collections (Gen 0/1/2)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(dotnet_gc_collections_total{job=\"gymnastics-api\",generation=\"0\"}[5m])",
+            "legendFormat": "Gen 0",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(dotnet_gc_collections_total{job=\"gymnastics-api\",generation=\"1\"}[5m])",
+            "legendFormat": "Gen 1",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(dotnet_gc_collections_total{job=\"gymnastics-api\",generation=\"2\"}[5m])",
+            "legendFormat": "Gen 2",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "GC Heap Size",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "dotnet_gc_heap_size_bytes{job=\"gymnastics-api\"} / 1024 / 1024",
+            "legendFormat": "Heap Size (MB)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Thread Pool Threads",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "dotnet_threadpool_num_threads{job=\"gymnastics-api\"}",
+            "legendFormat": "Thread Count",
+            "refId": "A"
+          },
+          {
+            "expr": "dotnet_threadpool_queue_length{job=\"gymnastics-api\"}",
+            "legendFormat": "Queue Length",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Thread Pool Starvation",
+        "type": "gauge",
+        "gridPos": {"x": 12, "y": 16, "w": 6, "h": 8},
+        "targets": [
+          {
+            "expr": "dotnet_threadpool_queue_length{job=\"gymnastics-api\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Allocated Memory Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 18, "y": 16, "w": 6, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(dotnet_gc_allocated_bytes_total{job=\"gymnastics-api\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Allocation Rate (MB/s)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MBs",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "HTTP Client Connections",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "http_client_active_requests{job=\"gymnastics-api\"}",
+            "legendFormat": "Active Requests",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Process Information",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "process_num_threads{job=\"gymnastics-api\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [{"value": 0, "color": "blue"}]
+            }
+          },
+          "overrides": []
+        }
+      }
+    ]
+  }
+}

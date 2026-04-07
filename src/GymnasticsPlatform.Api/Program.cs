@@ -30,11 +30,35 @@ builder.Services.AddScoped<ITenantContext, TenantContext>();
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
 
+// Add Distributed Cache (Memory cache for development, Redis for production)
+builder.Services.AddDistributedMemoryCache();
+
+// Add Session Service
+builder.Services.AddScoped<ISessionService, SessionService>();
+
+// Add Keycloak Settings for SessionAuthMiddleware
+builder.Services.Configure<GymnasticsPlatform.Api.Configuration.KeycloakSettings>(options =>
+{
+    var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
+    options.Authority = keycloakConfig["Authority"] ?? "http://localhost:8080/realms/gymnastics";
+    options.ClientId = "user-portal";
+    options.ClientSecret = keycloakConfig["ClientSecret"] ?? "";
+});
+
+// Add HttpClient for Keycloak token operations
+builder.Services.AddHttpClient("Keycloak", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 // Add User Tenant Service
 builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.Infrastructure.Services.UserTenantService>();
 
 // Add Role Service
 builder.Services.AddScoped<Auth.Application.Services.IRoleService, Auth.Infrastructure.Services.RoleService>();
+
+// Add Audit Service
+builder.Services.AddScoped<Auth.Application.Services.IAuditService, Auth.Infrastructure.Services.AuditService>();
 
 // Email Service configuration
 builder.Services.Configure<Auth.Infrastructure.Configuration.EmailSettings>(builder.Configuration.GetSection("Email"));
@@ -90,6 +114,10 @@ builder.Services.AddScoped<Training.Application.Services.IProgrammeDocumentStore
 });
 builder.Services.AddScoped<Training.Application.Services.IProgrammeService, Training.Infrastructure.Services.ProgrammeService>();
 builder.Services.AddScoped<Training.Application.Services.IProgrammeBuilderService, Training.Infrastructure.Services.ProgrammeBuilderService>();
+
+// Skills Catalog Service
+builder.Services.AddScoped<Training.Application.Services.ISkillService, Training.Infrastructure.Services.SkillService>();
+builder.Services.AddScoped<Training.Infrastructure.Seeders.SkillSeeder>();
 
 // Add OpenAPI
 builder.Services.AddOpenApi(options =>
@@ -170,23 +198,13 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            // In development, allow all origins for easier testing
-            policy.AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
-        }
-        else
-        {
-            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                ?? ["http://localhost:3001", "http://localhost:3002", "http://localhost:5173"];
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? ["http://localhost:3001", "http://localhost:3002", "http://localhost:5173"];
 
-            policy.WithOrigins(allowedOrigins)
-                .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
-                .WithHeaders("Content-Type", "Authorization", "X-Tenant-Id")
-                .AllowCredentials();
-        }
+        policy.WithOrigins(allowedOrigins)
+            .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+            .WithHeaders("Content-Type", "Authorization", "X-Tenant-Id")
+            .AllowCredentials();
     });
 });
 
@@ -201,8 +219,14 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing =>
     {
         tracing
-            .AddAspNetCoreInstrumentation()
+            .AddAspNetCoreInstrumentation(options =>
+            {
+                options.RecordException = true;
+                options.Filter = httpContext => !httpContext.Request.Path.StartsWithSegments("/health");
+            })
             .AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation()
+            .AddSource("GymnasticsPlatform.*")
             .AddConsoleExporter()
             .AddOtlpExporter(options =>
             {
@@ -215,6 +239,8 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter("GymnasticsPlatform.*")
         .AddOtlpExporter(options =>
         {
             var endpoint = observabilityConfig["OtlpEndpoint"] ?? "http://localhost:4318";
@@ -267,7 +293,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseAuthentication();
+app.UseMiddleware<SessionAuthMiddleware>(); // Session auth first (primary)
+app.UseAuthentication(); // JWT second (fallback for OAuth)
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 

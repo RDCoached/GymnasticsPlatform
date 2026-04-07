@@ -27,16 +27,18 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
     try {
       const token = getToken();
 
-      if (!token) {
-        throw new Error('Not authenticated');
+      // Build headers - include Authorization only if token exists (OAuth)
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/onboarding/create-club`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include', // Send session cookie
         body: JSON.stringify({ name: clubName }),
       });
 
@@ -45,22 +47,8 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
         throw new Error(errorData.title || 'Failed to create club');
       }
 
-      const data = await response.json();
-
-      // Store club ID if present
-      if (data.clubId) {
-        localStorage.setItem('clubId', data.clubId);
-      }
-
-      // Update localStorage to mark onboarding as completed
-      const userJson = localStorage.getItem('user');
-      if (userJson) {
-        const user = JSON.parse(userJson);
-        user.onboardingCompleted = true;
-        localStorage.setItem('user', JSON.stringify(user));
-      }
-
-      // Navigate to dashboard - next request will pick up new tenant from database
+      // No localStorage updates - database is source of truth
+      // Navigate to dashboard - session will have updated context
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create club');

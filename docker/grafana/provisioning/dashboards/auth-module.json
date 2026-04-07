@@ -1,0 +1,204 @@
+{
+  "dashboard": {
+    "title": "Auth Module",
+    "tags": ["auth", "security", "business"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Login Success Rate",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"200\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\"}[5m])) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Registration Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 6, "y": 0, "w": 9, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/register\",http_response_status_code=\"201\"}[1h]))",
+            "legendFormat": "Successful Registrations",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "rph",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Token Refresh Rate",
+        "type": "stat",
+        "gridPos": {"x": 15, "y": 0, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=~\".*token.*refresh.*\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Failed Logins (Last Hour)",
+        "type": "stat",
+        "gridPos": {"x": 19, "y": 0, "w": 5, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=~\"4..\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Onboarding Funnel",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/status\"}[5m]))",
+            "legendFormat": "Onboarding Status Checks",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/create-club\",http_response_status_code=\"200\"}[5m]))",
+            "legendFormat": "Clubs Created",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/join-club\",http_response_status_code=\"200\"}[5m]))",
+            "legendFormat": "Clubs Joined",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/onboarding/individual\",http_response_status_code=\"200\"}[5m]))",
+            "legendFormat": "Individual Mode",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Failed Auth Attempts by Status Code",
+        "type": "piechart",
+        "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (http_response_status_code) (increase(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=~\"4..\"}[1h]))",
+            "legendFormat": "{{http_response_status_code}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right"},
+          "pieType": "pie"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Login Attempts Over Time",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 14, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"200\"}[5m]))",
+            "legendFormat": "Successful",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"401\"}[5m]))",
+            "legendFormat": "Invalid Credentials",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"403\"}[5m]))",
+            "legendFormat": "Forbidden",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Session Creation Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 14, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"gymnastics-api\",http_route=\"/api/auth/login\",http_response_status_code=\"200\"}[5m]))",
+            "legendFormat": "New Sessions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      }
+    ]
+  }
+}

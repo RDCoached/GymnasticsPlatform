@@ -13,15 +13,18 @@ public sealed class ProgrammeService : IProgrammeService
     private readonly TrainingDbContext _dbContext;
     private readonly IProgrammeDocumentStore _documentStore;
     private readonly IEmbeddingService _embeddingService;
+    private readonly ISkillService _skillService;
 
     public ProgrammeService(
         TrainingDbContext dbContext,
         IProgrammeDocumentStore documentStore,
-        IEmbeddingService embeddingService)
+        IEmbeddingService embeddingService,
+        ISkillService skillService)
     {
         _dbContext = dbContext;
         _documentStore = documentStore;
         _embeddingService = embeddingService;
+        _skillService = skillService;
     }
 
     public async Task<ProgrammeMetadata> CreateAsync(
@@ -51,6 +54,9 @@ public sealed class ProgrammeService : IProgrammeService
         _dbContext.ProgrammeMetadata.Add(metadata);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        // Step 4: Track skill usage
+        await TrackSkillUsageAsync(document, cancellationToken);
+
         return metadata;
     }
 
@@ -79,47 +85,76 @@ public sealed class ProgrammeService : IProgrammeService
         ProgrammeDocument document,
         CancellationToken cancellationToken = default)
     {
-        // Step 1: Get existing metadata
+        // Step 1: Get existing metadata and document
         var metadata = await _dbContext.ProgrammeMetadata
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (metadata is null)
             throw new InvalidOperationException($"Programme with ID {id} not found");
 
-        // Step 2: Update CouchDB document (gets new revision)
+        // Step 2: Get old document to compare skill IDs
+        var oldDocument = await _documentStore.GetAsync(metadata.CouchDbDocId, cancellationToken);
+        var oldSkillIds = oldDocument is not null ? ExtractSkillIds(oldDocument) : new HashSet<Guid>();
+        var newSkillIds = ExtractSkillIds(document);
+
+        // Step 3: Update CouchDB document (gets new revision)
         var newRev = await _documentStore.UpdateAsync(document, cancellationToken);
 
-        // Step 3: Generate new embedding
+        // Step 4: Generate new embedding
         var contentForEmbedding = BuildEmbeddingText(document);
         var embedding = await _embeddingService.GenerateEmbeddingAsync(contentForEmbedding, cancellationToken);
 
-        // Step 4: Update PostgreSQL metadata
+        // Step 5: Update PostgreSQL metadata
         metadata.UpdateCouchDbRev(newRev);
         metadata.SetEmbedding(embedding);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Step 6: Update skill usage counts
+        var removedSkills = oldSkillIds.Except(newSkillIds);
+        var addedSkills = newSkillIds.Except(oldSkillIds);
+
+        foreach (var skillId in removedSkills)
+        {
+            await _skillService.DecrementUsageAsync(skillId, cancellationToken);
+        }
+
+        foreach (var skillId in addedSkills)
+        {
+            await _skillService.IncrementUsageAsync(skillId, cancellationToken);
+        }
 
         return metadata;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // Step 1: Get metadata
+        // Step 1: Get metadata and document
         var metadata = await _dbContext.ProgrammeMetadata
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (metadata is null)
             return false;
 
-        // Step 2: Delete from CouchDB
+        // Step 2: Get document to extract skill IDs
+        var document = await _documentStore.GetAsync(metadata.CouchDbDocId, cancellationToken);
+        var skillIds = document is not null ? ExtractSkillIds(document) : new HashSet<Guid>();
+
+        // Step 3: Delete from CouchDB
         var couchDbDeleted = await _documentStore.DeleteAsync(
             metadata.CouchDbDocId,
             metadata.CouchDbRev,
             cancellationToken);
 
-        // Step 3: Delete from PostgreSQL (even if CouchDB delete failed)
+        // Step 4: Delete from PostgreSQL (even if CouchDB delete failed)
         _dbContext.ProgrammeMetadata.Remove(metadata);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Step 5: Decrement skill usage counts
+        foreach (var skillId in skillIds)
+        {
+            await _skillService.DecrementUsageAsync(skillId, cancellationToken);
+        }
 
         return couchDbDeleted;
     }
@@ -244,5 +279,38 @@ public sealed class ProgrammeService : IProgrammeService
         }
 
         return sb.ToString();
+    }
+
+    private async Task TrackSkillUsageAsync(ProgrammeDocument document, CancellationToken cancellationToken)
+    {
+        var skillIds = ExtractSkillIds(document);
+        foreach (var skillId in skillIds)
+        {
+            await _skillService.IncrementUsageAsync(skillId, cancellationToken);
+        }
+    }
+
+    private static HashSet<Guid> ExtractSkillIds(ProgrammeDocument document)
+    {
+        var skillIds = new HashSet<Guid>();
+
+        if (document.Content?.Weeks is null)
+            return skillIds;
+
+        foreach (var week in document.Content.Weeks)
+        {
+            if (week.Exercises is null)
+                continue;
+
+            foreach (var exercise in week.Exercises)
+            {
+                if (exercise.SkillId.HasValue)
+                {
+                    skillIds.Add(exercise.SkillId.Value);
+                }
+            }
+        }
+
+        return skillIds;
     }
 }

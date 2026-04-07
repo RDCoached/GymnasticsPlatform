@@ -228,6 +228,127 @@ namespace Training.Infrastructure.Migrations
 
                     b.ToTable("programme_metadata", (string)null);
                 });
+
+            modelBuilder.Entity("Training.Domain.Entities.Skill", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedByTenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_tenant_id");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("EffectivenessRating")
+                        .HasColumnType("integer")
+                        .HasColumnName("effectiveness_rating");
+
+                    b.Property<Vector>("EmbeddingVector")
+                        .HasColumnType("vector")
+                        .HasColumnName("embedding_vector");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("image_url");
+
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_modified_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<int>("UsageCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("usage_count");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByTenantId")
+                        .HasDatabaseName("ix_skills_created_by_tenant_id");
+
+                    b.HasIndex("EffectivenessRating")
+                        .HasDatabaseName("ix_skills_effectiveness_rating");
+
+                    b.HasIndex("Title")
+                        .HasDatabaseName("ix_skills_title");
+
+                    b.HasIndex("UsageCount")
+                        .HasDatabaseName("ix_skills_usage_count");
+
+                    b.ToTable("skills", (string)null);
+                });
+
+            modelBuilder.Entity("Training.Domain.Entities.SkillSection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Section")
+                        .HasColumnType("integer")
+                        .HasColumnName("section");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("skill_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Section")
+                        .HasDatabaseName("ix_skill_sections_section");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_skill_sections_skill_id");
+
+                    b.HasIndex("SkillId", "Section")
+                        .IsUnique()
+                        .HasDatabaseName("ix_skill_sections_skill_section_unique");
+
+                    b.ToTable("skill_sections", (string)null);
+                });
+
+            modelBuilder.Entity("Training.Domain.Entities.SkillSection", b =>
+                {
+                    b.HasOne("Training.Domain.Entities.Skill", "Skill")
+                        .WithMany("Sections")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("Training.Domain.Entities.Skill", b =>
+                {
+                    b.Navigation("Sections");
+                });
 #pragma warning restore 612, 618
         }
     }

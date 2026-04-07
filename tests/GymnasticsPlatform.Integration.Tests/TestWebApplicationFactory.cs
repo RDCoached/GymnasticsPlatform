@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
+using Training.Infrastructure.Persistence;
+using Pgvector.EntityFrameworkCore;
 
 namespace GymnasticsPlatform.Integration.Tests;
 
@@ -18,7 +20,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 {
     private const string OnboardingTenantId = "00000000-0000-0000-0000-000000000001";
 
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder("postgres:16-alpine")
+    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
+        .WithImage("pgvector/pgvector:pg16")
         .WithDatabase("gymnastics_test")
         .WithUsername("test_user")
         .WithPassword("test_password")
@@ -40,13 +43,20 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 
         builder.ConfigureTestServices(services =>
         {
-            // Remove the existing DbContext registration
+            // Remove the existing DbContext registrations
             services.RemoveAll(typeof(DbContextOptions<AuthDbContext>));
             services.RemoveAll(typeof(AuthDbContext));
+            services.RemoveAll(typeof(DbContextOptions<TrainingDbContext>));
+            services.RemoveAll(typeof(TrainingDbContext));
 
-            // Add DbContext with test container connection string
+            // Add DbContexts with test container connection string
             services.AddDbContext<AuthDbContext>(options =>
                 options.UseNpgsql(_dbContainer.GetConnectionString()));
+
+            services.AddDbContext<TrainingDbContext>(options =>
+                options.UseNpgsql(
+                    _dbContainer.GetConnectionString(),
+                    o => o.UseVector()));
 
             // Replace IKeycloakAdminService with mock
             services.RemoveAll(typeof(IKeycloakAdminService));
@@ -55,6 +65,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             // Replace IEmailService with test implementation
             services.RemoveAll(typeof(IEmailService));
             services.AddSingleton<IEmailService>(_testEmailService);
+
+            // Replace IEmbeddingService with mock
+            services.RemoveAll(typeof(Training.Application.Services.IEmbeddingService));
+            services.AddSingleton<Training.Application.Services.IEmbeddingService>(new MockEmbeddingService());
 
             // Replace ITenantContext with test implementation
             services.RemoveAll(typeof(ITenantContext));
@@ -108,8 +122,15 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             if (_databaseMigrated) return;
 
             using var scope = base.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-            db.Database.Migrate();
+
+            // Migrate AuthDbContext
+            var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+            authDb.Database.Migrate();
+
+            // Migrate TrainingDbContext
+            var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
+            trainingDb.Database.Migrate();
+
             _databaseMigrated = true;
         }
     }

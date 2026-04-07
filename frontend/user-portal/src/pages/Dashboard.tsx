@@ -16,25 +16,12 @@ export function Dashboard() {
   const [showApiSection, setShowApiSection] = useState(false);
 
   const authToken = getToken();
-  const userFromStorage = useMemo(() => {
-    const userJson = localStorage.getItem('user');
-    return userJson ? JSON.parse(userJson) : null;
-  }, []);
 
-  // Fetch current user with roles
+  // Fetch current user with roles from API (database is source of truth)
   const fetchCurrentUser = useCallback(async () => {
-    if (!authToken) return;
-
     try {
       const user = await apiClient.getCurrentUser(authToken);
       setCurrentUser(user);
-
-      // Save clubId to localStorage if present
-      if (user.clubId) {
-        localStorage.setItem('clubId', user.clubId);
-      } else {
-        localStorage.removeItem('clubId');
-      }
     } catch (err) {
       console.error('Failed to fetch current user:', err);
     }
@@ -69,8 +56,8 @@ export function Dashboard() {
   };
 
   const tenantId = currentUser?.tenantId || 'from-api';
-  const username = user?.fullName || userFromStorage?.fullName || 'User';
-  const email = user?.email || userFromStorage?.email || 'No email';
+  const username = currentUser?.name || user?.fullName || 'User';
+  const email = currentUser?.email || user?.email || 'No email';
   const roles: string[] = [];
 
   return (
@@ -131,8 +118,8 @@ export function Dashboard() {
               <button className="option-button">Update Profile</button>
             </div>
 
-            {currentUser && currentUser.roles.includes('ClubAdmin') && localStorage.getItem('clubId') ? (
-              <div className="option-card" onClick={() => navigate(`/club/invites?clubId=${localStorage.getItem('clubId')}`)}>
+            {currentUser && currentUser.roles.includes('ClubAdmin') && currentUser.clubId ? (
+              <div className="option-card" onClick={() => navigate(`/club/invites?clubId=${currentUser.clubId}`)}>
                 <h2>Manage Club</h2>
                 <p>View and manage your club invites and members.</p>
                 <button className="option-button">Manage Club</button>

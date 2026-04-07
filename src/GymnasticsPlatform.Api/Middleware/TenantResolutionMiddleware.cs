@@ -6,6 +6,7 @@ namespace GymnasticsPlatform.Api.Middleware;
 public sealed class TenantResolutionMiddleware(RequestDelegate next, ILogger<TenantResolutionMiddleware> logger)
 {
     public const string TenantIdKey = "TenantId";
+    public const string UserIdKey = "UserId";
 
     public async Task InvokeAsync(HttpContext context, IUserTenantService userTenantService)
     {
@@ -13,6 +14,9 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, ILogger<Ten
 
         if (!string.IsNullOrEmpty(userId))
         {
+            // Store userId in HttpContext.Items for endpoint access
+            context.Items[UserIdKey] = userId;
+
             try
             {
                 var tenantId = await userTenantService.GetUserTenantIdAsync(userId, context.RequestAborted);
