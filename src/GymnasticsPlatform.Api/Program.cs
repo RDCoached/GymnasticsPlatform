@@ -86,9 +86,17 @@ builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, 
 });
 
 // Add Authentication Provider (abstraction layer)
-// Currently using Keycloak; can switch to Entra ID later by changing this registration
-builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.KeycloakAuthenticationProvider>();
+// Feature flag: ActiveProvider determines which provider to use (Keycloak or EntraId)
+var activeProvider = builder.Configuration["Authentication:ActiveProvider"] ?? "Keycloak";
 
+if (activeProvider.Equals("EntraId", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.EntraIdAuthenticationProvider>();
+}
+else
+{
+    builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.KeycloakAuthenticationProvider>();
+}
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -135,23 +143,47 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
-        // Use internal Keycloak address for fetching signing keys
-        options.Authority = keycloakConfig["Authority"];
-        options.Audience = keycloakConfig["Audience"];
-        options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
-        options.MapInboundClaims = false; // Preserve original JWT claim names
-
-        var validIssuers = keycloakConfig.GetSection("ValidIssuers").Get<string[]>();
-
-        options.TokenValidationParameters = new TokenValidationParameters
+        if (activeProvider.Equals("EntraId", StringComparison.OrdinalIgnoreCase))
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuers = validIssuers
-        };
+            // Microsoft Entra ID JWT configuration
+            var entraConfig = builder.Configuration.GetSection("Authentication:EntraId");
+            var tenantId = entraConfig["TenantId"];
+            var instance = entraConfig["Instance"] ?? "https://login.microsoftonline.com/";
+
+            options.Authority = $"{instance}{tenantId}/v2.0";
+            options.Audience = entraConfig["Audience"] ?? "api://gymnastics-api";
+            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+            options.MapInboundClaims = false; // Preserve original JWT claim names
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = $"{instance}{tenantId}/v2.0"
+            };
+        }
+        else
+        {
+            // Keycloak JWT configuration
+            var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
+            options.Authority = keycloakConfig["Authority"];
+            options.Audience = keycloakConfig["Audience"];
+            options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
+            options.MapInboundClaims = false; // Preserve original JWT claim names
+
+            var validIssuers = keycloakConfig.GetSection("ValidIssuers").Get<string[]>();
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuers = validIssuers
+            };
+        }
     });
 
 // Register Authorization Handler
