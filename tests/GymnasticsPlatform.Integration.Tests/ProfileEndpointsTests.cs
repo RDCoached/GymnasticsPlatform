@@ -42,7 +42,7 @@ public sealed class ProfileEndpointsTests(TestWebApplicationFactory factory)
         }
 
         // Add test authentication headers
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", fullName);

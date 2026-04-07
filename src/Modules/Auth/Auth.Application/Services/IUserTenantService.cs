@@ -9,11 +9,11 @@ public interface IUserTenantService
     /// Gets the tenant ID for a user by their Keycloak user ID.
     /// Returns null if the user doesn't exist or has no tenant assigned.
     /// </summary>
-    Task<Guid?> GetUserTenantIdAsync(string keycloakUserId, CancellationToken ct = default);
+    Task<Guid?> GetUserTenantIdAsync(string providerUserId, CancellationToken ct = default);
 
     /// <summary>
     /// Updates the user's tenant ID in the database.
     /// Creates a user profile if one doesn't exist.
     /// </summary>
-    Task UpdateUserTenantAsync(string keycloakUserId, Guid newTenantId, string? email = null, string? fullName = null, CancellationToken ct = default);
+    Task UpdateUserTenantAsync(string providerUserId, Guid newTenantId, string? email = null, string? fullName = null, CancellationToken ct = default);
 }

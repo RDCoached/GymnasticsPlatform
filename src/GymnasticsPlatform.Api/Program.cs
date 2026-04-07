@@ -79,11 +79,15 @@ else
     builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 }
 
-// Add Keycloak Admin Service
+// Add Keycloak Admin Service (used by KeycloakAuthenticationProvider)
 builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
 {
     client.Timeout = TimeSpan.FromMinutes(2);
 });
+
+// Add Authentication Provider (abstraction layer)
+// Currently using Keycloak; can switch to Entra ID later by changing this registration
+builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.KeycloakAuthenticationProvider>();
 
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>

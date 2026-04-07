@@ -23,7 +23,7 @@ public sealed class UserRoleTests
         userRole.Should().NotBeNull();
         userRole.Id.Should().NotBeEmpty();
         userRole.TenantId.Should().Be(tenantId);
-        userRole.KeycloakUserId.Should().Be(userId);
+        userRole.ProviderUserId.Should().Be(userId);
         userRole.Role.Should().Be(role);
         userRole.AssignedBy.Should().Be(assignedBy);
         userRole.AssignedAt.Should().BeCloseTo(clock.GetUtcNow(), TimeSpan.FromSeconds(1));

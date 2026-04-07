@@ -325,7 +325,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         // Get user profile
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId && u.TenantId == tenantId.Value, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId && u.TenantId == tenantId.Value, ct);
 
         if (userProfile is null)
         {

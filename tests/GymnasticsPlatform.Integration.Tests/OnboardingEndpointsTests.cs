@@ -61,12 +61,12 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
         Console.WriteLine($"Total profiles in DB: {allProfiles.Count}");
         foreach (var p in allProfiles)
         {
-            Console.WriteLine($"  Profile: UserId={p.KeycloakUserId}, TenantId={p.TenantId}");
+            Console.WriteLine($"  Profile: UserId={p.ProviderUserId}, TenantId={p.TenantId}");
         }
 
         var profile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId);
 
         profile.Should().NotBeNull($"Profile should exist for user {userId}");
         profile!.TenantId.Should().Be(TenantConstants.OnboardingTenantId);
@@ -165,7 +165,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             club.OwnerUserId.Should().Be(userId);
 
             // Verify user onboarding status was updated
-            var updatedProfile = await db.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.KeycloakUserId == userId);
+            var updatedProfile = await db.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.ProviderUserId == userId);
             updatedProfile.Should().NotBeNull();
             updatedProfile!.OnboardingCompleted.Should().BeTrue();
             updatedProfile.OnboardingChoice.Should().Be("club");
@@ -255,7 +255,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             updatedInvite!.TimesUsed.Should().Be(1);
 
             // Verify user onboarding status was updated
-            var updatedProfile = await db.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.KeycloakUserId == joinerId);
+            var updatedProfile = await db.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.ProviderUserId == joinerId);
             updatedProfile.Should().NotBeNull();
             updatedProfile!.OnboardingCompleted.Should().BeTrue();
             updatedProfile.OnboardingChoice.Should().Be("club");
@@ -308,7 +308,7 @@ public sealed class OnboardingEndpointsTests : IClassFixture<TestWebApplicationF
             var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
 
             // Verify user onboarding status was updated (ignore query filters to see all tenants)
-            var updatedProfile = await db.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.KeycloakUserId == userId);
+            var updatedProfile = await db.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.ProviderUserId == userId);
             updatedProfile.Should().NotBeNull();
             updatedProfile!.OnboardingCompleted.Should().BeTrue();
             updatedProfile.OnboardingChoice.Should().Be("individual");

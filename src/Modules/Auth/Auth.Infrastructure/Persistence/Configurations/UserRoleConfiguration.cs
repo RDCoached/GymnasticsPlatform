@@ -20,7 +20,7 @@ internal sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
             .HasColumnName("tenant_id")
             .IsRequired();
 
-        builder.Property(ur => ur.KeycloakUserId)
+        builder.Property(ur => ur.ProviderUserId)
             .HasColumnName("keycloak_user_id")
             .HasMaxLength(255)
             .IsRequired();
@@ -39,12 +39,12 @@ internal sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
             .HasMaxLength(255);
 
         // Unique composite index to prevent duplicate role assignments
-        builder.HasIndex(ur => new { ur.TenantId, ur.KeycloakUserId, ur.Role })
+        builder.HasIndex(ur => new { ur.TenantId, ur.ProviderUserId, ur.Role })
             .IsUnique()
             .HasDatabaseName("ix_user_roles_tenant_user_role");
 
         // Index for lookups by tenant and user
-        builder.HasIndex(ur => new { ur.TenantId, ur.KeycloakUserId })
+        builder.HasIndex(ur => new { ur.TenantId, ur.ProviderUserId })
             .HasDatabaseName("ix_user_roles_tenant_user");
     }
 }

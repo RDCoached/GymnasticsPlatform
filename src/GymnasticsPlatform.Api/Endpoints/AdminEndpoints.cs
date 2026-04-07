@@ -113,16 +113,16 @@ public sealed class AdminEndpoints : IEndpointGroup
         if (user == null)
             return Results.NotFound();
 
-        var roles = await roleService.GetUserRolesAsync(user.TenantId, user.KeycloakUserId, ct);
+        var roles = await roleService.GetUserRolesAsync(user.TenantId, user.ProviderUserId, ct);
 
         var club = await db.Clubs
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(c => c.OwnerUserId == user.KeycloakUserId, ct);
+            .FirstOrDefaultAsync(c => c.OwnerUserId == user.ProviderUserId, ct);
 
         return Results.Ok(new
         {
             user.Id,
-            user.KeycloakUserId,
+            user.ProviderUserId,
             user.Email,
             user.FullName,
             user.TenantId,
@@ -162,7 +162,7 @@ public sealed class AdminEndpoints : IEndpointGroup
             .Select(r => r!.Value)
             .ToList();
 
-        await roleService.AssignRolesAsync(user.TenantId, user.KeycloakUserId, roles, adminUserId, ct);
+        await roleService.AssignRolesAsync(user.TenantId, user.ProviderUserId, roles, adminUserId, ct);
         await db.SaveChangesAsync(ct);
 
         await auditService.LogActionAsync(
@@ -201,7 +201,7 @@ public sealed class AdminEndpoints : IEndpointGroup
         {
             if (Enum.TryParse<Role>(roleName, out var role))
             {
-                await roleService.RemoveRoleAsync(user.TenantId, user.KeycloakUserId, role, ct);
+                await roleService.RemoveRoleAsync(user.TenantId, user.ProviderUserId, role, ct);
             }
         }
         await db.SaveChangesAsync(ct);
@@ -241,12 +241,12 @@ public sealed class AdminEndpoints : IEndpointGroup
         var oldTenantId = user.TenantId;
         var oldOnboardingStatus = user.OnboardingCompleted;
 
-        await userTenantService.UpdateUserTenantAsync(user.KeycloakUserId, OnboardingTenantId, user.Email, user.FullName, ct);
+        await userTenantService.UpdateUserTenantAsync(user.ProviderUserId, OnboardingTenantId, user.Email, user.FullName, ct);
 
-        var existingRoles = await roleService.GetUserRolesAsync(user.TenantId, user.KeycloakUserId, ct);
+        var existingRoles = await roleService.GetUserRolesAsync(user.TenantId, user.ProviderUserId, ct);
         foreach (var role in existingRoles)
         {
-            await roleService.RemoveRoleAsync(user.TenantId, user.KeycloakUserId, role, ct);
+            await roleService.RemoveRoleAsync(user.TenantId, user.ProviderUserId, role, ct);
         }
 
         user.ResetOnboarding();
