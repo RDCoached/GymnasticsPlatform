@@ -41,13 +41,13 @@ public sealed class AdminEndpointsTests(TestWebApplicationFactory factory)
         }
 
         // Add admin authentication headers with platform_admin role
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", fullName);
         client.DefaultRequestHeaders.Add("X-Test-Roles", "platform_admin");
 
-        return (client, userProfile.KeycloakUserId);
+        return (client, userProfile.ProviderUserId);
     }
 
     private async Task<string> CreateTestUserAsync()
@@ -69,7 +69,7 @@ public sealed class AdminEndpointsTests(TestWebApplicationFactory factory)
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Email == email);
 
-        return userProfile!.KeycloakUserId;
+        return userProfile!.ProviderUserId;
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class AdminEndpointsTests(TestWebApplicationFactory factory)
         users.Should().AllSatisfy(u =>
         {
             u.Id.Should().NotBeEmpty();
-            u.KeycloakUserId.Should().NotBeNullOrEmpty();
+            u.ProviderUserId.Should().NotBeNullOrEmpty();
             u.Email.Should().NotBeNullOrEmpty();
             u.FullName.Should().NotBeNullOrEmpty();
             u.TenantId.Should().NotBeEmpty();
@@ -137,7 +137,7 @@ public sealed class AdminEndpointsTests(TestWebApplicationFactory factory)
             .FirstOrDefaultAsync(u => u.Email == email);
 
         // Add authentication headers without admin role
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile!.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile!.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", "Regular User");
@@ -222,7 +222,7 @@ public sealed class AdminEndpointsTests(TestWebApplicationFactory factory)
             .FirstOrDefaultAsync(u => u.Email == email);
 
         // Add authentication headers without admin role
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile!.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile!.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", "Regular User");

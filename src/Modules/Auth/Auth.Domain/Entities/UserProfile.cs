@@ -6,7 +6,7 @@ public sealed class UserProfile : IMultiTenant
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
-    public string KeycloakUserId { get; private set; } = string.Empty;
+    public string ProviderUserId { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string FullName { get; private set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; private set; }
@@ -18,7 +18,7 @@ public sealed class UserProfile : IMultiTenant
 
     public static UserProfile Create(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         string email,
         string fullName,
         DateTimeOffset createdAt)
@@ -27,7 +27,7 @@ public sealed class UserProfile : IMultiTenant
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
-            KeycloakUserId = keycloakUserId,
+            ProviderUserId = providerUserId,
             Email = email,
             FullName = fullName,
             CreatedAt = createdAt,

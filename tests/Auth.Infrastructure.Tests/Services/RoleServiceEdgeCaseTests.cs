@@ -236,7 +236,7 @@ public sealed class RoleServiceEdgeCaseTests : IAsyncLifetime
 
         // Assert
         var userRoles = await db.UserRoles
-            .Where(ur => ur.KeycloakUserId == userId)
+            .Where(ur => ur.ProviderUserId == userId)
             .OrderBy(ur => ur.Role)
             .ToListAsync();
 
@@ -288,7 +288,7 @@ public sealed class RoleServiceEdgeCaseTests : IAsyncLifetime
         // Assert - All roles should be assigned (no duplicates due to DB constraints)
         await using var verifyDb = CreateDbContext(tenantContext);
         var userRoles = await verifyDb.UserRoles
-            .Where(ur => ur.KeycloakUserId == userId)
+            .Where(ur => ur.ProviderUserId == userId)
             .ToListAsync();
 
         userRoles.Should().HaveCount(3);
@@ -312,9 +312,9 @@ public sealed class RoleServiceEdgeCaseTests : IAsyncLifetime
         await service.AssignRolesAsync(tenantId, userId, roles, null, CancellationToken.None);
 
         // Assert
-        var userRoles = await db.UserRoles.Where(ur => ur.KeycloakUserId == userId).ToListAsync();
+        var userRoles = await db.UserRoles.Where(ur => ur.ProviderUserId == userId).ToListAsync();
         userRoles.Should().HaveCount(1);
-        userRoles[0].KeycloakUserId.Should().Be(userId);
+        userRoles[0].ProviderUserId.Should().Be(userId);
     }
 
     [Fact]

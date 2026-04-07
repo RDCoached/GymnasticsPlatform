@@ -18,14 +18,14 @@ public sealed class RoleService : IRoleService
 
     public async Task AssignRolesAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         IReadOnlyList<Role> roles,
         string? assignedBy,
         CancellationToken ct = default)
     {
         var existingRoles = await _db.UserRoles
             .IgnoreQueryFilters()
-            .Where(ur => ur.TenantId == tenantId && ur.KeycloakUserId == keycloakUserId)
+            .Where(ur => ur.TenantId == tenantId && ur.ProviderUserId == providerUserId)
             .Select(ur => ur.Role)
             .ToListAsync(ct);
 
@@ -33,7 +33,7 @@ public sealed class RoleService : IRoleService
 
         foreach (var role in rolesToAdd)
         {
-            var userRole = UserRole.Create(tenantId, keycloakUserId, role, assignedBy, _clock);
+            var userRole = UserRole.Create(tenantId, providerUserId, role, assignedBy, _clock);
             _db.UserRoles.Add(userRole);
         }
 
@@ -45,12 +45,12 @@ public sealed class RoleService : IRoleService
 
     public async Task<IReadOnlyList<Role>> GetUserRolesAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         CancellationToken ct = default)
     {
         var roles = await _db.UserRoles
             .IgnoreQueryFilters()
-            .Where(ur => ur.TenantId == tenantId && ur.KeycloakUserId == keycloakUserId)
+            .Where(ur => ur.TenantId == tenantId && ur.ProviderUserId == providerUserId)
             .Select(ur => ur.Role)
             .ToListAsync(ct);
 
@@ -59,35 +59,35 @@ public sealed class RoleService : IRoleService
 
     public async Task<bool> HasRoleAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         Role role,
         CancellationToken ct = default)
     {
         return await _db.UserRoles
             .IgnoreQueryFilters()
-            .AnyAsync(ur => ur.TenantId == tenantId && ur.KeycloakUserId == keycloakUserId && ur.Role == role, ct);
+            .AnyAsync(ur => ur.TenantId == tenantId && ur.ProviderUserId == providerUserId && ur.Role == role, ct);
     }
 
     public async Task<bool> HasAnyRoleAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         IReadOnlyList<Role> roles,
         CancellationToken ct = default)
     {
         return await _db.UserRoles
             .IgnoreQueryFilters()
-            .AnyAsync(ur => ur.TenantId == tenantId && ur.KeycloakUserId == keycloakUserId && roles.Contains(ur.Role), ct);
+            .AnyAsync(ur => ur.TenantId == tenantId && ur.ProviderUserId == providerUserId && roles.Contains(ur.Role), ct);
     }
 
     public async Task RemoveRoleAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         Role role,
         CancellationToken ct = default)
     {
         var userRole = await _db.UserRoles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(ur => ur.TenantId == tenantId && ur.KeycloakUserId == keycloakUserId && ur.Role == role, ct);
+            .FirstOrDefaultAsync(ur => ur.TenantId == tenantId && ur.ProviderUserId == providerUserId && ur.Role == role, ct);
 
         if (userRole is not null)
         {

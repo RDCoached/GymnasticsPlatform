@@ -14,7 +14,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
     private readonly Dictionary<string, bool> _emailVerificationStatus = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _refreshTokens = new();
 
-    public Task UpdateUserTenantIdAsync(string keycloakUserId, Guid newTenantId, CancellationToken ct = default)
+    public Task UpdateUserTenantIdAsync(string providerUserId, Guid newTenantId, CancellationToken ct = default)
     {
         // For testing, just succeed
         return Task.CompletedTask;
@@ -122,7 +122,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         return Task.FromResult(Result.Success());
     }
 
-    public Task<Result> SendVerificationEmailAsync(string keycloakUserId, CancellationToken ct = default)
+    public Task<Result> SendVerificationEmailAsync(string providerUserId, CancellationToken ct = default)
     {
         // For testing, just succeed
         return Task.FromResult(Result.Success());

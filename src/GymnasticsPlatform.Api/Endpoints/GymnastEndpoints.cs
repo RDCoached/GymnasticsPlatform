@@ -57,7 +57,7 @@ public sealed class GymnastEndpoints : IEndpointGroup
         // Get all users with Gymnast role in current tenant
         var gymnasts = await (
             from profile in db.UserProfiles
-            join role in db.UserRoles on profile.KeycloakUserId equals role.KeycloakUserId
+            join role in db.UserRoles on profile.ProviderUserId equals role.ProviderUserId
             where role.Role == Role.Gymnast && profile.TenantId == tenantId
             select new GymnastResponse(
                 profile.Id,
@@ -93,7 +93,7 @@ public sealed class GymnastEndpoints : IEndpointGroup
         // Get profile details for these gymnasts
         var gymnasts = await (
             from profile in authDb.UserProfiles
-            join role in authDb.UserRoles on profile.KeycloakUserId equals role.KeycloakUserId
+            join role in authDb.UserRoles on profile.ProviderUserId equals role.ProviderUserId
             where role.Role == Role.Gymnast
                 && profile.TenantId == tenantId
                 && gymnastIds.Contains(profile.Id)
@@ -138,10 +138,10 @@ public sealed class GymnastEndpoints : IEndpointGroup
         }
 
         // Create user profile
-        var keycloakUserId = $"gymnast-{Guid.NewGuid()}"; // In production, this would be created via Keycloak
+        var providerUserId = $"gymnast-{Guid.NewGuid()}"; // In production, this would be created via Keycloak
         var userProfile = UserProfile.Create(
             tenantId,
-            keycloakUserId,
+            providerUserId,
             request.Email,
             request.FullName,
             DateTimeOffset.UtcNow);
@@ -153,7 +153,7 @@ public sealed class GymnastEndpoints : IEndpointGroup
         var coachUserId = httpContext.User.FindFirst("sub")?.Value ?? "system";
         await roleService.AssignRolesAsync(
             tenantId,
-            keycloakUserId,
+            providerUserId,
             [Role.Gymnast],
             coachUserId,
             cancellationToken);
@@ -191,7 +191,7 @@ public sealed class GymnastEndpoints : IEndpointGroup
 
         // Verify user has Gymnast role
         var hasGymnastRole = await db.UserRoles
-            .AnyAsync(ur => ur.KeycloakUserId == userProfile.KeycloakUserId && ur.Role == Role.Gymnast, cancellationToken);
+            .AnyAsync(ur => ur.ProviderUserId == userProfile.ProviderUserId && ur.Role == Role.Gymnast, cancellationToken);
 
         if (!hasGymnastRole)
         {
@@ -226,7 +226,7 @@ public sealed class GymnastEndpoints : IEndpointGroup
 
         // Remove Gymnast role
         var gymnastRole = await db.UserRoles
-            .FirstOrDefaultAsync(ur => ur.KeycloakUserId == userProfile.KeycloakUserId && ur.Role == Role.Gymnast, cancellationToken);
+            .FirstOrDefaultAsync(ur => ur.ProviderUserId == userProfile.ProviderUserId && ur.Role == Role.Gymnast, cancellationToken);
 
         if (gymnastRole is null)
         {

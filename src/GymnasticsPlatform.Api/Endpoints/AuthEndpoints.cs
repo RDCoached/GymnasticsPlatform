@@ -48,7 +48,7 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<IResult> Register(
         RegisterRequest request,
         IValidator<RegisterRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         AuthDbContext db,
         TimeProvider clock,
         CancellationToken ct)
@@ -61,7 +61,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Check if email already exists
-        var emailExistsResult = await keycloakService.EmailExistsAsync(request.Email, ct);
+        var emailExistsResult = await authProvider.EmailExistsAsync(request.Email, ct);
         if (!emailExistsResult.IsSuccess)
         {
             return Results.Problem(
@@ -77,7 +77,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Create user in Keycloak
-        var createUserResult = await keycloakService.CreateUserAsync(
+        var createUserResult = await authProvider.CreateUserAsync(
             request.Email,
             request.Password,
             request.FullName,
@@ -100,10 +100,10 @@ public sealed class AuthEndpoints : IEndpointGroup
             };
         }
 
-        var keycloakUserId = createUserResult.Value!;
+        var providerUserId = createUserResult.Value!;
 
         // Send verification email
-        var sendEmailResult = await keycloakService.SendVerificationEmailAsync(keycloakUserId, ct);
+        var sendEmailResult = await authProvider.SendVerificationEmailAsync(providerUserId, ct);
         if (!sendEmailResult.IsSuccess)
         {
             // Log but don't fail registration - user can request resend later
@@ -113,7 +113,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         // Create UserProfile in database
         var userProfile = UserProfile.Create(
             OnboardingTenantId,
-            keycloakUserId,
+            providerUserId,
             request.Email,
             request.FullName,
             clock.GetUtcNow());
@@ -125,13 +125,13 @@ public sealed class AuthEndpoints : IEndpointGroup
             Message: "Registration successful. Please check your email to verify your account.",
             RequiresEmailVerification: true);
 
-        return Results.Created($"/api/auth/users/{keycloakUserId}", response);
+        return Results.Created($"/api/auth/users/{providerUserId}", response);
     }
 
     private static async Task<IResult> Login(
         LoginRequest request,
         IValidator<LoginRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         AuthDbContext db,
         TimeProvider clock,
         CancellationToken ct)
@@ -144,7 +144,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Authenticate with Keycloak
-        var authResult = await keycloakService.AuthenticateAsync(
+        var authResult = await authProvider.AuthenticateAsync(
             request.Email,
             request.Password,
             "user-portal",
@@ -195,7 +195,7 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<IResult> RefreshToken(
         RefreshTokenRequest request,
         IValidator<RefreshTokenRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         CancellationToken ct)
     {
         // Validate request
@@ -206,7 +206,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Refresh token with Keycloak
-        var refreshResult = await keycloakService.RefreshTokenAsync(
+        var refreshResult = await authProvider.RefreshTokenAsync(
             request.RefreshToken,
             "user-portal",
             ct);
@@ -238,7 +238,7 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<IResult> ForgotPassword(
         ForgotPasswordRequest request,
         IValidator<ForgotPasswordRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         CancellationToken ct)
     {
         // Validate request
@@ -249,7 +249,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Initiate password reset (always succeeds to prevent email enumeration)
-        await keycloakService.InitiatePasswordResetAsync(request.Email, ct);
+        await authProvider.InitiatePasswordResetAsync(request.Email, ct);
 
         var response = new ForgotPasswordResponse(
             Message: "If an account exists with this email, you will receive password reset instructions.");
@@ -279,7 +279,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         // Get user profile
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId && u.TenantId == tenantId.Value, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId && u.TenantId == tenantId.Value, ct);
 
         if (userProfile is null)
         {

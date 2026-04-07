@@ -19,7 +19,7 @@ public sealed class AdminEndpoints : IEndpointGroup
 
         group.MapPost("/users/{userId}/sync-tenant", SyncUserTenant)
             .WithName("SyncUserTenant")
-            .WithSummary("Sync user's Keycloak tenant_id attribute with database value")
+            .WithSummary("Sync user's authentication provider tenant_id attribute with database value")
             .Produces<SyncTenantResponse>()
             .ProducesProblem(404)
             .ProducesProblem(500);
@@ -35,7 +35,7 @@ public sealed class AdminEndpoints : IEndpointGroup
             .OrderBy(u => u.Email)
             .Select(u => new UserProfileResponse(
                 u.Id,
-                u.KeycloakUserId,
+                u.ProviderUserId,
                 u.Email,
                 u.FullName,
                 u.TenantId,
@@ -49,14 +49,14 @@ public sealed class AdminEndpoints : IEndpointGroup
     private static async Task<IResult> SyncUserTenant(
         string userId,
         AuthDbContext db,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         ILogger<AdminEndpoints> logger,
         CancellationToken ct)
     {
         // Find user in database (ignore tenant filter - this is admin operation)
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         if (userProfile is null)
         {
@@ -66,34 +66,32 @@ public sealed class AdminEndpoints : IEndpointGroup
                 detail: $"User {userId} not found in database");
         }
 
-        try
-        {
-            // Update Keycloak user's tenant_id attribute to match database
-            await keycloakService.UpdateUserTenantIdAsync(userId, userProfile.TenantId, ct);
+        // Update authentication provider's tenant_id attribute to match database
+        var result = await authProvider.UpdateUserTenantIdAsync(userId, userProfile.TenantId, ct);
 
-            logger.LogInformation(
-                "Synced Keycloak tenant for user {UserId} ({Email}) to {TenantId}",
-                userId, userProfile.Email, userProfile.TenantId);
-
-            return Results.Ok(new SyncTenantResponse(
-                UserId: userId,
-                Email: userProfile.Email,
-                TenantId: userProfile.TenantId,
-                Message: "Keycloak tenant_id synced successfully"));
-        }
-        catch (Exception ex)
+        if (!result.IsSuccess)
         {
-            logger.LogError(ex, "Failed to sync Keycloak tenant for user {UserId}", userId);
+            logger.LogError("Failed to sync provider tenant for user {UserId}: {Error}", userId, result.ErrorMessage);
             return Results.Problem(
                 statusCode: StatusCodes.Status500InternalServerError,
-                detail: $"Failed to sync tenant: {ex.Message}");
+                detail: $"Failed to sync tenant: {result.ErrorMessage}");
         }
+
+        logger.LogInformation(
+            "Synced provider tenant for user {UserId} ({Email}) to {TenantId}",
+            userId, userProfile.Email, userProfile.TenantId);
+
+        return Results.Ok(new SyncTenantResponse(
+            UserId: userId,
+            Email: userProfile.Email,
+            TenantId: userProfile.TenantId,
+            Message: "Provider tenant_id synced successfully"));
     }
 }
 
 public record UserProfileResponse(
     Guid Id,
-    string KeycloakUserId,
+    string ProviderUserId,
     string Email,
     string FullName,
     Guid TenantId,
