@@ -142,6 +142,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         AuthDbContext db,
         HttpContext httpContext,
         TimeProvider clock,
+        IHostEnvironment env,
         CancellationToken ct)
     {
         // Validate request
@@ -199,11 +200,12 @@ public sealed class AuthEndpoints : IEndpointGroup
             ct);
 
         // Set HTTP-only cookie (20 minute sliding expiration)
+        // Use Lax in development (allows localhost cross-port), Strict in production
         httpContext.Response.Cookies.Append("session_id", sessionId, new CookieOptions
         {
             HttpOnly = true,
             Secure = httpContext.Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
+            SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
             MaxAge = TimeSpan.FromMinutes(20)
         });
 
