@@ -54,7 +54,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
         // Check if user profile exists and get onboarding status
         var userProfile = await db.UserProfiles
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         return Results.Ok(new OnboardingStatusResponse(
             Completed: userProfile?.OnboardingCompleted ?? false,
@@ -93,7 +93,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
         // Update user profile onboarding status
         var userProfile = await db.UserProfiles
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         if (userProfile is not null)
         {
@@ -165,7 +165,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
         // Update user profile onboarding status
         var userProfile = await db.UserProfiles
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         if (userProfile is not null)
         {
@@ -212,7 +212,7 @@ public sealed class OnboardingEndpoints : IEndpointGroup
 
         // Update user profile onboarding status
         var userProfile = await db.UserProfiles
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         if (userProfile is not null)
         {

@@ -25,12 +25,12 @@ public sealed class UserTenantService : IUserTenantService
         _keycloakService = keycloakService;
     }
 
-    public async Task<Guid?> GetUserTenantIdAsync(string keycloakUserId, CancellationToken ct = default)
+    public async Task<Guid?> GetUserTenantIdAsync(string providerUserId, CancellationToken ct = default)
     {
         // Query without tenant filter since we're looking up the tenant itself
         var userProfile = await _db.UserProfiles
             .IgnoreQueryFilters()
-            .Where(u => u.KeycloakUserId == keycloakUserId)
+            .Where(u => u.ProviderUserId == providerUserId)
             .Select(u => new { u.TenantId })
             .FirstOrDefaultAsync(ct);
 
@@ -38,7 +38,7 @@ public sealed class UserTenantService : IUserTenantService
     }
 
     public async Task UpdateUserTenantAsync(
-        string keycloakUserId,
+        string providerUserId,
         Guid newTenantId,
         string? email = null,
         string? fullName = null,
@@ -47,7 +47,7 @@ public sealed class UserTenantService : IUserTenantService
         // Query without tenant filter to find user across all tenants
         var userProfile = await _db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == keycloakUserId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
 
         if (userProfile is not null)
         {
@@ -57,7 +57,7 @@ public sealed class UserTenantService : IUserTenantService
 
             _logger.LogInformation(
                 "Updated user {UserId} tenant from {OldTenant} to {NewTenant}",
-                keycloakUserId, oldTenantId, newTenantId);
+                providerUserId, oldTenantId, newTenantId);
         }
         else
         {
@@ -70,7 +70,7 @@ public sealed class UserTenantService : IUserTenantService
 
             userProfile = UserProfile.Create(
                 newTenantId,
-                keycloakUserId,
+                providerUserId,
                 email,
                 fullName,
                 _clock.GetUtcNow());
@@ -79,12 +79,12 @@ public sealed class UserTenantService : IUserTenantService
 
             _logger.LogInformation(
                 "Created user profile for {UserId} in tenant {TenantId}",
-                keycloakUserId, newTenantId);
+                providerUserId, newTenantId);
         }
 
         await _db.SaveChangesAsync(ct);
 
         // Update Keycloak user attributes so future JWT tokens have correct tenant_id
-        await _keycloakService.UpdateUserTenantIdAsync(keycloakUserId, newTenantId, ct);
+        await _keycloakService.UpdateUserTenantIdAsync(providerUserId, newTenantId, ct);
     }
 }

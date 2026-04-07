@@ -10,7 +10,7 @@ public sealed class UserProfileTests
     {
         // Arrange
         var tenantId = Guid.NewGuid();
-        var keycloakUserId = "keycloak-user-123";
+        var providerUserId = "keycloak-user-123";
         var email = "test@example.com";
         var fullName = "Test User";
         var createdAt = DateTimeOffset.UtcNow;
@@ -18,7 +18,7 @@ public sealed class UserProfileTests
         // Act
         var userProfile = UserProfile.Create(
             tenantId,
-            keycloakUserId,
+            providerUserId,
             email,
             fullName,
             createdAt);
@@ -27,7 +27,7 @@ public sealed class UserProfileTests
         userProfile.Should().NotBeNull();
         userProfile.Id.Should().NotBeEmpty();
         userProfile.TenantId.Should().Be(tenantId);
-        userProfile.KeycloakUserId.Should().Be(keycloakUserId);
+        userProfile.ProviderUserId.Should().Be(providerUserId);
         userProfile.Email.Should().Be(email);
         userProfile.FullName.Should().Be(fullName);
         userProfile.CreatedAt.Should().Be(createdAt);
@@ -39,14 +39,14 @@ public sealed class UserProfileTests
     {
         // Arrange
         var tenantId = Guid.NewGuid();
-        var keycloakUserId = "keycloak-user-123";
+        var providerUserId = "keycloak-user-123";
         var email = "test@example.com";
         var fullName = "Test User";
         var createdAt = DateTimeOffset.UtcNow;
 
         // Act
-        var userProfile1 = UserProfile.Create(tenantId, keycloakUserId, email, fullName, createdAt);
-        var userProfile2 = UserProfile.Create(tenantId, keycloakUserId, email, fullName, createdAt);
+        var userProfile1 = UserProfile.Create(tenantId, providerUserId, email, fullName, createdAt);
+        var userProfile2 = UserProfile.Create(tenantId, providerUserId, email, fullName, createdAt);
 
         // Assert
         userProfile1.Id.Should().NotBe(userProfile2.Id);
@@ -114,18 +114,18 @@ public sealed class UserProfileTests
     [InlineData("  ")]
     [InlineData("simple-id")]
     [InlineData("complex-id-with-dashes-123")]
-    public void Create_AcceptsVariousKeycloakUserIdFormats(string keycloakUserId)
+    public void Create_AcceptsVariousProviderUserIdFormats(string providerUserId)
     {
         // Act
         var userProfile = UserProfile.Create(
             Guid.NewGuid(),
-            keycloakUserId,
+            providerUserId,
             "test@example.com",
             "Test User",
             DateTimeOffset.UtcNow);
 
         // Assert
-        userProfile.KeycloakUserId.Should().Be(keycloakUserId);
+        userProfile.ProviderUserId.Should().Be(providerUserId);
     }
 
     [Theory]

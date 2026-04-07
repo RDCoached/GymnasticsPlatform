@@ -79,7 +79,7 @@ else
     builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 }
 
-// Add Keycloak Admin Service
+// Add Keycloak Admin Service (used by KeycloakAuthenticationProvider)
 builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
 {
     client.Timeout = TimeSpan.FromMinutes(2);

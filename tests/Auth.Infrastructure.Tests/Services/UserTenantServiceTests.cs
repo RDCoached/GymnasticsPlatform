@@ -138,7 +138,7 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         // Assert
         var updated = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstAsync(u => u.KeycloakUserId == userId);
+            .FirstAsync(u => u.ProviderUserId == userId);
         updated.TenantId.Should().Be(newTenantId);
 
         await keycloakService.Received(1).UpdateUserTenantIdAsync(userId, newTenantId, Arg.Any<CancellationToken>());
@@ -167,7 +167,7 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         // Assert
         var created = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId);
 
         created.Should().NotBeNull();
         created!.TenantId.Should().Be(tenantId);

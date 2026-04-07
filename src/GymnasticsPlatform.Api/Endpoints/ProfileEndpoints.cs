@@ -37,7 +37,7 @@ public sealed class ProfileEndpoints : IEndpointGroup
 
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         if (userProfile is null)
         {
@@ -72,7 +72,7 @@ public sealed class ProfileEndpoints : IEndpointGroup
 
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
         if (userProfile is null)
         {
