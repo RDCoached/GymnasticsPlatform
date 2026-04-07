@@ -47,7 +47,7 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
         // Assign Coach role to user in database
         var userRole = UserRole.Create(
             userProfile.TenantId,
-            userProfile.KeycloakUserId,
+            userProfile.ProviderUserId,
             Role.Coach,
             assignedBy: "system-test",
             TimeProvider.System);
@@ -56,7 +56,7 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
         await db.SaveChangesAsync();
 
         // Add coach authentication headers
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", fullName);
