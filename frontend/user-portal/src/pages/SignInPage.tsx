@@ -37,6 +37,15 @@ export function SignInPage() {
     }
   };
 
+  const handleMicrosoftLogin = async () => {
+    setError('');
+    try {
+      await loginWithOAuth('microsoft');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Microsoft sign-in failed');
+    }
+  };
+
   return (
     <div className="onboarding-container">
       <div className="onboarding-header">
@@ -98,6 +107,21 @@ export function SignInPage() {
               <path fill="none" d="M0 0h48v48H0z"/>
             </svg>
             Continue with Google
+          </button>
+
+          <button
+            type="button"
+            onClick={handleMicrosoftLogin}
+            className="oauth-button"
+            disabled={isLoading}
+          >
+            <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+            </svg>
+            Sign in with Microsoft
           </button>
 
           <p>

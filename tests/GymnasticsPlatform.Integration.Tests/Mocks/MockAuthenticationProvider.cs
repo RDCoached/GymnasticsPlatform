@@ -124,6 +124,39 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
         return Task.FromResult(Result.Success(authResult));
     }
 
+    public Task<Result<AuthenticationResult>> ExchangeCodeForTokensAsync(
+        string code,
+        string redirectUri,
+        string clientId,
+        CancellationToken ct = default)
+    {
+        // Mock implementation - simulate successful OAuth code exchange
+        // In tests, we'll use a format like "oauth-code-{email}" for the code
+        var email = code.Replace("oauth-code-", "");
+
+        if (!_registeredEmails.Contains(email))
+        {
+            return Task.FromResult(Result.Failure<AuthenticationResult>(
+                ErrorType.Unauthorized,
+                "Invalid authorization code"));
+        }
+
+        var userId = _emailToUserId[email];
+        var accessToken = GenerateValidJwtToken(userId, email);
+        var refreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
+
+        _refreshTokens[refreshToken] = email;
+
+        var authResult = new AuthenticationResult(
+            AccessToken: accessToken,
+            RefreshToken: refreshToken,
+            ExpiresIn: 3600,
+            TokenType: "Bearer",
+            ProviderUserId: userId);
+
+        return Task.FromResult(Result.Success(authResult));
+    }
+
     public Task<Result<ProviderUserInfo?>> GetProviderUserInfoAsync(
         string providerUserId,
         CancellationToken ct = default)

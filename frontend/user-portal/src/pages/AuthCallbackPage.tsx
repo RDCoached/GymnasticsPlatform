@@ -11,20 +11,22 @@ export function AuthCallbackPage() {
       try {
         const response = await instance.handleRedirectPromise();
 
-        if (response) {
-          // Check if user has completed onboarding
-          // The tenant_id extension attribute indicates onboarding status
-          const tenantId = response.account?.idTokenClaims?.['extension_c6de19aea13c4553917803f900adb147_tenant_id'];
+        if (response && response.account) {
+          // Successfully authenticated via OAuth
+          const account = response.account;
 
-          // If no tenant_id or it's the onboarding tenant, redirect to onboarding
+          // Check if user has completed onboarding
+          const tenantId = account.idTokenClaims?.extension_tenant_id;
+
           if (!tenantId || tenantId === '00000000-0000-0000-0000-000000000001') {
+            // User needs to complete onboarding
             navigate('/onboarding');
           } else {
-            // User has completed onboarding, redirect to dashboard
+            // User is fully onboarded
             navigate('/dashboard');
           }
         } else {
-          // No response, redirect to sign-in
+          // No response - redirect to sign in
           navigate('/sign-in');
         }
       } catch (error) {

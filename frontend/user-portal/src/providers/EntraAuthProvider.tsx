@@ -1,20 +1,31 @@
 import { ReactNode, useState, useEffect } from 'react';
+import { MsalProvider, useMsal } from '@azure/msal-react';
+import { PublicClientApplication } from '@azure/msal-browser';
 import { AuthContext, User, AuthContextType } from '../contexts/AuthContext';
+import { msalConfig, loginRequestGoogle, loginRequestMicrosoft } from '../msal-config';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+
+const msalInstance = new PublicClientApplication(msalConfig);
 
 interface EntraAuthProviderProps {
   children: ReactNode;
 }
 
 /**
- * EntraAuthProvider handles authentication using Microsoft Entra ID
- * with email/password and OAuth (Google) support.
- *
- * This implementation uses session cookies for email/password auth
- * and JWT tokens for OAuth flows.
+ * EntraAuthProvider wraps the app with MSAL and provides authentication context.
+ * Supports both email/password (via backend API) and OAuth (Google, Microsoft) via MSAL.
  */
 export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
+  return (
+    <MsalProvider instance={msalInstance}>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </MsalProvider>
+  );
+}
+
+function AuthProviderInner({ children }: { children: ReactNode }) {
+  const { instance, accounts } = useMsal();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,18 +33,47 @@ export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/auth/me`, {
-          credentials: 'include', // Include session cookies
-        });
+        // First check if we have an MSAL account
+        if (accounts.length > 0) {
+          const account = accounts[0];
 
-        if (response.ok) {
-          const data = await response.json();
-          setUser({
-            id: data.id,
-            email: data.email,
-            fullName: data.fullName,
-            onboardingCompleted: data.onboardingCompleted,
+          // Extract user info from MSAL account
+          const response = await fetch(`${API_URL}/api/auth/me`, {
+            credentials: 'include',
           });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUser({
+              id: data.id,
+              email: data.email || account.username,
+              fullName: data.fullName || account.name || 'User',
+              onboardingCompleted: data.onboardingCompleted,
+            });
+          } else {
+            // User has MSAL account but no backend session - might be new OAuth user
+            setUser({
+              id: account.localAccountId,
+              email: account.username,
+              fullName: account.name || 'User',
+              onboardingCompleted: false,
+            });
+          }
+        } else {
+          // Check for session-based auth (email/password)
+          const response = await fetch(`${API_URL}/api/auth/me`, {
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUser({
+              id: data.id,
+              email: data.email,
+              fullName: data.fullName,
+              onboardingCompleted: data.onboardingCompleted,
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to check authentication:', error);
@@ -43,7 +83,7 @@ export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
     };
 
     checkAuth();
-  }, []);
+  }, [accounts]);
 
   const login = async (email: string, password: string): Promise<void> => {
     const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -67,11 +107,15 @@ export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
     });
   };
 
-  const loginWithOAuth = async (provider: 'google'): Promise<void> => {
-    // OAuth flow would be handled by MSAL in full implementation
-    // For now, redirect to OAuth endpoint
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
-    window.location.href = `${API_URL}/api/auth/oauth/${provider}?redirect_uri=${redirectUri}`;
+  const loginWithOAuth = async (provider: 'google' | 'microsoft'): Promise<void> => {
+    const request = provider === 'google' ? loginRequestGoogle : loginRequestMicrosoft;
+
+    try {
+      await instance.loginRedirect(request);
+    } catch (error) {
+      console.error('OAuth login failed:', error);
+      throw new Error(`${provider} login failed`);
+    }
   };
 
   const register = async (email: string, password: string, fullName: string): Promise<void> => {
@@ -90,10 +134,18 @@ export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
+      // Logout from backend
       await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });
+
+      // Logout from MSAL
+      if (accounts.length > 0) {
+        await instance.logoutRedirect({
+          postLogoutRedirectUri: window.location.origin + '/sign-in',
+        });
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -101,10 +153,19 @@ export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
     }
   };
 
-  const getToken = (): string | null => {
-    // For session-based auth, token is in HTTP-only cookie
-    // For OAuth, token would be retrieved from MSAL cache
-    // Returning null for now as tokens are handled server-side
+  const getToken = async (): Promise<string | null> => {
+    if (accounts.length > 0) {
+      try {
+        const response = await instance.acquireTokenSilent({
+          scopes: [`api://${import.meta.env.VITE_API_CLIENT_ID}/user.access`],
+          account: accounts[0],
+        });
+        return response.accessToken;
+      } catch (error) {
+        console.error('Failed to acquire token:', error);
+        return null;
+      }
+    }
     return null;
   };
 
@@ -116,7 +177,7 @@ export function EntraAuthProvider({ children }: EntraAuthProviderProps) {
     loginWithOAuth,
     register,
     logout,
-    getToken,
+    getToken: () => getToken().then((token) => token),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -66,8 +66,8 @@ else
     builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 }
 
-// Add Authentication Provider (Microsoft Entra ID)
-builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.EntraIdAuthenticationProvider>();
+// Add Authentication Provider (Microsoft Entra External ID)
+builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.ExternalIdAuthenticationProvider>();
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -110,16 +110,17 @@ builder.Services.AddOpenApi(options =>
     });
 });
 
-// Add Authentication (Microsoft Entra ID JWT)
+// Add Authentication (Microsoft Entra External ID JWT)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var entraConfig = builder.Configuration.GetSection("Authentication:EntraId");
-        var tenantId = entraConfig["TenantId"];
-        var instance = entraConfig["Instance"] ?? "https://login.microsoftonline.com/";
+        var externalIdConfig = builder.Configuration.GetSection("Authentication:ExternalId");
+        var authority = externalIdConfig["Authority"] ?? throw new InvalidOperationException("ExternalId Authority not configured");
+        var apiClientId = externalIdConfig["ApiClientId"] ?? throw new InvalidOperationException("ExternalId ApiClientId not configured");
 
-        options.Authority = $"{instance}{tenantId}/v2.0";
-        options.Audience = entraConfig["Audience"] ?? "api://gymnastics-api";
+        var tenantId = externalIdConfig["TenantId"] ?? throw new InvalidOperationException("ExternalId TenantId not configured");
+        options.Authority = $"{authority}/v2.0";
+        options.Audience = $"api://{tenantId}/gymnastics-api";
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.MapInboundClaims = false; // Preserve original JWT claim names
 
@@ -129,7 +130,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = $"{instance}{tenantId}/v2.0"
+            ValidIssuer = $"{authority}/v2.0"
         };
     });
 

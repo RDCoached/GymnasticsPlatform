@@ -49,6 +49,11 @@ public sealed class AuthEndpoints : IEndpointGroup
             .WithSummary("Get current authenticated user with roles")
             .Produces<CurrentUserResponse>()
             .RequireAuthorization();
+
+        group.MapPost("/oauth/callback", OAuthCallback)
+            .WithName("OAuthCallback")
+            .WithSummary("Handle OAuth authorization code callback")
+            .AllowAnonymous();
     }
 
     private static async Task<IResult> Register(
@@ -351,6 +356,107 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         return Results.Ok(response);
     }
+
+    private static async Task<IResult> OAuthCallback(
+        OAuthCallbackRequest request,
+        IAuthenticationProvider authProvider,
+        ISessionService sessionService,
+        AuthDbContext db,
+        HttpContext httpContext,
+        TimeProvider clock,
+        IHostEnvironment env,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(request.Code))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: "Authorization code is required");
+        }
+
+        // Exchange authorization code for tokens via the authentication provider
+        var tokenResult = await authProvider.ExchangeCodeForTokensAsync(
+            request.Code,
+            request.RedirectUri,
+            request.ClientId,
+            ct);
+
+        if (!tokenResult.IsSuccess)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                detail: tokenResult.ErrorMessage ?? "Failed to exchange authorization code");
+        }
+
+        var tokenResponse = tokenResult.Value!;
+
+        // Decode JWT to get user info
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(tokenResponse.AccessToken);
+
+        var providerUserId = jwtToken.Subject; // 'sub' claim
+        var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value
+                    ?? jwtToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+        var name = jwtToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value
+                   ?? email?.Split('@')[0] ?? "User";
+
+        if (string.IsNullOrEmpty(email))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: "Email claim not found in token");
+        }
+
+        // Get or create user profile (ignore tenant filter for initial lookup)
+        var userProfile = await db.UserProfiles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
+
+        if (userProfile is null)
+        {
+            // New OAuth user - create profile in onboarding tenant
+            userProfile = UserProfile.Create(
+                OnboardingTenantId,
+                providerUserId,
+                email,
+                name,
+                clock.GetUtcNow());
+
+            db.UserProfiles.Add(userProfile);
+        }
+        else
+        {
+            userProfile.RecordLogin(clock.GetUtcNow());
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        // Create server-side session
+        var sessionId = await sessionService.CreateSessionAsync(
+            keycloakUserId: providerUserId,
+            accessToken: tokenResponse.AccessToken,
+            refreshToken: tokenResponse.RefreshToken ?? string.Empty,
+            expiry: TimeSpan.FromSeconds(tokenResponse.ExpiresIn),
+            ct);
+
+        // Set HTTP-only cookie
+        httpContext.Response.Cookies.Append("session_id", sessionId, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = httpContext.Request.IsHttps,
+            SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
+            MaxAge = TimeSpan.FromMinutes(20)
+        });
+
+        var response = new OAuthCallbackResponse(
+            UserId: providerUserId,
+            Email: email,
+            FullName: name,
+            TenantId: userProfile.TenantId,
+            OnboardingCompleted: userProfile.OnboardingCompleted);
+
+        return Results.Ok(response);
+    }
 }
 
 public record CurrentUserResponse(
@@ -360,3 +466,12 @@ public record CurrentUserResponse(
     Guid TenantId,
     IReadOnlyList<string> Roles,
     Guid? ClubId);
+
+public record OAuthCallbackRequest(string Code, string RedirectUri, string ClientId);
+
+public record OAuthCallbackResponse(
+    string UserId,
+    string Email,
+    string FullName,
+    Guid TenantId,
+    bool OnboardingCompleted);
