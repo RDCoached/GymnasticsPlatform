@@ -54,4 +54,11 @@ public sealed class TestAuthenticationHandler(
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
+
+    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+    {
+        Response.Headers.Append("WWW-Authenticate", $"Bearer realm=\"{AuthenticationScheme}\"");
+        Response.StatusCode = 401;
+        return Task.CompletedTask;
+    }
 }

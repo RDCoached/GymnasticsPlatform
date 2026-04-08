@@ -79,7 +79,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 return _testTenantContext;
             });
 
-            // Add test authentication scheme alongside existing JWT bearer
+            // Add test authentication scheme
             services.PostConfigure<AuthenticationOptions>(options =>
             {
                 // Make test scheme the default if it's registered
@@ -87,7 +87,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 {
                     options.DefaultScheme = TestAuthenticationHandler.AuthenticationScheme;
                     options.DefaultAuthenticateScheme = TestAuthenticationHandler.AuthenticationScheme;
-                    options.DefaultChallengeScheme = "Bearer"; // Keep Bearer for challenge to get WWW-Authenticate header
+                    options.DefaultChallengeScheme = TestAuthenticationHandler.AuthenticationScheme;
                 }
             });
 
