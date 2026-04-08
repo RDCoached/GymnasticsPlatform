@@ -31,8 +31,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public TestTenantContext TestTenantContext => _testTenantContext
         ?? throw new InvalidOperationException("TestTenantContext not initialized. CreateClient must be called first.");
 
-    private readonly MockKeycloakAdminService _mockKeycloakService = new();
-    public MockKeycloakAdminService MockKeycloakService => _mockKeycloakService;
+    private readonly MockAuthenticationProvider _mockAuthProvider = new();
+    public MockAuthenticationProvider MockAuthProvider => _mockAuthProvider;
 
     private readonly TestEmailService _testEmailService = new();
     public TestEmailService TestEmailService => _testEmailService;
@@ -58,9 +58,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                     _dbContainer.GetConnectionString(),
                     o => o.UseVector()));
 
-            // Replace IKeycloakAdminService with mock
-            services.RemoveAll(typeof(IKeycloakAdminService));
-            services.AddSingleton<IKeycloakAdminService>(_mockKeycloakService);
+            // Replace IAuthenticationProvider with mock
+            services.RemoveAll(typeof(IAuthenticationProvider));
+            services.AddSingleton<IAuthenticationProvider>(_mockAuthProvider);
 
             // Replace IEmailService with test implementation
             services.RemoveAll(typeof(IEmailService));
@@ -184,7 +184,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 
     public void ResetMockServices()
     {
-        _mockKeycloakService.Reset();
+        _mockAuthProvider.Reset();
         _testEmailService.SentEmails.Clear();
     }
 
@@ -195,7 +195,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 
     public new async Task DisposeAsync()
     {
-        _mockKeycloakService.Reset();
+        _mockAuthProvider.Reset();
         await _dbContainer.DisposeAsync();
         await base.DisposeAsync();
     }

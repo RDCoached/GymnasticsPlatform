@@ -272,8 +272,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseMiddleware<SessionAuthMiddleware>(); // Session auth first (primary)
-app.UseAuthentication(); // JWT second (fallback for OAuth)
+app.UseAuthentication(); // JWT Bearer authentication for Entra ID
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 

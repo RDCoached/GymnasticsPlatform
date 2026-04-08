@@ -28,7 +28,7 @@ public sealed class SkillEndpointsTests(TestWebApplicationFactory factory)
             Password: "Coach123!",
             FullName: fullName);
         await client.PostAsJsonAsync("/api/auth/register", registerRequest);
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         // Get user ID and tenant from database
         await Task.Delay(50);

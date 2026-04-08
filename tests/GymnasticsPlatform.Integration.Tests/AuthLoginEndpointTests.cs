@@ -23,7 +23,7 @@ public sealed class AuthLoginEndpointTests(TestWebApplicationFactory factory)
         await client.PostAsJsonAsync("/api/auth/register", registerRequest);
 
         // Verify email (simulate clicking verification link)
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         var loginRequest = new LoginRequest(
             Email: email,
@@ -84,7 +84,7 @@ public sealed class AuthLoginEndpointTests(TestWebApplicationFactory factory)
             Password: "Test123!",
             FullName: "Wrong Pass User");
         await client.PostAsJsonAsync("/api/auth/register", registerRequest);
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         var loginRequest = new LoginRequest(
             Email: email,

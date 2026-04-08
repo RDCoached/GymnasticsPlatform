@@ -23,7 +23,7 @@ public sealed class ProfileEndpointsTests(TestWebApplicationFactory factory)
         var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.EnsureSuccessStatusCode();
 
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         // Get the Keycloak user ID from the database
         // Use a new scope to ensure we see the committed data

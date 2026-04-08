@@ -24,7 +24,7 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
             FullName = "Test Coach"
         };
         await client.PostAsJsonAsync("/api/auth/register", registerRequest);
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         // Complete onboarding to get real tenant
         await Task.Delay(50);

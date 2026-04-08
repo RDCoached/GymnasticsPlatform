@@ -8,10 +8,10 @@ using Microsoft.IdentityModel.Tokens;
 namespace GymnasticsPlatform.Integration.Tests.Mocks;
 
 /// <summary>
-/// Mock implementation of IKeycloakAdminService for integration testing.
-/// Simulates Keycloak behavior without requiring a real Keycloak instance.
+/// Mock implementation of IAuthenticationProvider for integration testing.
+/// Simulates authentication provider behavior without requiring a real provider instance.
 /// </summary>
-public sealed class MockKeycloakAdminService : IKeycloakAdminService
+public sealed class MockAuthenticationProvider : IAuthenticationProvider
 {
     private readonly HashSet<string> _registeredEmails = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _userCredentials = new(StringComparer.OrdinalIgnoreCase);
@@ -19,10 +19,10 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
     private readonly Dictionary<string, string> _refreshTokens = new();
     private readonly Dictionary<string, string> _emailToUserId = new(StringComparer.OrdinalIgnoreCase);
 
-    public Task UpdateUserTenantIdAsync(string providerUserId, Guid newTenantId, CancellationToken ct = default)
+    public Task<Result> UpdateUserTenantIdAsync(string providerUserId, Guid newTenantId, CancellationToken ct = default)
     {
         // For testing, just succeed
-        return Task.CompletedTask;
+        return Task.FromResult(Result.Success());
     }
 
     public Task<Result<string>> CreateUserAsync(
@@ -48,7 +48,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         return Task.FromResult(Result.Success(userId));
     }
 
-    public Task<Result<TokenResponse>> AuthenticateAsync(
+    public Task<Result<AuthenticationResult>> AuthenticateAsync(
         string email,
         string password,
         string clientId,
@@ -57,7 +57,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         // Check if user exists
         if (!_userCredentials.ContainsKey(email))
         {
-            return Task.FromResult(Result.Failure<TokenResponse>(
+            return Task.FromResult(Result.Failure<AuthenticationResult>(
                 ErrorType.Unauthorized,
                 "Invalid credentials"));
         }
@@ -65,7 +65,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         // Check if email is verified
         if (!_emailVerificationStatus[email])
         {
-            return Task.FromResult(Result.Failure<TokenResponse>(
+            return Task.FromResult(Result.Failure<AuthenticationResult>(
                 ErrorType.Unauthorized,
                 "Email not verified. Please check your email for verification link."));
         }
@@ -73,7 +73,7 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         // Check password
         if (_userCredentials[email] != password)
         {
-            return Task.FromResult(Result.Failure<TokenResponse>(
+            return Task.FromResult(Result.Failure<AuthenticationResult>(
                 ErrorType.Unauthorized,
                 "Invalid credentials"));
         }
@@ -84,23 +84,24 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
 
         _refreshTokens[refreshToken] = email;
 
-        var tokenResponse = new TokenResponse(
+        var authResult = new AuthenticationResult(
             AccessToken: accessToken,
             RefreshToken: refreshToken,
             ExpiresIn: 3600,
-            TokenType: "Bearer");
+            TokenType: "Bearer",
+            ProviderUserId: userId);
 
-        return Task.FromResult(Result.Success(tokenResponse));
+        return Task.FromResult(Result.Success(authResult));
     }
 
-    public Task<Result<TokenResponse>> RefreshTokenAsync(
+    public Task<Result<AuthenticationResult>> RefreshTokenAsync(
         string refreshToken,
         string clientId,
         CancellationToken ct = default)
     {
         if (!_refreshTokens.ContainsKey(refreshToken))
         {
-            return Task.FromResult(Result.Failure<TokenResponse>(
+            return Task.FromResult(Result.Failure<AuthenticationResult>(
                 ErrorType.Unauthorized,
                 "Invalid or expired refresh token"));
         }
@@ -113,13 +114,33 @@ public sealed class MockKeycloakAdminService : IKeycloakAdminService
         _refreshTokens.Remove(refreshToken);
         _refreshTokens[newRefreshToken] = email;
 
-        var tokenResponse = new TokenResponse(
+        var authResult = new AuthenticationResult(
             AccessToken: newAccessToken,
             RefreshToken: newRefreshToken,
             ExpiresIn: 3600,
-            TokenType: "Bearer");
+            TokenType: "Bearer",
+            ProviderUserId: userId);
 
-        return Task.FromResult(Result.Success(tokenResponse));
+        return Task.FromResult(Result.Success(authResult));
+    }
+
+    public Task<Result<ProviderUserInfo?>> GetProviderUserInfoAsync(
+        string providerUserId,
+        CancellationToken ct = default)
+    {
+        // Find email for this user ID
+        var entry = _emailToUserId.FirstOrDefault(kvp => kvp.Value == providerUserId);
+        if (entry.Key == null)
+        {
+            return Task.FromResult(Result.Success<ProviderUserInfo?>(null));
+        }
+
+        var userInfo = new ProviderUserInfo(
+            ProviderUserId: providerUserId,
+            Email: entry.Key,
+            FullName: "Test User");
+
+        return Task.FromResult(Result.Success<ProviderUserInfo?>(userInfo));
     }
 
     public Task<Result> InitiatePasswordResetAsync(string email, CancellationToken ct = default)
