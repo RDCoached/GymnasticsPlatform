@@ -19,7 +19,13 @@ provider "azuread" {
 resource "azuread_application" "api" {
   display_name = "Gymnastics Platform API"
 
+  # Allow Microsoft personal accounts and organizational accounts
+  sign_in_audience = "AzureADandPersonalMicrosoftAccount"
+
   api {
+    # Required for multi-tenant apps with personal Microsoft accounts
+    requested_access_token_version = 2
+
     oauth2_permission_scope {
       admin_consent_description  = "Allows access to the Gymnastics Platform API"
       admin_consent_display_name = "Access Gymnastics API"
@@ -47,6 +53,14 @@ resource "azuread_application_password" "api_secret" {
 resource "azuread_application" "user_portal" {
   display_name = "Gymnastics User Portal"
 
+  # Allow Microsoft personal accounts and organizational accounts
+  sign_in_audience = "AzureADandPersonalMicrosoftAccount"
+
+  # Required for multi-tenant apps with personal Microsoft accounts
+  api {
+    requested_access_token_version = 2
+  }
+
   single_page_application {
     redirect_uris = compact([
       "http://localhost:5173/auth/callback",
@@ -71,6 +85,14 @@ resource "azuread_service_principal" "user_portal" {
 # Admin Portal SPA Registration
 resource "azuread_application" "admin_portal" {
   display_name = "Gymnastics Admin Portal"
+
+  # Allow Microsoft personal accounts and organizational accounts
+  sign_in_audience = "AzureADandPersonalMicrosoftAccount"
+
+  # Required for multi-tenant apps with personal Microsoft accounts
+  api {
+    requested_access_token_version = 2
+  }
 
   single_page_application {
     redirect_uris = compact([
