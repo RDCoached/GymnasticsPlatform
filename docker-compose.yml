@@ -16,37 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0.7
-    container_name: gymnastics-keycloak
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-gymnastics}
-      KC_DB_USERNAME: ${POSTGRES_USER:-gymadmin}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env file}
-      KC_DB_SCHEMA: keycloak
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Please set KEYCLOAK_ADMIN_PASSWORD in .env file}
-      KC_HTTP_ENABLED: "true"
-      KC_HEALTH_ENABLED: "true"
-      KC_HOSTNAME_URL: http://localhost:8080
-      KC_HOSTNAME_ADMIN_URL: http://localhost:8080
-      KC_HOSTNAME_STRICT: "false"
-    command: start-dev --import-realm
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./docker/keycloak:/opt/keycloak/data/import
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-
   adminer:
     image: adminer:latest
     container_name: gymnastics-adminer
@@ -113,23 +82,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-gymnastics};Username=${POSTGRES_USER:-gymadmin};Password=${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env file};Include Error Detail=true
-      - Authentication__Keycloak__Authority=http://keycloak:8080/realms/gymnastics
-      - Authentication__Keycloak__Audience=gymnastics-api
-      - Authentication__Keycloak__RequireHttpsMetadata=false
-      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/realms/gymnastics
-      - Authentication__Keycloak__ValidIssuers__1=http://localhost:8080/realms/gymnastics
-      - Keycloak__AdminBaseUrl=http://keycloak:8080
-      - Keycloak__Realm=gymnastics
-      - Keycloak__AdminUsername=${KEYCLOAK_ADMIN_USERNAME:-admin}
-      - Keycloak__AdminPassword=${KEYCLOAK_ADMIN_PASSWORD:?Please set KEYCLOAK_ADMIN_PASSWORD in .env file}
       - Observability__OtlpEndpoint=http://tempo:4318
       - OTEL_LOG_LEVEL=debug
       - Logging__LogLevel__OpenTelemetry=Debug
     depends_on:
       postgres:
         condition: service_healthy
-      keycloak:
-        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
@@ -149,8 +107,6 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-    depends_on:
-      - keycloak
 
   admin-portal:
     image: node:25-alpine
@@ -164,8 +120,6 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-    depends_on:
-      - keycloak
 
   # Grafana LGTM Stack (Loki, Grafana, Tempo, Mimir)
   grafana:
