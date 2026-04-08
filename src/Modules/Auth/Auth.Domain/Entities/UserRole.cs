@@ -6,7 +6,7 @@ public sealed class UserRole : IMultiTenant
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; set; }
-    public string KeycloakUserId { get; private set; } = string.Empty;
+    public string ProviderUserId { get; private set; } = string.Empty;
     public Role Role { get; private set; }
     public DateTimeOffset AssignedAt { get; private set; }
     public string? AssignedBy { get; private set; }
@@ -30,7 +30,7 @@ public sealed class UserRole : IMultiTenant
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
-            KeycloakUserId = userId,
+            ProviderUserId = userId,
             Role = role,
             AssignedBy = assignedBy,
             AssignedAt = clock.GetUtcNow()

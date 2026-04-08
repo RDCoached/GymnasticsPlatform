@@ -98,7 +98,7 @@ public sealed class ClubManagementEndpoints : IEndpointGroup
 
         // Verify user exists in this tenant
         var userProfile = await db.UserProfiles
-            .FirstOrDefaultAsync(u => u.KeycloakUserId == userId, ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
         if (userProfile is null)
             return Results.NotFound(new { Message = "User not found in this tenant" });
 

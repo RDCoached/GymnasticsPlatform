@@ -24,7 +24,7 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
             FullName = "Test Coach"
         };
         await client.PostAsJsonAsync("/api/auth/register", registerRequest);
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         // Complete onboarding to get real tenant
         await Task.Delay(50);
@@ -38,13 +38,13 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
         var roleService = scope.ServiceProvider.GetRequiredService<Auth.Application.Services.IRoleService>();
         await roleService.AssignRolesAsync(
             userProfile.TenantId,
-            userProfile.KeycloakUserId,
+            userProfile.ProviderUserId,
             [Role.Coach],
             "system",
             CancellationToken.None);
 
         // Set auth headers
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", "Test Coach");
@@ -76,7 +76,7 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
 
         var gymnastRole = UserRole.Create(
             tenantId,
-            gymnastProfile.KeycloakUserId,
+            gymnastProfile.ProviderUserId,
             Role.Gymnast,
             "system",
             TimeProvider.System);
@@ -147,7 +147,7 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
 
         var gymnastRole = UserRole.Create(
             tenantId,
-            gymnastProfile.KeycloakUserId,
+            gymnastProfile.ProviderUserId,
             Role.Gymnast,
             "system",
             TimeProvider.System);
@@ -189,7 +189,7 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
 
         var gymnastRole = UserRole.Create(
             tenantId,
-            gymnastProfile.KeycloakUserId,
+            gymnastProfile.ProviderUserId,
             Role.Gymnast,
             "system",
             TimeProvider.System);
@@ -208,7 +208,7 @@ public sealed class GymnastEndpointsTests(TestWebApplicationFactory factory)
 
         var remainingRole = await verifyDb.UserRoles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(ur => ur.KeycloakUserId == gymnastProfile.KeycloakUserId && ur.Role == Role.Gymnast);
+            .FirstOrDefaultAsync(ur => ur.ProviderUserId == gymnastProfile.ProviderUserId && ur.Role == Role.Gymnast);
         remainingRole.Should().BeNull();
     }
 

@@ -49,7 +49,7 @@ public sealed class RoleServiceTests : IAsyncLifetime
         await service.AssignRolesAsync(tenantId, userId, roles, null, CancellationToken.None);
 
         // Assert
-        var userRoles = await db.UserRoles.Where(ur => ur.KeycloakUserId == userId).ToListAsync();
+        var userRoles = await db.UserRoles.Where(ur => ur.ProviderUserId == userId).ToListAsync();
         userRoles.Should().HaveCount(1);
         userRoles[0].TenantId.Should().Be(tenantId);
         userRoles[0].Role.Should().Be(Role.Coach);
@@ -74,7 +74,7 @@ public sealed class RoleServiceTests : IAsyncLifetime
 
         // Assert
         var userRoles = await db.UserRoles
-            .Where(ur => ur.KeycloakUserId == userId)
+            .Where(ur => ur.ProviderUserId == userId)
             .OrderBy(ur => ur.Role)
             .ToListAsync();
         userRoles.Should().HaveCount(2);
@@ -100,7 +100,7 @@ public sealed class RoleServiceTests : IAsyncLifetime
         await service.AssignRolesAsync(tenantId, userId, roles, null, CancellationToken.None);
 
         // Assert - Should only have one role entry
-        var userRoles = await db.UserRoles.Where(ur => ur.KeycloakUserId == userId).ToListAsync();
+        var userRoles = await db.UserRoles.Where(ur => ur.ProviderUserId == userId).ToListAsync();
         userRoles.Should().HaveCount(1);
     }
 
@@ -122,7 +122,7 @@ public sealed class RoleServiceTests : IAsyncLifetime
         await service.AssignRolesAsync(tenantId, userId, roles, assignedBy, CancellationToken.None);
 
         // Assert
-        var userRole = await db.UserRoles.FirstAsync(ur => ur.KeycloakUserId == userId);
+        var userRole = await db.UserRoles.FirstAsync(ur => ur.ProviderUserId == userId);
         userRole.AssignedBy.Should().Be(assignedBy);
     }
 

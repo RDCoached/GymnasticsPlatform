@@ -13,7 +13,7 @@ public interface IRoleService
     /// </summary>
     Task AssignRolesAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         IReadOnlyList<Role> roles,
         string? assignedBy,
         CancellationToken ct = default);
@@ -23,7 +23,7 @@ public interface IRoleService
     /// </summary>
     Task<IReadOnlyList<Role>> GetUserRolesAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         CancellationToken ct = default);
 
     /// <summary>
@@ -31,7 +31,7 @@ public interface IRoleService
     /// </summary>
     Task<bool> HasRoleAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         Role role,
         CancellationToken ct = default);
 
@@ -40,7 +40,7 @@ public interface IRoleService
     /// </summary>
     Task<bool> HasAnyRoleAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         IReadOnlyList<Role> roles,
         CancellationToken ct = default);
 
@@ -49,7 +49,7 @@ public interface IRoleService
     /// </summary>
     Task RemoveRoleAsync(
         Guid tenantId,
-        string keycloakUserId,
+        string providerUserId,
         Role role,
         CancellationToken ct = default);
 }

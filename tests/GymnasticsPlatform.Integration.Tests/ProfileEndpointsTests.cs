@@ -23,7 +23,7 @@ public sealed class ProfileEndpointsTests(TestWebApplicationFactory factory)
         var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.EnsureSuccessStatusCode();
 
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         // Get the Keycloak user ID from the database
         // Use a new scope to ensure we see the committed data
@@ -42,7 +42,7 @@ public sealed class ProfileEndpointsTests(TestWebApplicationFactory factory)
         }
 
         // Add test authentication headers
-        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.KeycloakUserId);
+        client.DefaultRequestHeaders.Add("X-Test-User-Id", userProfile.ProviderUserId);
         client.DefaultRequestHeaders.Add("X-Test-Tenant-Id", userProfile.TenantId.ToString());
         client.DefaultRequestHeaders.Add("X-Test-Email", email);
         client.DefaultRequestHeaders.Add("X-Test-Username", fullName);
