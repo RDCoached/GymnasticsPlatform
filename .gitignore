@@ -110,3 +110,4 @@ qa-*-tests.log
 .terraform/
 .terraform.lock.hcl
 terraform.tfvars
+infrastructure/external-id/external-id-config.env
