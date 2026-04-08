@@ -24,7 +24,7 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
         var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.EnsureSuccessStatusCode();
 
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         var loginRequest = new LoginRequest(
             Email: email,
@@ -104,7 +104,7 @@ public sealed class AuthRefreshTokenEndpointTests(TestWebApplicationFactory fact
         var registerResponse = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
         registerResponse.EnsureSuccessStatusCode();
 
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         var loginRequest = new LoginRequest(
             Email: email,

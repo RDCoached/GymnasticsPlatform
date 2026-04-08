@@ -1,24 +1,25 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from './contexts/AuthContext';
 import App from './App';
 
-vi.mock('@react-keycloak/web');
+vi.mock('./contexts/AuthContext');
 
 describe('App', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.clearAllMocks();
 
-    // Default mock - Keycloak initialized but not authenticated
-    vi.mocked(useKeycloak).mockReturnValue({
-      keycloak: {
-        authenticated: false,
-        login: vi.fn(),
-        logout: vi.fn(),
-      },
-      initialized: true,
-    } as never);
+    // Default mock - not authenticated
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      user: null,
+      login: vi.fn(),
+      loginWithOAuth: vi.fn(),
+      logout: vi.fn(),
+      register: vi.fn(),
+      getToken: vi.fn(() => null),
+    });
   });
 
   it('should render without crashing when not authenticated', () => {
@@ -28,13 +29,21 @@ describe('App', () => {
   });
 
   it('should render without crashing when authenticated', () => {
-    localStorage.setItem('accessToken', 'fake-token');
-    localStorage.setItem('refreshToken', 'fake-refresh-token');
-    localStorage.setItem('user', JSON.stringify({
-      email: 'test@example.com',
-      fullName: 'Test User',
-      onboardingCompleted: true
-    }));
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      user: {
+        id: 'test-id',
+        email: 'test@example.com',
+        fullName: 'Test User',
+        onboardingCompleted: true,
+      },
+      login: vi.fn(),
+      loginWithOAuth: vi.fn(),
+      logout: vi.fn(),
+      register: vi.fn(),
+      getToken: vi.fn(() => 'fake-token'),
+    });
 
     render(<App />);
     // Just verify it renders

@@ -36,20 +36,7 @@ builder.Services.AddDistributedMemoryCache();
 // Add Session Service
 builder.Services.AddScoped<ISessionService, SessionService>();
 
-// Add Keycloak Settings for SessionAuthMiddleware
-builder.Services.Configure<GymnasticsPlatform.Api.Configuration.KeycloakSettings>(options =>
-{
-    var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
-    options.Authority = keycloakConfig["Authority"] ?? "http://localhost:8080/realms/gymnastics";
-    options.ClientId = "user-portal";
-    options.ClientSecret = keycloakConfig["ClientSecret"] ?? "";
-});
-
-// Add HttpClient for Keycloak token operations
-builder.Services.AddHttpClient("Keycloak", client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+// Session authentication configuration removed - now using Entra ID only
 
 // Add User Tenant Service
 builder.Services.AddScoped<Auth.Application.Services.IUserTenantService, Auth.Infrastructure.Services.UserTenantService>();
@@ -79,24 +66,8 @@ else
     builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 }
 
-// Add Keycloak Admin Service (used by KeycloakAuthenticationProvider)
-builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
-{
-    client.Timeout = TimeSpan.FromMinutes(2);
-});
-
-// Add Authentication Provider (abstraction layer)
-// Feature flag: ActiveProvider determines which provider to use (Keycloak or EntraId)
-var activeProvider = builder.Configuration["Authentication:ActiveProvider"] ?? "Keycloak";
-
-if (activeProvider.Equals("EntraId", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.EntraIdAuthenticationProvider>();
-}
-else
-{
-    builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.KeycloakAuthenticationProvider>();
-}
+// Add Authentication Provider (Microsoft Entra ID)
+builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.EntraIdAuthenticationProvider>();
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -134,56 +105,32 @@ builder.Services.AddOpenApi(options =>
     {
         document.Info.Title = "Gymnastics Platform API";
         document.Info.Version = "v1";
-        document.Info.Description = "Multi-tenant gymnastics platform API with Keycloak authentication";
+        document.Info.Description = "Multi-tenant gymnastics platform API with Microsoft Entra ID authentication";
         return Task.CompletedTask;
     });
 });
 
-// Add Authentication
+// Add Authentication (Microsoft Entra ID JWT)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        if (activeProvider.Equals("EntraId", StringComparison.OrdinalIgnoreCase))
+        var entraConfig = builder.Configuration.GetSection("Authentication:EntraId");
+        var tenantId = entraConfig["TenantId"];
+        var instance = entraConfig["Instance"] ?? "https://login.microsoftonline.com/";
+
+        options.Authority = $"{instance}{tenantId}/v2.0";
+        options.Audience = entraConfig["Audience"] ?? "api://gymnastics-api";
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.MapInboundClaims = false; // Preserve original JWT claim names
+
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Microsoft Entra ID JWT configuration
-            var entraConfig = builder.Configuration.GetSection("Authentication:EntraId");
-            var tenantId = entraConfig["TenantId"];
-            var instance = entraConfig["Instance"] ?? "https://login.microsoftonline.com/";
-
-            options.Authority = $"{instance}{tenantId}/v2.0";
-            options.Audience = entraConfig["Audience"] ?? "api://gymnastics-api";
-            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-            options.MapInboundClaims = false; // Preserve original JWT claim names
-
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = $"{instance}{tenantId}/v2.0"
-            };
-        }
-        else
-        {
-            // Keycloak JWT configuration
-            var keycloakConfig = builder.Configuration.GetSection("Authentication:Keycloak");
-            options.Authority = keycloakConfig["Authority"];
-            options.Audience = keycloakConfig["Audience"];
-            options.RequireHttpsMetadata = keycloakConfig.GetValue<bool>("RequireHttpsMetadata");
-            options.MapInboundClaims = false; // Preserve original JWT claim names
-
-            var validIssuers = keycloakConfig.GetSection("ValidIssuers").Get<string[]>();
-
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuers = validIssuers
-            };
-        }
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = $"{instance}{tenantId}/v2.0"
+        };
     });
 
 // Register Authorization Handler
@@ -325,8 +272,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseMiddleware<SessionAuthMiddleware>(); // Session auth first (primary)
-app.UseAuthentication(); // JWT second (fallback for OAuth)
+app.UseAuthentication(); // JWT Bearer authentication for Entra ID
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 

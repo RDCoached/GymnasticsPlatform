@@ -24,7 +24,7 @@ public sealed class AdminEndpointsTests(TestWebApplicationFactory factory)
             Password: "Admin123!",
             FullName: fullName);
         await client.PostAsJsonAsync("/api/auth/register", registerRequest);
-        factory.MockKeycloakService.VerifyEmail(email);
+        factory.MockAuthProvider.VerifyEmail(email);
 
         // Get user ID from database
         await Task.Delay(50);

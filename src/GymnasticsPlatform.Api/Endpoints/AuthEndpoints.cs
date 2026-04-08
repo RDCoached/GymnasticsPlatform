@@ -54,7 +54,7 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<IResult> Register(
         RegisterRequest request,
         IValidator<RegisterRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         AuthDbContext db,
         TimeProvider clock,
         CancellationToken ct)
@@ -67,7 +67,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Check if email already exists
-        var emailExistsResult = await keycloakService.EmailExistsAsync(request.Email, ct);
+        var emailExistsResult = await authProvider.EmailExistsAsync(request.Email, ct);
         if (!emailExistsResult.IsSuccess)
         {
             return Results.Problem(
@@ -82,8 +82,8 @@ public sealed class AuthEndpoints : IEndpointGroup
                 detail: "User with this email already exists");
         }
 
-        // Create user in Keycloak
-        var createUserResult = await keycloakService.CreateUserAsync(
+        // Create user in authentication provider
+        var createUserResult = await authProvider.CreateUserAsync(
             request.Email,
             request.Password,
             request.FullName,
@@ -106,10 +106,10 @@ public sealed class AuthEndpoints : IEndpointGroup
             };
         }
 
-        var keycloakUserId = createUserResult.Value!;
+        var providerUserId = createUserResult.Value!;
 
         // Send verification email
-        var sendEmailResult = await keycloakService.SendVerificationEmailAsync(keycloakUserId, ct);
+        var sendEmailResult = await authProvider.SendVerificationEmailAsync(providerUserId, ct);
         if (!sendEmailResult.IsSuccess)
         {
             // Log but don't fail registration - user can request resend later
@@ -119,7 +119,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         // Create UserProfile in database
         var userProfile = UserProfile.Create(
             OnboardingTenantId,
-            keycloakUserId,
+            providerUserId,
             request.Email,
             request.FullName,
             clock.GetUtcNow());
@@ -131,13 +131,13 @@ public sealed class AuthEndpoints : IEndpointGroup
             Message: "Registration successful. Please check your email to verify your account.",
             RequiresEmailVerification: true);
 
-        return Results.Created($"/api/auth/users/{keycloakUserId}", response);
+        return Results.Created($"/api/auth/users/{providerUserId}", response);
     }
 
     private static async Task<IResult> Login(
         LoginRequest request,
         IValidator<LoginRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         ISessionService sessionService,
         AuthDbContext db,
         HttpContext httpContext,
@@ -152,8 +152,8 @@ public sealed class AuthEndpoints : IEndpointGroup
             return Results.ValidationProblem(validationResult.ToDictionary());
         }
 
-        // Authenticate with Keycloak
-        var authResult = await keycloakService.AuthenticateAsync(
+        // Authenticate with provider
+        var authResult = await authProvider.AuthenticateAsync(
             request.Email,
             request.Password,
             "user-portal",
@@ -174,10 +174,10 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var tokenResponse = authResult.Value!;
 
-        // Decode JWT to get Keycloak user ID from the 'sub' claim
+        // Decode JWT to get provider user ID from the 'sub' claim
         var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(tokenResponse.AccessToken);
-        var keycloakUserId = jwtToken.Subject; // 'sub' claim contains Keycloak user ID
+        var providerUserId = jwtToken.Subject; // 'sub' claim contains provider user ID
 
         // Get or create user profile (ignore tenant filter since login is anonymous)
         // Use case-insensitive email comparison
@@ -191,9 +191,9 @@ public sealed class AuthEndpoints : IEndpointGroup
             await db.SaveChangesAsync(ct);
         }
 
-        // Create server-side session with Keycloak user ID
+        // Create server-side session with provider user ID
         var sessionId = await sessionService.CreateSessionAsync(
-            keycloakUserId: keycloakUserId,
+            keycloakUserId: providerUserId,
             accessToken: tokenResponse.AccessToken,
             refreshToken: tokenResponse.RefreshToken,
             expiry: TimeSpan.FromSeconds(tokenResponse.ExpiresIn),
@@ -241,7 +241,7 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<IResult> RefreshToken(
         RefreshTokenRequest request,
         IValidator<RefreshTokenRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         CancellationToken ct)
     {
         // Validate request
@@ -251,8 +251,8 @@ public sealed class AuthEndpoints : IEndpointGroup
             return Results.ValidationProblem(validationResult.ToDictionary());
         }
 
-        // Refresh token with Keycloak
-        var refreshResult = await keycloakService.RefreshTokenAsync(
+        // Refresh token with provider
+        var refreshResult = await authProvider.RefreshTokenAsync(
             request.RefreshToken,
             "user-portal",
             ct);
@@ -284,7 +284,7 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<IResult> ForgotPassword(
         ForgotPasswordRequest request,
         IValidator<ForgotPasswordRequest> validator,
-        IKeycloakAdminService keycloakService,
+        IAuthenticationProvider authProvider,
         CancellationToken ct)
     {
         // Validate request
@@ -295,7 +295,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         }
 
         // Initiate password reset (always succeeds to prevent email enumeration)
-        await keycloakService.InitiatePasswordResetAsync(request.Email, ct);
+        await authProvider.InitiatePasswordResetAsync(request.Email, ct);
 
         var response = new ForgotPasswordResponse(
             Message: "If an account exists with this email, you will receive password reset instructions.");
