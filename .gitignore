@@ -46,6 +46,7 @@ appsettings.Development.json
 appsettings.*.local.json
 .env
 .env.local
+.azure-entra.env
 
 # Node.js (for frontend)
 node_modules/

@@ -4,7 +4,7 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: gymnastics-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gymnastics}
@@ -19,37 +19,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0.7
-    container_name: gymnastics-keycloak
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-gymnastics}
-      KC_DB_USERNAME: ${POSTGRES_USER:-gymadmin}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_123}
-      KC_DB_SCHEMA: keycloak
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KC_HTTP_ENABLED: "true"
-      KC_HEALTH_ENABLED: "true"
-      KC_HOSTNAME_URL: http://localhost:8080
-      KC_HOSTNAME_ADMIN_URL: http://localhost:8080
-      KC_HOSTNAME_STRICT: "false"
-    command: start-dev --import-realm
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./docker/keycloak:/opt/keycloak/data/import
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   adminer:
     image: adminer:latest

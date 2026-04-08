@@ -79,11 +79,21 @@ else
     builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 }
 
-// Add Keycloak Admin Service
-builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
+// Feature flag: ActiveProvider determines which provider to use (Keycloak or EntraId)
+var activeProvider = builder.Configuration["Authentication:ActiveProvider"] ?? "Keycloak";
+
+if (activeProvider.Equals("EntraId", StringComparison.OrdinalIgnoreCase))
 {
-    client.Timeout = TimeSpan.FromMinutes(2);
-});
+    builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.EntraIdAuthenticationProvider>();
+}
+else
+{
+    // Keycloak provider still uses IKeycloakAdminService directly until refactored
+    builder.Services.AddHttpClient<Auth.Application.Services.IKeycloakAdminService, Auth.Infrastructure.Services.KeycloakAdminService>(client =>
+    {
+        client.Timeout = TimeSpan.FromMinutes(2);
+    });
+}
 
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
@@ -278,17 +288,16 @@ if (app.Environment.IsDevelopment())
 // Configure the HTTP request pipeline
 app.UseExceptionHandler();
 
-// Enable HTTP request/response logging
-app.UseHttpLogging();
-
 app.MapOpenApi();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference();
 }
-
 app.UseCors();
+
+// Enable HTTP request/response logging
+app.UseHttpLogging();
 app.UseMiddleware<SessionAuthMiddleware>(); // Session auth first (primary)
 app.UseAuthentication(); // JWT second (fallback for OAuth)
 app.UseMiddleware<TenantResolutionMiddleware>();

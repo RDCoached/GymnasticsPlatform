@@ -20,7 +20,6 @@ case "$1" in
     echo "   API:              http://localhost:5001"
     echo "   User Portal:      http://localhost:3001"
     echo "   Admin Portal:     http://localhost:3002"
-    echo "   Keycloak Admin:   http://localhost:8080 (admin/admin)"
     echo "   Database Admin:   http://localhost:8081"
     echo "   MailHog:          http://localhost:8025"
     echo "   Grafana:          http://localhost:3000"
@@ -87,7 +86,7 @@ case "$1" in
     echo "Usage: ./dev.sh [command]"
     echo ""
     echo "Commands:"
-    echo "  up              Start infrastructure (Postgres, Keycloak, etc.)"
+    echo "  up              Start infrastructure (Postgres, observability, etc.)"
     echo "  down            Stop infrastructure"
     echo "  restart         Restart infrastructure"
     echo "  logs [service]  View logs (optional: specify service name)"
@@ -102,7 +101,7 @@ case "$1" in
     echo "Examples:"
     echo "  ./dev.sh up              # Start infrastructure"
     echo "  ./dev.sh api             # Run API in another terminal"
-    echo "  ./dev.sh logs keycloak   # View Keycloak logs"
+    echo "  ./dev.sh logs postgres   # View PostgreSQL logs"
     echo "  ./dev.sh down            # Stop everything"
     ;;
 esac

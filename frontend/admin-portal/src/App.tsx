@@ -1,21 +1,18 @@
-import { useKeycloak } from '@react-keycloak/web';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { AuthProvider } from './providers/AuthProvider';
+import { useAuth } from './contexts/AuthContext';
 import { SyncUsersPage } from './pages/SyncUsersPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import './App.css';
 
 function HomePage() {
-  const { keycloak } = useKeycloak();
-  const token = keycloak.tokenParsed;
-  const tenantId = token?.tenant_id;
-  const username = token?.preferred_username;
-  const email = token?.email;
-  const roles = token?.realm_access?.roles || [];
+  const { user, logout } = useAuth();
 
   return (
     <div className="container">
       <header>
         <h1 style={{ marginRight: '1rem', flex: 1 }}>Gymnastics Platform - Admin Portal</h1>
-        <button onClick={() => keycloak.logout()} style={{ flexShrink: 0 }}>
+        <button onClick={logout} style={{ flexShrink: 0 }}>
           Logout
         </button>
       </header>
@@ -44,24 +41,21 @@ function HomePage() {
         <section className="user-info">
           <h2>Administrator Information</h2>
           <dl>
-            <dt>Username:</dt>
-            <dd>{username}</dd>
-
             <dt>Email:</dt>
-            <dd>{email}</dd>
+            <dd>{user?.email}</dd>
 
-            <dt>Tenant ID:</dt>
-            <dd>{tenantId || <em>No tenant (platform admin)</em>}</dd>
+            <dt>Name:</dt>
+            <dd>{user?.fullName}</dd>
 
-            <dt>Roles:</dt>
-            <dd>{roles.filter(r => !r.startsWith('default-') && !r.startsWith('uma_')).join(', ')}</dd>
+            <dt>User ID:</dt>
+            <dd>{user?.id}</dd>
           </dl>
         </section>
 
         <section style={{ marginTop: '30px' }}>
           <h2>Admin Tools</h2>
           <ul>
-            <li><Link to="/sync-users">Sync User Tenants</Link> - Sync user tenant_id from database to Keycloak</li>
+            <li><Link to="/sync-users">Sync User Tenants</Link> - Sync user tenant_id from database to Entra ID</li>
           </ul>
         </section>
       </main>
@@ -69,33 +63,55 @@ function HomePage() {
   );
 }
 
-function App() {
-  const { keycloak, initialized } = useKeycloak();
+function LoginPage() {
+  const { login } = useAuth();
 
-  if (!initialized) {
+  return (
+    <div className="container">
+      <h1>Gymnastics Platform - Admin Portal</h1>
+      <p>Please log in with your administrator credentials.</p>
+      <button onClick={() => login('', '')}>
+        Login
+      </button>
+    </div>
+  );
+}
+
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
     return <div>Loading...</div>;
-  }
-
-  if (!keycloak.authenticated) {
-    return (
-      <div className="container">
-        <h1>Gymnastics Platform - Admin Portal</h1>
-        <p>Please log in with your administrator credentials.</p>
-        <button onClick={() => keycloak.login()}>
-          Login
-        </button>
-      </div>
-    );
   }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/sync-users" element={<SyncUsersPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Auth callback route - accessible to all */}
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+        {!isAuthenticated ? (
+          <>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/sync-users" element={<SyncUsersPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

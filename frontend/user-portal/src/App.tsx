@@ -11,6 +11,7 @@ import { GymnastsPage } from './pages/GymnastsPage';
 import { ProgrammeBuilderPage } from './pages/ProgrammeBuilderPage';
 import { SignInPage } from './pages/SignInPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import './App.css';
 
 function RoutesComponent() {
@@ -26,6 +27,9 @@ function RoutesComponent() {
 
   return (
     <Routes>
+      {/* Auth callback route - accessible to all */}
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
       {!isAuthenticated ? (
         <>
           <Route path="/sign-in" element={<SignInPage />} />
