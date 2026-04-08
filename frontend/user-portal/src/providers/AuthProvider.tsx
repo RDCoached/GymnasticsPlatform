@@ -1,13 +1,13 @@
 import { ReactNode } from 'react';
-import { KeycloakAuthProvider } from './KeycloakAuthProvider';
+import { EntraAuthProvider } from './EntraAuthProvider';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 /**
- * Main AuthProvider using Keycloak authentication with OAuth support.
+ * Main AuthProvider using Microsoft Entra ID authentication with OAuth support.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
-  return <KeycloakAuthProvider>{children}</KeycloakAuthProvider>;
+  return <EntraAuthProvider>{children}</EntraAuthProvider>;
 }
