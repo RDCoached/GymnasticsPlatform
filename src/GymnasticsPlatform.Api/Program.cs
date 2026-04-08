@@ -111,28 +111,37 @@ builder.Services.AddOpenApi(options =>
 });
 
 // Add Authentication (Microsoft Entra External ID JWT)
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        var externalIdConfig = builder.Configuration.GetSection("Authentication:ExternalId");
-        var authority = externalIdConfig["Authority"] ?? throw new InvalidOperationException("ExternalId Authority not configured");
-        var apiClientId = externalIdConfig["ApiClientId"] ?? throw new InvalidOperationException("ExternalId ApiClientId not configured");
-
-        var tenantId = externalIdConfig["TenantId"] ?? throw new InvalidOperationException("ExternalId TenantId not configured");
-        options.Authority = $"{authority}/v2.0";
-        options.Audience = $"api://{tenantId}/gymnastics-api";
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-        options.MapInboundClaims = false; // Preserve original JWT claim names
-
-        options.TokenValidationParameters = new TokenValidationParameters
+// Skip JWT configuration in Test environment - TestWebApplicationFactory provides its own auth scheme
+if (!builder.Environment.IsEnvironment("Test"))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = $"{authority}/v2.0"
-        };
-    });
+            var externalIdConfig = builder.Configuration.GetSection("Authentication:ExternalId");
+            var authority = externalIdConfig["Authority"] ?? throw new InvalidOperationException("ExternalId Authority not configured");
+            var apiClientId = externalIdConfig["ApiClientId"] ?? throw new InvalidOperationException("ExternalId ApiClientId not configured");
+
+            var tenantId = externalIdConfig["TenantId"] ?? throw new InvalidOperationException("ExternalId TenantId not configured");
+            options.Authority = $"{authority}/v2.0";
+            options.Audience = $"api://{tenantId}/gymnastics-api";
+            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+            options.MapInboundClaims = false; // Preserve original JWT claim names
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = $"{authority}/v2.0"
+            };
+        });
+}
+else
+{
+    // Test environment uses custom authentication scheme configured by TestWebApplicationFactory
+    builder.Services.AddAuthentication();
+}
 
 // Register Authorization Handler
 builder.Services.AddSingleton<IAuthorizationHandler, GymnasticsPlatform.Api.Authorization.TenantRoleAuthorizationHandler>();
