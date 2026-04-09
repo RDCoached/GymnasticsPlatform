@@ -54,6 +54,11 @@ public sealed class AuthEndpoints : IEndpointGroup
             .WithName("OAuthCallback")
             .WithSummary("Handle OAuth authorization code callback")
             .AllowAnonymous();
+
+        group.MapPost("/session", CreateSession)
+            .WithName("CreateSession")
+            .WithSummary("Create backend session from OAuth access token")
+            .AllowAnonymous();
     }
 
     private static async Task<IResult> Register(
@@ -379,6 +384,7 @@ public sealed class AuthEndpoints : IEndpointGroup
             request.Code,
             request.RedirectUri,
             request.ClientId,
+            request.CodeVerifier,
             ct);
 
         if (!tokenResult.IsSuccess)
@@ -457,6 +463,128 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         return Results.Ok(response);
     }
+
+    private static async Task<IResult> CreateSession(
+        CreateSessionRequest request,
+        ISessionService sessionService,
+        AuthDbContext db,
+        HttpContext httpContext,
+        TimeProvider clock,
+        IHostEnvironment env,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(request.AccessToken))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: "Access token is required");
+        }
+
+        try
+        {
+            // Decode JWT to extract user info (without full validation - External ID already validated it)
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(request.AccessToken);
+
+            var providerUserId = jwtToken.Subject; // 'sub' claim
+            var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value
+                        ?? jwtToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+            var name = jwtToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value
+                       ?? email?.Split('@')[0] ?? "User";
+
+            if (string.IsNullOrEmpty(providerUserId))
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    detail: "Invalid token - missing subject claim");
+            }
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    detail: "Invalid token - missing email claim");
+            }
+
+            // Get or create user profile
+            var userProfile = await db.UserProfiles
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
+
+            if (userProfile is null)
+            {
+                // New OAuth user - create profile in onboarding tenant
+                userProfile = UserProfile.Create(
+                    OnboardingTenantId,
+                    providerUserId,
+                    email,
+                    name,
+                    clock.GetUtcNow());
+
+                db.UserProfiles.Add(userProfile);
+
+                try
+                {
+                    await db.SaveChangesAsync(ct);
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+                {
+                    // Race condition: another request created the user between our check and save
+                    // Clear the tracked entity and query again
+                    db.ChangeTracker.Clear();
+                    userProfile = await db.UserProfiles
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
+
+                    if (userProfile is null)
+                    {
+                        throw; // Unexpected - rethrow original exception
+                    }
+
+                    // Update last login for the existing user
+                    userProfile.RecordLogin(clock.GetUtcNow());
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+            else
+            {
+                userProfile.RecordLogin(clock.GetUtcNow());
+                await db.SaveChangesAsync(ct);
+            }
+
+            // Create server-side session
+            var sessionId = await sessionService.CreateSessionAsync(
+                keycloakUserId: providerUserId,
+                accessToken: request.AccessToken,
+                refreshToken: "", // MSAL manages refresh tokens
+                expiry: TimeSpan.FromHours(1),
+                ct);
+
+            // Set HTTP-only cookie
+            httpContext.Response.Cookies.Append("session_id", sessionId, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = httpContext.Request.IsHttps,
+                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
+                MaxAge = TimeSpan.FromMinutes(20)
+            });
+
+            var response = new OAuthCallbackResponse(
+                UserId: providerUserId,
+                Email: email,
+                FullName: name,
+                TenantId: userProfile.TenantId,
+                OnboardingCompleted: userProfile.OnboardingCompleted);
+
+            return Results.Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status500InternalServerError,
+                detail: $"Failed to create session: {ex.Message}");
+        }
+    }
 }
 
 public record CurrentUserResponse(
@@ -467,7 +595,7 @@ public record CurrentUserResponse(
     IReadOnlyList<string> Roles,
     Guid? ClubId);
 
-public record OAuthCallbackRequest(string Code, string RedirectUri, string ClientId);
+public record OAuthCallbackRequest(string Code, string RedirectUri, string ClientId, string? CodeVerifier = null);
 
 public record OAuthCallbackResponse(
     string UserId,
@@ -475,3 +603,5 @@ public record OAuthCallbackResponse(
     string FullName,
     Guid TenantId,
     bool OnboardingCompleted);
+
+public record CreateSessionRequest(string AccessToken);

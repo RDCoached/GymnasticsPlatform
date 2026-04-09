@@ -57,7 +57,7 @@ public sealed class TestAuthenticationHandler(
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        Response.Headers.Append("WWW-Authenticate", $"Bearer realm=\"{AuthenticationScheme}\"");
+        Response.Headers["WWW-Authenticate"] = $"Bearer realm=\"{AuthenticationScheme}\"";
         Response.StatusCode = 401;
         return Task.CompletedTask;
     }

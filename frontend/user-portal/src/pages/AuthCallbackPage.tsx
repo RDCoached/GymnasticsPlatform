@@ -1,37 +1,62 @@
 import { useEffect } from 'react';
-import { useMsal } from '@azure/msal-react';
 import { useNavigate } from 'react-router-dom';
+import { useMsal } from '@azure/msal-react';
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 
 export function AuthCallbackPage() {
-  const { instance } = useMsal();
   const navigate = useNavigate();
+  const { instance } = useMsal();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Let MSAL handle the redirect and exchange the authorization code for tokens
         const response = await instance.handleRedirectPromise();
 
-        if (response && response.account) {
-          // Successfully authenticated via OAuth
-          const account = response.account;
-
-          // Check if user has completed onboarding
-          const tenantId = account.idTokenClaims?.extension_tenant_id;
-
-          if (!tenantId || tenantId === '00000000-0000-0000-0000-000000000001') {
-            // User needs to complete onboarding
-            navigate('/onboarding');
-          } else {
-            // User is fully onboarded
-            navigate('/dashboard');
-          }
-        } else {
-          // No response - redirect to sign in
+        if (!response) {
+          // No response means this wasn't an OAuth callback
           navigate('/sign-in');
+          return;
+        }
+
+        // MSAL successfully exchanged the code for tokens
+        // Use the access token directly from the response (no need for acquireTokenSilent)
+        const accessToken = response.accessToken;
+
+        // Send access token to backend to create session
+        const sessionResponse = await fetch(`${API_URL}/api/auth/session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            accessToken: accessToken,
+          }),
+        });
+
+        if (!sessionResponse.ok) {
+          const errorData = await sessionResponse.json().catch(() => ({ detail: 'Failed to create session' }));
+          throw new Error(errorData.detail || 'Failed to create session');
+        }
+
+        const userData = await sessionResponse.json();
+
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Check if user needs onboarding
+        if (!userData.tenantId || userData.tenantId === '00000000-0000-0000-0000-000000000001') {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
         }
       } catch (error) {
         console.error('Authentication callback failed:', error);
-        navigate('/sign-in', { state: { error: 'Authentication failed' } });
+        navigate('/sign-in', {
+          state: { error: error instanceof Error ? error.message : 'Authentication failed' }
+        });
       }
     };
 

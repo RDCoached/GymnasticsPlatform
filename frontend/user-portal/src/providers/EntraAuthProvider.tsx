@@ -29,6 +29,57 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize MSAL and handle OAuth redirects (MUST run on every page load)
+  useEffect(() => {
+    const initMsal = async () => {
+      try {
+        await instance.initialize();
+        const response = await instance.handleRedirectPromise();
+
+        console.log('🔐 handleRedirectPromise result:', {
+          hasResponse: !!response,
+          hasAccessToken: !!response?.accessToken,
+          response: response
+        });
+
+        // If OAuth redirect just completed, create session
+        if (response && response.accessToken) {
+          const sessionResponse = await fetch(`${API_URL}/api/auth/session`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ accessToken: response.accessToken }),
+          });
+
+          if (sessionResponse.ok) {
+            const userData = await sessionResponse.json();
+            setUser({
+              id: userData.id,
+              email: userData.email,
+              fullName: userData.fullName,
+              onboardingCompleted: userData.onboardingCompleted,
+            });
+
+            // Navigate based on onboarding status
+            if (!userData.tenantId || userData.tenantId === '00000000-0000-0000-0000-000000000001') {
+              window.location.href = '/onboarding';
+            } else {
+              window.location.href = '/dashboard';
+            }
+          } else {
+            console.error('Failed to create session:', await sessionResponse.text());
+          }
+        }
+      } catch (error) {
+        console.error('MSAL initialization failed:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initMsal();
+  }, [instance]);
+
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -108,10 +159,10 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
   };
 
   const loginWithOAuth = async (provider: 'google' | 'microsoft'): Promise<void> => {
-    const request = provider === 'google' ? loginRequestGoogle : loginRequestMicrosoft;
-
     try {
-      await instance.loginRedirect(request);
+      // Use MSAL's built-in redirect flow (handles PKCE automatically)
+      const loginRequest = provider === 'google' ? loginRequestGoogle : loginRequestMicrosoft;
+      await instance.loginRedirect(loginRequest);
     } catch (error) {
       console.error('OAuth login failed:', error);
       throw new Error(`${provider} login failed`);

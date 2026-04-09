@@ -12,7 +12,7 @@ type OnboardingMode = 'select' | 'create-club' | 'join-club';
 export function OnboardingScreen() {
   const [mode, setMode] = useState<OnboardingMode>('select');
   const navigate = useNavigate();
-  const { getToken, logout } = useAuth();
+  const { logout } = useAuth();
   const { isOnboarding, isLoading } = useOnboardingStatus();
 
   const handleLogout = async () => {
@@ -42,19 +42,11 @@ export function OnboardingScreen() {
 
   const handleIndividualMode = async () => {
     try {
-      const token = getToken();
-
-      // Build headers - include Authorization only if token exists (OAuth)
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/onboarding/individual`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include', // Send session cookie
       });
 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../constants';
 
 interface CreateClubFormProps {
@@ -11,7 +10,6 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
   const [clubName, setClubName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { getToken } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,19 +23,11 @@ export function CreateClubForm({ onComplete }: CreateClubFormProps) {
     setIsSubmitting(true);
 
     try {
-      const token = getToken();
-
-      // Build headers - include Authorization only if token exists (OAuth)
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/onboarding/create-club`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include', // Send session cookie
         body: JSON.stringify({ name: clubName }),
       });

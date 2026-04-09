@@ -64,12 +64,14 @@ public interface IAuthenticationProvider
     /// <param name="code">Authorization code from OAuth callback</param>
     /// <param name="redirectUri">Redirect URI used in the OAuth flow</param>
     /// <param name="clientId">Client ID that initiated the OAuth flow</param>
+    /// <param name="codeVerifier">PKCE code verifier (required for SPAs)</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Result containing authentication result with tokens</returns>
     Task<Result<AuthenticationResult>> ExchangeCodeForTokensAsync(
         string code,
         string redirectUri,
         string clientId,
+        string? codeVerifier = null,
         CancellationToken ct = default);
 
     /// <summary>

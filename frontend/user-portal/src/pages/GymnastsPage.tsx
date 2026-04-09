@@ -6,9 +6,8 @@ import { apiClient, type GymnastResponse, type CreateGymnastRequest, type Update
 type Mode = 'list' | 'create' | 'edit';
 
 export function GymnastsPage() {
-  const { getToken, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
-  const authToken = getToken();
 
   const [mode, setMode] = useState<Mode>('list');
   const [gymnasts, setGymnasts] = useState<GymnastResponse[]>([]);
@@ -24,20 +23,18 @@ export function GymnastsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchGymnasts = useCallback(async () => {
-    if (!authToken) return;
-
     setLoading(true);
     setError(null);
 
     try {
-      const data = await apiClient.listGymnasts(authToken);
+      const data = await apiClient.listGymnasts();
       setGymnasts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch gymnasts');
     } finally {
       setLoading(false);
     }
-  }, [authToken]);
+  }, []);
 
   useEffect(() => {
     if (mode === 'list') {
@@ -47,7 +44,6 @@ export function GymnastsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authToken) return;
 
     setSubmitting(true);
     setError(null);
@@ -58,7 +54,7 @@ export function GymnastsPage() {
         fullName: formData.fullName,
       };
 
-      await apiClient.createGymnast(authToken, request);
+      await apiClient.createGymnast(request);
 
       // Reset form and return to list
       setFormData({ email: '', fullName: '' });
@@ -72,7 +68,7 @@ export function GymnastsPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authToken || !editingId) return;
+    if (!editingId) return;
 
     setSubmitting(true);
     setError(null);
@@ -82,7 +78,7 @@ export function GymnastsPage() {
         fullName: formData.fullName,
       };
 
-      await apiClient.updateGymnast(authToken, editingId, request);
+      await apiClient.updateGymnast(editingId, request);
 
       // Reset form and return to list
       setFormData({ email: '', fullName: '' });
@@ -96,14 +92,13 @@ export function GymnastsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!authToken) return;
     if (!confirm('Are you sure you want to remove this gymnast?')) return;
 
     setDeletingId(id);
     setError(null);
 
     try {
-      await apiClient.deleteGymnast(authToken, id);
+      await apiClient.deleteGymnast(id);
       await fetchGymnasts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete gymnast');

@@ -26,6 +26,20 @@ services:
     depends_on:
       - postgres
 
+  redis:
+    image: redis:7-alpine
+    container_name: gymnastics-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    command: redis-server --save 60 1 --loglevel warning
+
   mailhog:
     image: mailhog/mailhog:latest
     container_name: gymnastics-mailhog
@@ -82,11 +96,14 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-gymnastics};Username=${POSTGRES_USER:-gymadmin};Password=${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env file};Include Error Detail=true
+      - ConnectionStrings__Redis=redis:6379
       - Observability__OtlpEndpoint=http://tempo:4318
       - OTEL_LOG_LEVEL=debug
       - Logging__LogLevel__OpenTelemetry=Debug
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -176,6 +193,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   grafana_data:
   loki_data:
   tempo_data:

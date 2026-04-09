@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../constants';
 
 interface JoinClubFormProps {
@@ -11,7 +10,6 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
   const [inviteCode, setInviteCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { getToken } = useAuth();
 
   // Auto-fill invite code from localStorage
   useEffect(() => {
@@ -34,19 +32,11 @@ export function JoinClubForm({ onComplete }: JoinClubFormProps) {
     setIsSubmitting(true);
 
     try {
-      const token = getToken();
-
-      // Build headers - include Authorization only if token exists (OAuth)
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/onboarding/join-club`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include', // Send session cookie
         body: JSON.stringify({ inviteCode: inviteCode.trim() }),
       });

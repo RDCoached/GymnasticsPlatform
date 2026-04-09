@@ -5,7 +5,7 @@ import { apiClient, type ProfileResponse } from '../lib/api-client';
 
 export function UpdateProfilePage() {
   const navigate = useNavigate();
-  const { getToken, logout } = useAuth();
+  const { logout } = useAuth();
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [fullName, setFullName] = useState('');
@@ -19,13 +19,7 @@ export function UpdateProfilePage() {
     setError(null);
 
     try {
-      const token = getToken();
-
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const data = await apiClient.getProfile(token);
+      const data = await apiClient.getProfile();
       setProfile(data);
       setFullName(data.fullName);
     } catch (err) {
@@ -33,7 +27,7 @@ export function UpdateProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [getToken]);
+  }, []);
 
   useEffect(() => {
     fetchProfile();
@@ -52,13 +46,7 @@ export function UpdateProfilePage() {
     setIsSubmitting(true);
 
     try {
-      const token = getToken();
-
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const updatedProfile = await apiClient.updateProfile(token, { fullName: fullName.trim() });
+      const updatedProfile = await apiClient.updateProfile({ fullName: fullName.trim() });
 
       // Update localStorage with the new data
       const userFromStorage = localStorage.getItem('user');

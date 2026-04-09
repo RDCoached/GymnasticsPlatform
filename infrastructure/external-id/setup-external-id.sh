@@ -278,6 +278,88 @@ fi
 echo "✅ API client secret created"
 echo ""
 
+# Add Microsoft Graph API permissions to API application
+echo "🔑 Adding Microsoft Graph API permissions..."
+
+# Get Microsoft Graph service principal ID
+GRAPH_SP_ID=$(curl -s -X GET \
+  "https://graph.microsoft.com/v1.0/servicePrincipals?\$filter=appId eq '00000003-0000-0000-c000-000000000000'" \
+  -H "Authorization: Bearer $CIAM_GRAPH_TOKEN" \
+  | jq -r '.value[0].id // empty')
+
+if [ -z "$GRAPH_SP_ID" ]; then
+  echo "❌ Failed to find Microsoft Graph service principal"
+  exit 1
+fi
+
+# Get User.Read.All permission ID
+USER_READ_ALL_ID=$(curl -s -X GET \
+  "https://graph.microsoft.com/v1.0/servicePrincipals/$GRAPH_SP_ID" \
+  -H "Authorization: Bearer $CIAM_GRAPH_TOKEN" \
+  | jq -r '.appRoles[] | select(.value=="User.Read.All") | .id // empty')
+
+if [ -z "$USER_READ_ALL_ID" ]; then
+  echo "❌ Failed to find User.Read.All permission"
+  exit 1
+fi
+
+# Add Microsoft Graph permissions to API application
+GRAPH_PERMISSIONS_RESPONSE=$(curl -s -X PATCH \
+  "https://graph.microsoft.com/v1.0/applications/$API_APP_ID" \
+  -H "Authorization: Bearer $CIAM_GRAPH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"requiredResourceAccess\": [
+      {
+        \"resourceAppId\": \"00000003-0000-0000-c000-000000000000\",
+        \"resourceAccess\": [
+          {
+            \"id\": \"$USER_READ_ALL_ID\",
+            \"type\": \"Role\"
+          }
+        ]
+      }
+    ]
+  }")
+
+echo "✅ Microsoft Graph API permissions added"
+
+# Grant admin consent for Graph API permissions
+echo "🔐 Granting admin consent for Graph API permissions..."
+
+# Get the API service principal
+API_SP_ID=$(curl -s -X GET \
+  "https://graph.microsoft.com/v1.0/servicePrincipals?\$filter=appId eq '$API_CLIENT_ID'" \
+  -H "Authorization: Bearer $CIAM_GRAPH_TOKEN" \
+  | jq -r '.value[0].id // empty')
+
+if [ -z "$API_SP_ID" ]; then
+  echo "❌ Failed to find API service principal"
+  exit 1
+fi
+
+# Grant consent
+CONSENT_RESPONSE=$(curl -s -X POST \
+  "https://graph.microsoft.com/v1.0/servicePrincipals/$API_SP_ID/appRoleAssignments" \
+  -H "Authorization: Bearer $CIAM_GRAPH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"principalId\": \"$API_SP_ID\",
+    \"resourceId\": \"$GRAPH_SP_ID\",
+    \"appRoleId\": \"$USER_READ_ALL_ID\"
+  }")
+
+CONSENT_ID=$(echo "$CONSENT_RESPONSE" | jq -r '.id // empty')
+
+if [ -z "$CONSENT_ID" ]; then
+  echo "⚠️  Failed to grant admin consent (may already be granted)"
+  echo "Response: $CONSENT_RESPONSE"
+else
+  echo "✅ Admin consent granted for Graph API permissions"
+fi
+
+echo ""
+
 # Step 4: Register User Portal Application
 echo "📱 Registering User Portal application..."
 

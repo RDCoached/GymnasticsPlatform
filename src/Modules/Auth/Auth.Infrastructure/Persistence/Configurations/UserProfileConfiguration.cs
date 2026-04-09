@@ -55,8 +55,11 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
         builder.HasIndex(u => u.TenantId)
             .HasDatabaseName("ix_user_profiles_tenant_id");
 
-        builder.HasIndex(u => new { u.TenantId, u.ProviderUserId })
+        builder.HasIndex(u => u.ProviderUserId)
             .IsUnique()
+            .HasDatabaseName("ix_user_profiles_provider_user_id");
+
+        builder.HasIndex(u => new { u.TenantId, u.ProviderUserId })
             .HasDatabaseName("ix_user_profiles_tenant_keycloak_user");
 
         builder.HasIndex(u => new { u.TenantId, u.Email })

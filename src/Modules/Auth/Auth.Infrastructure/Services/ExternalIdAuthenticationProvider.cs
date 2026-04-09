@@ -28,6 +28,18 @@ public sealed class ExternalIdAuthenticationProvider(
     private readonly string _authority = configuration["Authentication:ExternalId:Authority"]
         ?? $"https://login.microsoftonline.com/{configuration["Authentication:ExternalId:TenantId"]}";
 
+    // Log configuration on startup for debugging
+    private readonly bool _startupLogged = LogStartupConfiguration(logger, configuration["Authentication:ExternalId:Authority"]
+        ?? $"https://login.microsoftonline.com/{configuration["Authentication:ExternalId:TenantId"]}");
+
+    private static bool LogStartupConfiguration(ILogger logger, string authority)
+    {
+        logger.LogInformation("🔐 ExternalIdAuthenticationProvider initialized");
+        logger.LogInformation("   Authority: {Authority}", authority);
+        logger.LogInformation("   Token Endpoint: {TokenEndpoint}", $"{authority}/oauth2/v2.0/token");
+        return true;
+    }
+
     private GraphServiceClient CreateGraphClient()
     {
         var credential = new ClientSecretCredential(
@@ -162,7 +174,7 @@ public sealed class ExternalIdAuthenticationProvider(
             var requestBody = new Dictionary<string, string>
             {
                 ["grant_type"] = "password",
-                ["client_id"] = clientId,
+                ["client_id"] = _apiClientId,
                 ["client_secret"] = _apiClientSecret,
                 ["scope"] = $"api://{_tenantId}/gymnastics-api/user.access openid profile email offline_access",
                 ["username"] = email,
@@ -212,6 +224,7 @@ public sealed class ExternalIdAuthenticationProvider(
         string code,
         string redirectUri,
         string clientId,
+        string? codeVerifier = null,
         CancellationToken ct = default)
     {
         try
@@ -225,8 +238,14 @@ public sealed class ExternalIdAuthenticationProvider(
                 ["client_id"] = clientId,
                 ["code"] = code,
                 ["redirect_uri"] = redirectUri,
-                ["scope"] = $"api://{_apiClientId}/user.access openid profile email offline_access"
+                ["scope"] = $"api://{_tenantId}/gymnastics-api/user.access openid profile email offline_access"
             };
+
+            // Add PKCE code verifier if provided (required for SPAs)
+            if (!string.IsNullOrEmpty(codeVerifier))
+            {
+                requestBody["code_verifier"] = codeVerifier;
+            }
 
             var response = await httpClient.PostAsync(
                 tokenEndpoint,
@@ -236,8 +255,10 @@ public sealed class ExternalIdAuthenticationProvider(
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(ct);
-                logger.LogWarning("Token exchange failed: {Error}", errorContent);
-                return Result<AuthenticationResult>.Failure(ErrorType.Unauthorized, "Invalid authorization code");
+                logger.LogError("❌ Token exchange failed with status {StatusCode}", response.StatusCode);
+                logger.LogError("   Token Endpoint: {TokenEndpoint}", tokenEndpoint);
+                logger.LogError("   Error Response: {Error}", errorContent);
+                return Result<AuthenticationResult>.Failure(ErrorType.Unauthorized, $"Token exchange failed: {errorContent}");
             }
 
             var tokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>(ct);
@@ -282,7 +303,7 @@ public sealed class ExternalIdAuthenticationProvider(
                 ["client_id"] = clientId,
                 ["client_secret"] = _apiClientSecret,
                 ["refresh_token"] = refreshToken,
-                ["scope"] = $"api://{_apiClientId}/user.access openid profile email offline_access"
+                ["scope"] = $"api://{_tenantId}/gymnastics-api/user.access openid profile email offline_access"
             };
 
             var response = await httpClient.PostAsync(

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient, type InviteResponse, type SendEmailInviteRequest } from '../lib/api-client';
 
 export function ClubInvitesPage() {
-  const { getToken, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const clubId = searchParams.get('clubId');
@@ -22,23 +22,21 @@ export function ClubInvitesPage() {
   });
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  const authToken = getToken();
-
   const fetchInvites = useCallback(async () => {
-    if (!clubId || !authToken) return;
+    if (!clubId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const data = await apiClient.listInvites(authToken, clubId);
+      const data = await apiClient.listInvites(clubId);
       setInvites(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch invites');
     } finally {
       setLoading(false);
     }
-  }, [clubId, authToken]);
+  }, [clubId]);
 
   useEffect(() => {
     if (!clubId) {
@@ -51,7 +49,7 @@ export function ClubInvitesPage() {
 
   const handleSendEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clubId || !authToken) return;
+    if (!clubId) return;
 
     setSendingEmail(true);
     setError(null);
@@ -63,7 +61,7 @@ export function ClubInvitesPage() {
         description: emailFormData.description || undefined,
       };
 
-      await apiClient.sendEmailInvite(authToken, clubId, request);
+      await apiClient.sendEmailInvite(clubId, request);
 
       // Reset form
       setEmailFormData({ email: '', inviteType: 2, description: '' });
@@ -91,14 +89,14 @@ export function ClubInvitesPage() {
   };
 
   const handleResendEmail = async (inviteId: string, email: string) => {
-    if (!clubId || !authToken) return;
+    if (!clubId) return;
 
     setResendingInvite(inviteId);
     setError(null);
 
     try {
       // Resend uses the same endpoint - it will send another email with the same code
-      await apiClient.sendEmailInvite(authToken, clubId, {
+      await apiClient.sendEmailInvite(clubId, {
         email,
         inviteType: invites.find(i => i.id === inviteId)?.inviteType ?? 2,
         description: 'Resent invitation',

@@ -128,6 +128,7 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
         string code,
         string redirectUri,
         string clientId,
+        string? codeVerifier = null,
         CancellationToken ct = default)
     {
         // Mock implementation - simulate successful OAuth code exchange

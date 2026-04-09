@@ -30,8 +30,11 @@ builder.Services.AddScoped<ITenantContext, TenantContext>();
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
 
-// Add Distributed Cache (Memory cache for development, Redis for production)
-builder.Services.AddDistributedMemoryCache();
+// Add Distributed Cache (Redis for session storage)
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+});
 
 // Add Session Service
 builder.Services.AddScoped<ISessionService, SessionService>();
@@ -271,9 +274,6 @@ if (app.Environment.IsDevelopment())
 // Configure the HTTP request pipeline
 app.UseExceptionHandler();
 
-// Enable HTTP request/response logging
-app.UseHttpLogging();
-
 app.MapOpenApi();
 
 if (app.Environment.IsDevelopment())
@@ -282,6 +282,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+
+// Enable HTTP request/response logging
+app.UseHttpLogging();
+
+// Session authentication (reads session_id cookie and sets httpContext.User)
+app.UseMiddleware<SessionAuthenticationMiddleware>();
+
 app.UseAuthentication(); // JWT Bearer authentication for Entra ID
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();

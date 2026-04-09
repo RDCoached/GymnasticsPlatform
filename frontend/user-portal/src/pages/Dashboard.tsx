@@ -7,7 +7,7 @@ import { apiClient, type CurrentUserResponse } from '../lib/api-client';
  * Dashboard component displays user information and quick actions
  */
 export function Dashboard() {
-  const { getToken, logout, user } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [apiResponse, setApiResponse] = useState<Record<string, unknown> | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUserResponse | null>(null);
@@ -15,17 +15,16 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [showApiSection, setShowApiSection] = useState(false);
 
-  const authToken = getToken();
-
   // Fetch current user with roles from API (database is source of truth)
+  // No token needed - uses session cookie via credentials: 'include'
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const user = await apiClient.getCurrentUser(authToken);
+      const user = await apiClient.getCurrentUser();
       setCurrentUser(user);
     } catch (err) {
       console.error('Failed to fetch current user:', err);
     }
-  }, [authToken]);
+  }, []);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -37,11 +36,7 @@ export function Dashboard() {
     setApiResponse(null);
 
     try {
-      if (!authToken) {
-        throw new Error('No authentication token available');
-      }
-
-      const data = await apiClient.getCurrentUser(authToken);
+      const data = await apiClient.getCurrentUser();
       setApiResponse(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -178,9 +173,9 @@ export function Dashboard() {
           </div>
 
           <div className={`collapsible-content ${showApiSection ? '' : 'collapsed'}`}>
-            <p>Token available for API calls:</p>
+            <p>Using session cookie for API authentication</p>
             <code className="token-preview">
-              Bearer {authToken?.substring(0, 50)}...
+              Session-based authentication (HTTP-only cookie)
             </code>
 
             <button onClick={testApiCall} disabled={loading} className="test-button">
