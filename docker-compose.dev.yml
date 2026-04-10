@@ -3,6 +3,23 @@
 # Then run API and frontends locally for hot reload
 
 services:
+  traefik:
+    image: traefik:v2.11
+    container_name: gymnastics-traefik
+    restart: unless-stopped
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.gymnastics.localhost`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+    networks:
+      - gymnastics-network
+
   postgres:
     image: pgvector/pgvector:pg16
     container_name: gymnastics-postgres
@@ -19,6 +36,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - gymnastics-network
 
   adminer:
     image: adminer:latest
@@ -29,6 +48,12 @@ services:
       ADMINER_DEFAULT_SERVER: postgres
     depends_on:
       - postgres
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.rule=Host(`db.gymnastics.localhost`)"
+      - "traefik.http.services.adminer.loadbalancer.server.port=8080"
+    networks:
+      - gymnastics-network
 
   mailhog:
     image: mailhog/mailhog:latest
@@ -41,6 +66,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Host(`mail.gymnastics.localhost`)"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
+    networks:
+      - gymnastics-network
 
   # Grafana LGTM Stack (Loki, Grafana, Tempo, Mimir)
   grafana:
@@ -58,6 +89,12 @@ services:
     depends_on:
       - loki
       - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.gymnastics.localhost`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - gymnastics-network
 
   loki:
     image: grafana/loki:latest
@@ -67,6 +104,12 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki_data:/loki
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.loki.rule=Host(`loki.gymnastics.localhost`)"
+      - "traefik.http.services.loki.loadbalancer.server.port=3100"
+    networks:
+      - gymnastics-network
 
   tempo:
     image: grafana/tempo:2.3.1
@@ -82,6 +125,12 @@ services:
       - tempo_data:/var/tempo
     environment:
       - TEMPO_METRICS_GENERATOR_ENABLED=false
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tempo.rule=Host(`tempo.gymnastics.localhost`)"
+      - "traefik.http.services.tempo.loadbalancer.server.port=3200"
+    networks:
+      - gymnastics-network
 
   prometheus:
     image: prom/prometheus:latest
@@ -94,6 +143,12 @@ services:
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.gymnastics.localhost`)"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+    networks:
+      - gymnastics-network
 
 volumes:
   postgres_data:
@@ -101,3 +156,7 @@ volumes:
   loki_data:
   tempo_data:
   prometheus_data:
+
+networks:
+  gymnastics-network:
+    driver: bridge
