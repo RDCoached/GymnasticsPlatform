@@ -145,6 +145,7 @@ services:
       - Observability__OtlpEndpoint=http://tempo:4318
       - OTEL_LOG_LEVEL=debug
       - Logging__LogLevel__OpenTelemetry=Debug
+      - Authentication__ExternalId__ApiClientSecret=${EXTERNAL_ID_API_CLIENT_SECRET:-placeholder-secret-for-local-dev}
     depends_on:
       postgres:
         condition: service_healthy
