@@ -116,7 +116,7 @@ sequenceDiagram
 # Via Azure Portal
 1. Navigate to "Microsoft Entra External ID"
 2. Create new tenant → Choose "External ID (CIAM)"
-3. Note your tenant ID: cdb93b0d-7905-4231-826b-ef17ec1e24aa
+3. Note your tenant ID: {your-tenant-id}
 4. Your authority will be: https://{tenantId}.ciamlogin.com/{tenantId}
 ```
 
@@ -168,9 +168,9 @@ Scopes:
 {
   "Authentication": {
     "ExternalId": {
-      "TenantId": "cdb93b0d-7905-4231-826b-ef17ec1e24aa",
-      "Authority": "https://cdb93b0d-7905-4231-826b-ef17ec1e24aa.ciamlogin.com/cdb93b0d-7905-4231-826b-ef17ec1e24aa",
-      "ApiClientId": "9858fde1-91bf-4551-bd48-4ef6f69579b7",
+      "TenantId": "{your-tenant-id}",
+      "Authority": "https://{your-tenant-id}.ciamlogin.com/{your-tenant-id}",
+      "ApiClientId": "{your-client-id}",
       "ApiClientSecret": "<from-key-vault>",
       "Scopes": "api://gymnastics-api/user.access"
     }
