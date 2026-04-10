@@ -31,8 +31,8 @@ public sealed class SessionAuthenticationMiddleware
                     // Create claims from session
                     var claims = new List<Claim>
                     {
-                        new(ClaimTypes.NameIdentifier, session.KeycloakUserId),
-                        new("sub", session.KeycloakUserId),
+                        new(ClaimTypes.NameIdentifier, session.ProviderUserId),
+                        new("sub", session.ProviderUserId),
                     };
 
                     var identity = new ClaimsIdentity(claims, "Session");

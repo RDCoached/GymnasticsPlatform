@@ -21,6 +21,8 @@ public sealed class ExternalIdAuthenticationProvider(
 {
     private readonly string _tenantId = configuration["Authentication:ExternalId:TenantId"]
         ?? throw new InvalidOperationException("ExternalId TenantId not configured");
+    private readonly string _ciamDomain = configuration["Authentication:ExternalId:CiamDomain"]
+        ?? throw new InvalidOperationException("ExternalId CiamDomain not configured");
     private readonly string _apiClientId = configuration["Authentication:ExternalId:ApiClientId"]
         ?? throw new InvalidOperationException("ExternalId ApiClientId not configured");
     private readonly string _apiClientSecret = configuration["Authentication:ExternalId:ApiClientSecret"]
@@ -59,23 +61,27 @@ public sealed class ExternalIdAuthenticationProvider(
     {
         try
         {
+            logger.LogInformation("Creating user in External ID: {Email}, TenantId: {TenantId}, ConfigTenantId: {ConfigTenantId}",
+                email, tenantId, _tenantId);
+
             var graphClient = CreateGraphClient();
+
+            // External ID requires UserPrincipalName to use a verified domain
+            // Use the CIAM tenant domain for UPN, actual email goes in Mail property
+            var username = email.Split('@')[0];
+            var userPrincipalName = $"{username}@{_ciamDomain}";
 
             var user = new User
             {
                 AccountEnabled = true,
                 DisplayName = fullName,
-                MailNickname = email.Split('@')[0],
-                UserPrincipalName = email,
+                MailNickname = username,
+                UserPrincipalName = userPrincipalName,
                 Mail = email,
                 PasswordProfile = new PasswordProfile
                 {
                     ForceChangePasswordNextSignIn = false,
                     Password = password
-                },
-                AdditionalData = new Dictionary<string, object>
-                {
-                    ["extension_tenant_id"] = tenantId.ToString()
                 }
             };
 
@@ -134,7 +140,7 @@ public sealed class ExternalIdAuthenticationProvider(
             var user = await graphClient.Users[providerUserId]
                 .GetAsync(config =>
                 {
-                    config.QueryParameters.Select = ["id", "mail", "displayName", "userPrincipalName"];
+                    config.QueryParameters.Select = ["id", "mail", "displayName", "userPrincipalName", "otherMails", "identities"];
                 }, cancellationToken: ct);
 
             if (user is null)
@@ -142,9 +148,34 @@ public sealed class ExternalIdAuthenticationProvider(
                 return Result<ProviderUserInfo?>.Success(null);
             }
 
+            // For federated users (Google, etc.), try multiple sources for actual email
+            var email = user.Mail; // Primary email (often null for federated users)
+
+            // Try otherMails (alternative email addresses)
+            if (string.IsNullOrWhiteSpace(email) && user.OtherMails?.Any() == true)
+            {
+                email = user.OtherMails.First();
+            }
+
+            // Try identities (federated identities like Google)
+            if (string.IsNullOrWhiteSpace(email) && user.Identities?.Any() == true)
+            {
+                var googleIdentity = user.Identities.FirstOrDefault(i => i.Issuer == "google.com");
+                if (googleIdentity?.IssuerAssignedId != null)
+                {
+                    email = googleIdentity.IssuerAssignedId; // Google email
+                }
+            }
+
+            // Final fallback to UPN
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                email = user.UserPrincipalName ?? "";
+            }
+
             var userInfo = new ProviderUserInfo(
                 ProviderUserId: user.Id ?? providerUserId,
-                Email: user.Mail ?? user.UserPrincipalName ?? "",
+                Email: email,
                 FullName: user.DisplayName);
 
             return Result<ProviderUserInfo?>.Success(userInfo);
@@ -171,13 +202,17 @@ public sealed class ExternalIdAuthenticationProvider(
             var httpClient = httpClientFactory.CreateClient();
             var tokenEndpoint = $"{_authority}/oauth2/v2.0/token";
 
+            // External ID requires UserPrincipalName (username@ciamDomain) for ROPC flow
+            var username = email.Split('@')[0];
+            var userPrincipalName = $"{username}@{_ciamDomain}";
+
             var requestBody = new Dictionary<string, string>
             {
                 ["grant_type"] = "password",
                 ["client_id"] = _apiClientId,
                 ["client_secret"] = _apiClientSecret,
                 ["scope"] = $"api://{_tenantId}/gymnastics-api/user.access openid profile email offline_access",
-                ["username"] = email,
+                ["username"] = userPrincipalName,
                 ["password"] = password
             };
 
@@ -200,6 +235,8 @@ public sealed class ExternalIdAuthenticationProvider(
                 logger.LogError("Failed to parse token response for {Email}", email);
                 return Result<AuthenticationResult>.Failure(ErrorType.Internal, "Authentication failed");
             }
+
+            logger.LogInformation("✅ Successfully obtained token for {Email}, expires in {ExpiresIn}s", email, tokenResponse.ExpiresIn);
 
             // Extract user ID from access token (decoded JWT claims)
             var providerUserId = ExtractUserIdFromToken(tokenResponse.AccessToken);
@@ -381,28 +418,11 @@ public sealed class ExternalIdAuthenticationProvider(
         Guid newTenantId,
         CancellationToken ct = default)
     {
-        try
-        {
-            var graphClient = CreateGraphClient();
-
-            var user = new User
-            {
-                AdditionalData = new Dictionary<string, object>
-                {
-                    ["extension_tenant_id"] = newTenantId.ToString()
-                }
-            };
-
-            await graphClient.Users[providerUserId].PatchAsync(user, cancellationToken: ct);
-
-            logger.LogInformation("Updated tenant ID for user {ProviderUserId} to {TenantId}", providerUserId, newTenantId);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to update tenant ID for user {ProviderUserId}", providerUserId);
-            return Result.Failure(ErrorType.Internal, "Failed to update tenant ID");
-        }
+        // Tenant ID is stored in our database (UserProfile table), not in External ID
+        // This is a no-op for External ID provider
+        logger.LogInformation("Tenant ID update requested for user {ProviderUserId} to {TenantId} (stored in database only)",
+            providerUserId, newTenantId);
+        return await Task.FromResult(Result.Success());
     }
 
     private static string ExtractUserIdFromToken(string accessToken)
@@ -445,8 +465,8 @@ public sealed class ExternalIdAuthenticationProvider(
     }
 
     private sealed record TokenResponse(
-        string AccessToken,
-        string? RefreshToken,
-        int ExpiresIn,
-        string TokenType);
+        [property: System.Text.Json.Serialization.JsonPropertyName("access_token")] string AccessToken,
+        [property: System.Text.Json.Serialization.JsonPropertyName("refresh_token")] string? RefreshToken,
+        [property: System.Text.Json.Serialization.JsonPropertyName("expires_in")] int ExpiresIn,
+        [property: System.Text.Json.Serialization.JsonPropertyName("token_type")] string TokenType);
 }

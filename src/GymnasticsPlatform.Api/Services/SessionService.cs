@@ -11,12 +11,12 @@ public sealed class SessionService(
 {
     private const string SessionKeyPrefix = "session:";
 
-    public async Task<string> CreateSessionAsync(string keycloakUserId, string accessToken, string refreshToken, TimeSpan expiry, CancellationToken ct = default)
+    public async Task<string> CreateSessionAsync(string providerUserId, string accessToken, string refreshToken, TimeSpan expiry, CancellationToken ct = default)
     {
         var sessionId = GenerateSessionId();
         var sessionData = new SessionData
         {
-            KeycloakUserId = keycloakUserId,
+            ProviderUserId = providerUserId,
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = timeProvider.GetUtcNow().AddMinutes(20)
@@ -30,8 +30,8 @@ public sealed class SessionService(
 
         await cache.SetStringAsync($"{SessionKeyPrefix}{sessionId}", json, options, ct);
 
-        logger.LogInformation("Session created for user {KeycloakUserId} with session ID {SessionId}",
-            keycloakUserId, sessionId);
+        logger.LogInformation("Session created for user {ProviderUserId} with session ID {SessionId}",
+            providerUserId, sessionId);
 
         return sessionId;
     }

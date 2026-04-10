@@ -186,17 +186,22 @@ public sealed class AuthEndpoints : IEndpointGroup
         var tokenResponse = authResult.Value!;
 
         // Validate JWT token to get provider user ID from the 'sub' claim
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<AuthEndpoints>>();
         var providerUserId = await ValidateAccessTokenAndExtractSubjectAsync(
             tokenResponse.AccessToken,
             httpContext.RequestServices.GetRequiredService<IConfiguration>(),
+            logger,
             ct);
 
         if (providerUserId is null)
         {
+            logger.LogError("❌ Token validation failed - providerUserId is null");
             return Results.Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
                 detail: "Invalid access token");
         }
+
+        logger.LogInformation("✅ Token validated successfully, providerUserId: {ProviderUserId}", providerUserId);
 
         // Get user profile by provider_user_id (ignore tenant filter since login is anonymous)
         var userProfile = await db.UserProfiles
@@ -415,6 +420,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         var validationResult = await ValidateAccessTokenAsync(
             tokenResponse.AccessToken,
             httpContext.RequestServices.GetRequiredService<IConfiguration>(),
+            logger,
             ct);
 
         if (!validationResult.IsValid || validationResult.ClaimsPrincipal is null)
@@ -678,15 +684,39 @@ public sealed class AuthEndpoints : IEndpointGroup
     private static async Task<string?> ValidateAccessTokenAndExtractSubjectAsync(
         string accessToken,
         IConfiguration configuration,
+        ILogger logger,
         CancellationToken ct)
     {
-        var result = await ValidateAccessTokenAsync(accessToken, configuration, ct);
-        return result.IsValid ? result.ClaimsPrincipal?.FindFirst("sub")?.Value : null;
+        logger.LogWarning("🔍 STARTING JWT VALIDATION");
+        var result = await ValidateAccessTokenAsync(accessToken, configuration, logger, ct);
+
+        logger.LogWarning("VALIDATION RESULT: IsValid={IsValid}, HasPrincipal={HasPrincipal}",
+            result.IsValid, result.ClaimsPrincipal != null);
+
+        if (result.IsValid && result.ClaimsPrincipal != null)
+        {
+            // Log all claims to see what's available
+            var claims = string.Join(", ", result.ClaimsPrincipal.Claims.Select(c => $"{c.Type}={c.Value}"));
+            logger.LogWarning("JWT CLAIMS: {Claims}", claims);
+
+            // Try multiple claim types (Azure uses full URIs for ROPC flow)
+            var userId = result.ClaimsPrincipal.FindFirst("oid")?.Value
+                      ?? result.ClaimsPrincipal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value
+                      ?? result.ClaimsPrincipal.FindFirst("sub")?.Value
+                      ?? result.ClaimsPrincipal.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
+            logger.LogWarning("EXTRACTED USER ID: {UserId}", userId ?? "NULL");
+            return userId;
+        }
+
+        logger.LogError("❌ VALIDATION FAILED OR NO CLAIMS PRINCIPAL");
+        return null;
     }
 
     private static async Task<TokenValidationResult> ValidateAccessTokenAsync(
         string accessToken,
         IConfiguration configuration,
+        ILogger logger,
         CancellationToken ct)
     {
         var externalIdConfig = configuration.GetSection("Authentication:ExternalId");
@@ -704,12 +734,27 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var oidcConfig = await configManager.GetConfigurationAsync(ct);
 
+        // Accept both issuer formats (subdomain and path-based)
+        var validIssuers = new[]
+        {
+            $"{authority}/v2.0",  // Path-based: https://gymnasticsciam.ciamlogin.com/{tenantId}/v2.0
+            $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0"  // Subdomain: https://{tenantId}.ciamlogin.com/{tenantId}/v2.0
+        };
+
+        // Accept multiple audiences (API identifier for OAuth, client ID for ROPC/email-password)
+        var clientId = externalIdConfig["ApiClientId"];
+        var validAudiences = new List<string> { $"api://{tenantId}/gymnastics-api" };
+        if (!string.IsNullOrEmpty(clientId))
+        {
+            validAudiences.Add(clientId);
+        }
+
         var validationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = $"{authority}/v2.0",
+            ValidIssuers = validIssuers,
             ValidateAudience = true,
-            ValidAudience = $"api://{tenantId}/gymnastics-api",
+            ValidAudiences = validAudiences,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKeys = oidcConfig.SigningKeys
@@ -720,8 +765,18 @@ public sealed class AuthEndpoints : IEndpointGroup
             var principal = handler.ValidateToken(accessToken, validationParameters, out var validatedToken);
             return new TokenValidationResult(true, principal);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // DEBUG: Read token without validation to see actual claims
+            var unvalidatedToken = handler.ReadJwtToken(accessToken);
+            var actualAudience = string.Join(", ", unvalidatedToken.Audiences);
+            var actualIssuer = unvalidatedToken.Issuer;
+
+            logger.LogError("❌ JWT Validation Failed: {Message}", ex.Message);
+            logger.LogError("   Valid Issuers: {ValidIssuers}", string.Join(", ", validIssuers));
+            logger.LogError("   Actual Issuer: {ActualIssuer}", actualIssuer);
+            logger.LogError("   Valid Audiences: {ValidAudiences}", string.Join(", ", validAudiences));
+            logger.LogError("   Actual Audience: {ActualAudience}", actualAudience);
             return new TokenValidationResult(false, null);
         }
     }

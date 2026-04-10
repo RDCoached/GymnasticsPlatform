@@ -382,9 +382,9 @@ em {
 }
 
 .success-message {
-  background: #efe;
-  border: 1px solid #cfc;
-  color: #383;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
   padding: 1.5rem;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -395,6 +395,7 @@ em {
   font-size: 1.1rem;
   display: block;
   margin-bottom: 0.5rem;
+  color: var(--accent);
 }
 
 .submit-button {

@@ -1,13 +1,22 @@
-import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, FormEvent, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function SignInPage() {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login, loginWithOAuth, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Pre-fill email if passed from registration
+  useEffect(() => {
+    const state = location.state as { email?: string } | null;
+    if (state?.email) {
+      setEmail(state.email);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -18,13 +27,9 @@ export function SignInPage() {
       navigate('/onboarding');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
-
-      // If it's an unauthorized error, suggest email verification
-      if (errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized') || errorMessage.toLowerCase().includes('invalid credentials')) {
-        setError('Login failed. Please check your credentials. If you just registered, make sure to verify your email first (check MailHog at http://localhost:8025 in development).');
-      } else {
-        setError(errorMessage);
-      }
+      setError(errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized')
+        ? 'Invalid email or password. Please try again.'
+        : errorMessage);
     }
   };
 

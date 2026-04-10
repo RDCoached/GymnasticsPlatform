@@ -285,7 +285,7 @@ app.UseCors();
 
 // Enable HTTP request/response logging
 app.UseHttpLogging();
-
+    
 // Session authentication (reads session_id cookie and sets httpContext.User)
 app.UseMiddleware<SessionAuthenticationMiddleware>();
 

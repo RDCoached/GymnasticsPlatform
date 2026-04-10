@@ -21,7 +21,7 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
             .IsRequired();
 
         builder.Property(u => u.ProviderUserId)
-            .HasColumnName("keycloak_user_id")
+            .HasColumnName("provider_user_id")
             .HasMaxLength(255)
             .IsRequired();
 
@@ -60,7 +60,7 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
             .HasDatabaseName("ix_user_profiles_provider_user_id");
 
         builder.HasIndex(u => new { u.TenantId, u.ProviderUserId })
-            .HasDatabaseName("ix_user_profiles_tenant_keycloak_user");
+            .HasDatabaseName("ix_user_profiles_tenant_provider_user");
 
         builder.HasIndex(u => new { u.TenantId, u.Email })
             .HasDatabaseName("ix_user_profiles_tenant_email");

@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Gymnastics Session Planner** - A multi-tenant SaaS platform for gymnastics session planning with Keycloak authentication, React SPAs, and OpenTelemetry observability.
+**Gymnastics Session Planner** - A multi-tenant SaaS platform for gymnastics session planning with Microsoft Entra External ID authentication, React SPAs, and OpenTelemetry observability.
+
+**Current Branch**: `feature-entra-auth` - Migration from Keycloak to Microsoft Entra External ID (CIAM) authentication. This branch introduces OAuth 2.0 with session cookies, Redis-backed sessions, and automated Azure infrastructure provisioning.
 
 **Architecture**: Hybrid Modular Monolith with Onion Architecture per module
 - Each module (Auth, Sessions) follows Domain → Application → Infrastructure → API layers
@@ -15,9 +17,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Stack**:
 - Backend: .NET 10, ASP.NET Core Minimal APIs, EF Core 10, PostgreSQL 16
 - Frontend: React 19, TypeScript 5.7, Vite
-- Auth: Keycloak 26 (Google OAuth + JWT + email/password)
+- Auth: Microsoft Entra External ID (OAuth 2.0 + session cookies + Redis)
 - Observability: OpenTelemetry (LGTM stack locally, Azure App Insights in production)
 - Testing: xUnit v3, TestContainers, WebApplicationFactory, Playwright (E2E)
+- Infrastructure: Terraform for Azure resources, automated provisioning scripts
 
 ## Common Commands
 
@@ -57,7 +60,7 @@ dotnet ef migrations add <MigrationName> \
 ### Run Application
 
 ```bash
-# Start infrastructure (PostgreSQL, Keycloak, Grafana stack)
+# Start infrastructure (PostgreSQL, Redis, Grafana stack)
 docker-compose up -d
 
 # Run backend API (http://localhost:5001)
@@ -68,6 +71,22 @@ cd frontend/user-portal && npm install && npm run dev
 
 # Run admin portal (http://localhost:3002)
 cd frontend/admin-portal && npm install && npm run dev
+```
+
+### Infrastructure Provisioning
+
+```bash
+# Provision Microsoft Entra External ID (CIAM) tenant and app registrations
+cd infrastructure/external-id
+./setup-external-id.sh
+
+# Configure app registrations with redirect URIs and secrets
+./configure-apps.sh
+
+# Grant Microsoft Graph API permissions (requires admin consent)
+./grant-graph-permissions.sh
+
+# See infrastructure/external-id/README.md for full setup guide
 ```
 
 ### Frontend Testing
@@ -116,6 +135,19 @@ Three GitHub Actions workflows run on push to `main` or PRs:
 2. **E2E Tests** (`e2e-tests.yml`) - Full-stack Playwright tests
 3. **Security Scan** (`security-scan.yml`) - Security audits
 
+### Database & Sessions
+
+```bash
+# Connect to PostgreSQL
+docker exec -it gymnastics-db psql -U gymadmin -d gymnastics_dev
+
+# Connect to Redis (session store)
+docker exec -it gymnastics-redis redis-cli
+
+# View sessions
+docker exec -it gymnastics-redis redis-cli KEYS "session:*"
+```
+
 ## Architecture Patterns
 
 ### Multi-Tenancy System
@@ -123,7 +155,7 @@ Three GitHub Actions workflows run on push to `main` or PRs:
 All authenticated users have a `TenantId` resolved by `TenantResolutionMiddleware`:
 - New users start in the **Onboarding Tenant** (`00000000-0000-0000-0000-000000000001`)
 - After onboarding, users are assigned to a Club Tenant or Individual Tenant
-- `TenantId` is stored in Keycloak user attributes and injected into `ITenantContext`
+- `TenantId` is stored in Microsoft Entra ID user extension attributes and injected into `ITenantContext`
 - All `IMultiTenant` entities are automatically filtered by `TenantId` via EF Core global query filters
 
 **Key Types**:
@@ -131,6 +163,8 @@ All authenticated users have a `TenantId` resolved by `TenantResolutionMiddlewar
 - `ITenantContext` interface (Common.Core) - provides current tenant ID
 - `TenantContext` service (GymnasticsPlatform.Api) - reads from `HttpContext.Items["TenantId"]`
 - `TenantResolutionMiddleware` - sets `TenantId` in HttpContext after authentication
+- `SessionAuthenticationMiddleware` - validates session cookies and sets HttpContext.User
+- `ISessionService` - manages Redis-backed user sessions with sliding expiration
 
 ### Result Pattern
 
@@ -232,8 +266,15 @@ public interface IRepository<T> { Task<T?> GetByIdAsync(Guid id); }
 
 **Integration tests first** using `WebApplicationFactory` + `Testcontainers`:
 - Use real PostgreSQL via `Testcontainers.PostgreSql` (NEVER `UseInMemoryDatabase`)
+- Use real Redis via `Testcontainers.Redis` for session testing
 - Test full HTTP pipeline (serialization, middleware, auth, database)
 - Shared fixtures (`IClassFixture<T>`) for expensive setup (containers)
+
+**Authentication in Tests**:
+- Tests run with `ASPNETCORE_ENVIRONMENT=Test` which disables authentication middleware
+- Use `TestAuthenticationHandler` for authenticated test scenarios
+- Session-based auth skipped in test environment - use claims-based testing
+- Entra ID integration tested separately via E2E tests with real OAuth flow
 
 **Test naming**: `MethodName_Scenario_ExpectedResult`
 - Example: `CreateOrder_DuplicateSku_ReturnsConflict`
@@ -255,14 +296,22 @@ src/
 ├── Modules/
 │   ├── Auth/                     # Auth module (Onion Architecture)
 │   │   ├── Auth.Domain/          # Entities: UserProfile, Club, ClubInvite, Role
-│   │   ├── Auth.Application/     # Services: IUserTenantService, IRoleService, IKeycloakAdminService
+│   │   ├── Auth.Application/     # Services: IUserTenantService, IRoleService, IAuthenticationProvider
 │   │   ├── Auth.Infrastructure/  # AuthDbContext, Persistence, Services
+│   │   │   └── Services/
+│   │   │       └── ExternalIdAuthenticationProvider.cs  # Entra ID integration
 │   │   └── Auth.Api/             # (Module endpoints registered to composition root)
+│   ├── Training/                 # Training module (RAG, skills, programmes)
+│   │   ├── Training.Domain/      # Entities: Skill, Programme, VectorSearchResult
+│   │   ├── Training.Application/ # Services: IEmbeddingService, ILlmService, IProgrammeService
+│   │   ├── Training.Infrastructure/  # TrainingDbContext, Ollama, CouchDB, Vector search
+│   │   └── Training.Api/         # (Module endpoints)
 │   └── Sessions/                 # Sessions module (future)
 └── GymnasticsPlatform.Api/       # Composition root
     ├── Program.cs                # DI registration, middleware pipeline
     ├── Endpoints/                # All IEndpointGroup implementations
-    ├── Middleware/               # TenantResolutionMiddleware, GlobalExceptionHandler
+    ├── Middleware/               # SessionAuthenticationMiddleware, TenantResolutionMiddleware
+    ├── Services/                 # ISessionService, SessionService (Redis-backed)
     ├── Authorization/            # TenantRoleAuthorizationHandler
     └── IEndpointGroup.cs         # Auto-discovery interface
 ```
@@ -295,6 +344,25 @@ tests/
     └── helpers/                  # Utilities
 ```
 
+## Authentication Flow
+
+The application uses **OAuth 2.0 Authorization Code Flow** with Microsoft Entra External ID:
+
+1. User clicks "Sign in" in React frontend
+2. Frontend redirects to Entra ID authorization endpoint
+3. User authenticates with Google (federated identity) or Microsoft personal account
+4. Entra ID redirects back with authorization code
+5. Backend exchanges code for access token via `ExternalIdAuthenticationProvider`
+6. Backend creates session in Redis and sets `session_id` cookie
+7. `SessionAuthenticationMiddleware` validates cookie on subsequent requests
+8. Session has 30-minute absolute timeout, 15-minute sliding expiration
+
+**Key Components**:
+- `ExternalIdAuthenticationProvider` - OAuth token exchange with Entra ID
+- `SessionService` - Redis-backed session management
+- `SessionAuthenticationMiddleware` - Cookie validation and user principal setup
+- Session cookies are `HttpOnly`, `Secure`, `SameSite=Lax`
+
 ## Onboarding Flow
 
 New users complete a 3-choice onboarding flow (see `docs/ONBOARDING_FLOW.md` for full details):
@@ -303,7 +371,7 @@ New users complete a 3-choice onboarding flow (see `docs/ONBOARDING_FLOW.md` for
 2. **Join Club** - User enters invite code, joins existing club, inherits club tenant ID
 3. **Individual Mode** - User gets unique individual tenant ID
 
-After onboarding, `KeycloakAdminService` updates the user's `tenant_id` attribute in Keycloak, forcing re-authentication to get a new JWT with the updated tenant context.
+After onboarding, `ExternalIdAuthenticationProvider` updates the user's `tenant_id` extension attribute in Entra ID via Microsoft Graph API. User must sign out and back in to refresh the session with updated tenant context.
 
 **Endpoints**: All in `OnboardingEndpoints.cs`
 - `GET /api/onboarding/status` - Check if user needs onboarding
@@ -315,18 +383,18 @@ After onboarding, `KeycloakAdminService` updates the user's `tenant_id` attribut
 
 Defined in `Program.cs` with custom `TenantRoleAuthorizationHandler`:
 
-- `AdminPolicy` - Requires `platform_admin` role (global Keycloak role)
+- `AdminPolicy` - Requires `platform_admin` role (stored in UserRoleMapping)
 - `ClubAdminPolicy` - Requires `ClubAdmin` tenant role
 - `CoachPolicy` - Requires `Coach`, `ClubAdmin`, or `IndividualAdmin` tenant role
 - `GymnastPolicy` - Requires `Gymnast`, `Coach`, `ClubAdmin`, or `IndividualAdmin` tenant role
 
-Tenant roles are stored in `Auth.Domain.Entities.UserRoleMapping` and checked via `IRoleService`.
+Tenant roles are stored in `Auth.Domain.Entities.UserRoleMapping` and checked via `IRoleService`. Roles are NOT stored in Entra ID - they are managed in the application database for fine-grained tenant-scoped authorization.
 
 ## Important Conventions
 
 1. **Always use `TimeProvider.System`** instead of `DateTime.Now` or `DateTime.UtcNow` for testability
 2. **Always propagate `CancellationToken`** through async call chains
-3. **Use `IHttpClientFactory`** for all HTTP clients (configured in Program.cs for `KeycloakAdminService`)
+3. **Use `IHttpClientFactory`** for all HTTP clients (configured for Entra ID, Ollama, CouchDB)
 4. **Async all the way** - no `.Result` or `.Wait()` except in Program.cs top-level
 5. **Primary constructors** for dependency injection
 6. **File-scoped namespaces** always
@@ -334,12 +402,59 @@ Tenant roles are stored in `Auth.Domain.Entities.UserRoleMapping` and checked vi
 8. **Records for DTOs and value objects** with immutability
 9. **`sealed` classes** unless designed for inheritance
 10. **FluentValidation** for input validation at API boundaries
+11. **Session cookies for auth** - OAuth tokens are exchanged for sessions, never sent to frontend
+12. **Extension attributes in Entra ID** - Custom user data (like `tenant_id`) stored as extension attributes
 
 ## Documentation
 
 - `README.md` - Project overview, quick start, architecture
 - `docs/ONBOARDING_FLOW.md` - Detailed onboarding system documentation
-- `docs/KEYCLOAK_SETUP.md` - Keycloak configuration and Google OAuth setup
+- `docs/ENTRA_ID_SETUP.md` - Microsoft Entra External ID setup and Google federation
+- `docs/DUAL_PROVIDER_TESTING.md` - Testing guide for Keycloak-to-Entra migration
+- `infrastructure/external-id/README.md` - Terraform and automated provisioning scripts
+- `infrastructure/external-id/CI-CD-SETUP.md` - GitHub Actions secrets for Entra ID
 - `frontend/README.md` - Frontend apps overview and authentication flow
 - `tests/e2e/README.md` - E2E testing guide
 - `tests/e2e/PAGE_OBJECT_STANDARDS.md` - Page Object Model conventions
+
+## Training Module (RAG System)
+
+The **Training** module implements a Retrieval-Augmented Generation (RAG) system for gymnastics skills and training programmes:
+
+**Components**:
+- **Vector Database**: pgvector extension in PostgreSQL for semantic search
+- **Embedding Service**: Ollama (local) or Azure OpenAI for text embeddings
+- **LLM Service**: Ollama (local) or Azure OpenAI for programme generation
+- **Document Store**: CouchDB for storing raw programme JSON documents
+- **Skills Catalog**: Pre-seeded database of gymnastics skills with difficulty ratings
+
+**Key Files**:
+- `Training.Domain/Entities/Skill.cs` - Skill entity with vector embedding
+- `Training.Infrastructure/Services/VectorSearchService.cs` - Semantic search over skills
+- `Training.Infrastructure/Services/ProgrammeBuilderService.cs` - LLM-powered programme generation
+- `Training.Infrastructure/DocumentStore/CouchDbProgrammeDocumentStore.cs` - Document persistence
+
+**Seeding Skills**:
+```bash
+# Seed skills catalog from JSON file
+dotnet run --project src/GymnasticsPlatform.Api seed-skills /path/to/skills.json
+
+# See docs/SKILLS_SEEDING.md for JSON format and examples
+```
+
+**Configuration**:
+```json
+{
+  "Ollama": {
+    "BaseUrl": "http://localhost:11434",
+    "EmbeddingModel": "nomic-embed-text",
+    "LlmModel": "llama3"
+  },
+  "CouchDb": {
+    "Url": "http://localhost:5984",
+    "Username": "admin",
+    "Password": "password",
+    "DatabaseName": "programmes"
+  }
+}
+```
