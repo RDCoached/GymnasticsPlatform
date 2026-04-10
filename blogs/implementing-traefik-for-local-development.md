@@ -99,7 +99,7 @@ accessLog: {}
 
 **Key decisions:**
 - `exposedByDefault: false` — Services must opt-in with `traefik.enable=true` label
-- `network: gymnastics-network` — All services must be on this Docker network
+- `network: <your-network-name>` — Specify which Docker network Traefik should watch (all services must be on this network)
 - `insecure: true` — Dashboard accessible without auth (dev only, disable in production)
 
 ### Step 2: Add Traefik Service to `docker-compose.yml`
@@ -135,11 +135,19 @@ Add to bottom of `docker-compose.yml`:
 
 ```yaml
 networks:
-  gymnastics-network:
+  gymnastics-network:  # Use your own network name
     driver: bridge
 ```
 
-Then add `networks: - gymnastics-network` to **every service** in your compose file.
+Then add the network to **every service** in your compose file:
+
+```yaml
+services:
+  your-service:
+    # ... other config
+    networks:
+      - gymnastics-network  # Must match the network name above
+```
 
 ### Step 4: Add Traefik Labels to Services
 
@@ -331,10 +339,10 @@ Then access services with port suffix: `http://app.gymnastics.localhost:8080`
 
 **Checklist:**
 1. Is `traefik.enable=true` set?
-2. Is the service on the `gymnastics-network`?
+2. Is the service on the same Docker network as Traefik?
 3. Did you restart the service after adding labels?
 4. Is the service container actually running? (`docker ps`)
-5. Check Traefik logs: `docker logs gymnastics-traefik`
+5. Check Traefik logs: `docker logs <traefik-container-name>`
 
 **Common mistake:** Forgetting to add the network:
 
@@ -345,7 +353,7 @@ services:
       - "traefik.enable=true"
       # ... other labels
     networks:
-      - gymnastics-network  # DON'T FORGET THIS
+      - your-network-name  # DON'T FORGET THIS - must match Traefik's network
 ```
 
 ### Gotcha #4: CORS Errors After Switching to Traefik
@@ -479,9 +487,9 @@ docker logs -f gymnastics-traefik
 # Check if service is on correct network
 docker inspect <container-name> | grep -A 10 Networks
 
-# Test routing from inside Docker network
-docker run --rm --network gymnastics-network curlimages/curl:latest \
-  curl -v http://api:8080/health
+# Test routing from inside Docker network (replace 'your-network-name' and service details)
+docker run --rm --network your-network-name curlimages/curl:latest \
+  curl -v http://your-service:port/health
 
 # Verify Traefik can see Docker socket
 docker exec gymnastics-traefik ls -la /var/run/docker.sock
@@ -501,8 +509,8 @@ Switching an existing project to Traefik? Follow this checklist:
 
 - [ ] Create `docker/traefik/traefik.yml` configuration
 - [ ] Add Traefik service to `docker-compose.yml`
-- [ ] Add `gymnastics-network` network definition
-- [ ] Add network to all services
+- [ ] Add custom Docker network definition
+- [ ] Add network to all services (must match Traefik's network)
 - [ ] Add Traefik labels to all web services
 - [ ] Update all environment variables with new URLs
 - [ ] Update frontend API client configurations
