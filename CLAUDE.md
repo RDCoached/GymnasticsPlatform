@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Gymnastics Session Planner** - A multi-tenant SaaS platform for gymnastics session planning with Microsoft Entra External ID authentication, React SPAs, and OpenTelemetry observability.
 
-**Current Branch**: `feature-entra-auth` - Migration from Keycloak to Microsoft Entra External ID (CIAM) authentication. This branch introduces OAuth 2.0 with session cookies, Redis-backed sessions, and automated Azure infrastructure provisioning.
+**Current Branch**: `feature-traefik` - Traefik reverse proxy integration for clean domain routing. Uses Microsoft Entra External ID (CIAM) for OAuth 2.0 authentication with session cookies, Redis-backed sessions, and automated Azure infrastructure provisioning.
 
 **Architecture**: Hybrid Modular Monolith with Onion Architecture per module
 - Each module (Auth, Sessions) follows Domain → Application → Infrastructure → API layers
@@ -319,15 +319,15 @@ src/
 ### Frontend Structure
 ```
 frontend/
-├── user-portal/                  # React SPA (port 3001)
+├── user-portal/                  # React SPA
 │   └── src/
 │       ├── App.tsx               # Main app with auth
-│       ├── keycloak.ts           # Keycloak config
-│       └── main.tsx              # Entry point with provider
-└── admin-portal/                 # React SPA (port 3002)
+│       ├── config/               # OAuth configuration
+│       └── main.tsx              # Entry point
+└── admin-portal/                 # React SPA
     └── src/
         ├── App.tsx
-        ├── keycloak.ts
+        ├── config/               # OAuth configuration
         └── main.tsx
 ```
 
@@ -410,7 +410,6 @@ Tenant roles are stored in `Auth.Domain.Entities.UserRoleMapping` and checked vi
 - `README.md` - Project overview, quick start, architecture
 - `docs/ONBOARDING_FLOW.md` - Detailed onboarding system documentation
 - `docs/ENTRA_ID_SETUP.md` - Microsoft Entra External ID setup and Google federation
-- `docs/DUAL_PROVIDER_TESTING.md` - Testing guide for Keycloak-to-Entra migration
 - `infrastructure/external-id/README.md` - Terraform and automated provisioning scripts
 - `infrastructure/external-id/CI-CD-SETUP.md` - GitHub Actions secrets for Entra ID
 - `frontend/README.md` - Frontend apps overview and authentication flow
