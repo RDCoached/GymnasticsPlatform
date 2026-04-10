@@ -15,15 +15,16 @@ A modular monolith application for gymnastics session planning with multi-tenanc
 ### Backend
 - **.NET 10** with Minimal APIs
 - **PostgreSQL 16** with multi-tenant support
-- **Keycloak 26** for authentication (Google OAuth + JWT)
+- **Microsoft Entra External ID** for authentication (OAuth 2.0 + session cookies)
+- **Redis** for session management
 - **EF Core 10** with global query filters
 - **OpenTelemetry** for observability
 
 ### Frontend
 - **React 19** + **TypeScript 5.7**
 - **Vite** build tooling
-- **@react-keycloak/web** for authentication
-- Two SPAs: User Portal (3001), Admin Portal (3002)
+- **OAuth 2.0 Authorization Code Flow** with PKCE
+- Two SPAs: User Portal, Admin Portal
 
 ### Observability
 - **Local Dev**: Grafana LGTM stack (Loki, Grafana, Tempo, Prometheus)
@@ -31,8 +32,8 @@ A modular monolith application for gymnastics session planning with multi-tenanc
 
 ## Documentation
 
-- [Onboarding Flow Implementation](docs/ONBOARDING_FLOW.md) - Complete guide to the user onboarding system, tenant assignment, and Keycloak integration
-- [Keycloak Setup](KEYCLOAK_SETUP.md) - Keycloak configuration, Google OAuth setup, and JWT authentication
+- [Onboarding Flow Implementation](docs/ONBOARDING_FLOW.md) - Complete guide to the user onboarding system and tenant assignment
+- [Microsoft Entra External ID Setup](docs/ENTRA_ID_SETUP.md) - Entra ID configuration and Google OAuth federation
 
 ## Quick Start
 
@@ -47,10 +48,10 @@ For local development with hot reload, run infrastructure in Docker and applicat
 
 **1. Start Infrastructure Only:**
 ```bash
-# Start PostgreSQL, Keycloak, MailHog, and Grafana stack
+# Start PostgreSQL, Redis, MailHog, and Grafana stack
 docker compose -f docker-compose.dev.yml up -d
 
-# Wait for services to be healthy (Keycloak takes ~60s to start)
+# Wait for services to be healthy
 docker compose -f docker-compose.dev.yml ps
 ```
 
@@ -241,24 +242,29 @@ GitHub Actions workflow runs on every push to `main` or PR:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| API | http://localhost:5001 | N/A |
-| Keycloak Admin | http://localhost:8080 | admin / admin |
-| Grafana | http://localhost:3000 | admin / admin |
-| Adminer (DB UI) | http://localhost:8081 | gymadmin / local_dev_123 |
-| User Portal | http://localhost:3001 | (Keycloak SSO) |
-| Admin Portal | http://localhost:3002 | (Keycloak SSO) |
+| API | http://api.gymnastics.localhost | N/A |
+| User Portal | http://app.gymnastics.localhost | (OAuth SSO) |
+| Admin Portal | http://admin.gymnastics.localhost | (OAuth SSO) |
+| Grafana | http://grafana.gymnastics.localhost | Anonymous (admin) |
+| Adminer (DB UI) | http://db.gymnastics.localhost | gymadmin / local_dev_password_123 |
+| MailHog | http://mail.gymnastics.localhost | N/A |
+| CouchDB | http://couchdb.gymnastics.localhost | admin / changeme |
+| Ollama | http://ollama.gymnastics.localhost | N/A |
+| Traefik Dashboard | http://traefik.gymnastics.localhost (or http://localhost:8080/dashboard/) | N/A |
 
 ## Phase 1 Status
 
 ✅ Solution structure with 2 modules (Auth, Sessions)
 ✅ PostgreSQL with multi-tenancy
-✅ Keycloak authentication
+✅ Microsoft Entra External ID authentication with OAuth 2.0
+✅ Redis-backed session management
 ✅ OpenTelemetry observability
 ✅ Docker Compose for local development
+✅ Traefik reverse proxy with clean domain routing
 ✅ Code coverage infrastructure
 ✅ CI/CD pipeline with GitHub Actions
-⬜ React SPAs scaffolding (pending)
-⬜ End-to-end verification script (pending)
+✅ React SPAs with authentication flows
+✅ End-to-end Playwright testing
 
 ## Next Steps
 
