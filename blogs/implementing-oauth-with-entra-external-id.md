@@ -175,16 +175,17 @@ Scopes:
 1. Navigate to External Identities → Identity providers
 2. Click "+ Google"
 3. Paste Google Client ID and Client Secret
-4. Configure claim mapping:
-   - email → email
-   - name → name
-   - given_name → givenName
-   - family_name → surname
-   (Mapping happens in Entra, NOT in Google Console)
-5. Save and test
+4. Save
 ```
 
-**Note**: Even with proper claim mapping, you may still get internal UPNs for some users. Always implement the Graph API fallback as shown in the code examples.
+**CRITICAL**: There is **no claim mapping configuration** for Google in Entra External ID. You simply provide the client credentials and Entra federates to Google. This is exactly why you'll encounter issues:
+
+- Google returns whatever claims it wants
+- Entra creates a user object with a generated `userPrincipalName`
+- The `email` claim in the ID token might be an **internal UPN** like `user_gmail.com#EXT#@yourtenant.onmicrosoft.com`
+- You **cannot configure** Entra to fix this
+
+**Solution**: The Graph API fallback shown in the code examples is **mandatory, not optional**. Always check if the email is an internal UPN pattern and call Graph API to get the real email address.
 
 ### 2. Backend Implementation (ASP.NET Core)
 
@@ -839,11 +840,16 @@ export function SignInPage() {
 
 ### 1. The Email Address Mystery 🕵️
 
-**Problem**: When users authenticated via Google through Entra External ID, the email claim in the ID token was sometimes an internal UPN like `user_gmail.com#EXT#@gymnasticsciam.onmicrosoft.com` instead of their actual email address.
+**Problem**: When users authenticated via Google through Entra External ID, the email claim in the ID token was **frequently** an internal UPN like `user_gmail.com#EXT#@{yourtenant}.onmicrosoft.com` instead of their actual email address.
 
-**Why it happens**: Entra External ID creates a user object in its directory for every external user. When the federated identity provider (Google) doesn't provide a `mail` attribute, Entra generates a `userPrincipalName` based on the external identity, and this UPN can end up in the email claim.
+**Why it happens**:
+1. Entra External ID creates a user object in its directory for every external user
+2. When Google federation is configured, you **cannot configure claim mapping** (there's no UI for it - only client ID and secret)
+3. Entra generates a `userPrincipalName` based on the external identity
+4. This generated UPN frequently ends up in the `email` claim instead of the user's real email
+5. **There is no way to fix this via configuration** - it's a limitation of how Entra handles federated Google identities
 
-**Solution**: Always check if the email is an internal UPN pattern, and if so (or if the email/name is missing), make a Graph API call to retrieve the actual user profile:
+**The ONLY Solution**: Always check if the email is an internal UPN pattern, and make a Graph API call to retrieve the actual user profile. This is **not optional**:
 
 ```csharp
 var isInternalUpn = !string.IsNullOrWhiteSpace(email)
@@ -863,7 +869,11 @@ if (string.IsNullOrWhiteSpace(email)
 }
 ```
 
-**Key takeaway**: Never trust that the `email` claim contains a real email address. Always validate and have a Graph API fallback.
+**Key takeaway**: With Google federation in Entra External ID:
+- You **cannot configure claim mapping** (limitation of the platform)
+- The `email` claim will **frequently** be an internal UPN, not a real email
+- Graph API fallback is **mandatory**, not optional
+- Always validate the email format and call Graph API when it's an internal UPN
 
 ### 2. JWT Validation: Issuer Format Variations
 
