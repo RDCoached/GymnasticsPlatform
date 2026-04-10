@@ -36,12 +36,6 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
         await instance.initialize();
         const response = await instance.handleRedirectPromise();
 
-        console.log('🔐 handleRedirectPromise result:', {
-          hasResponse: !!response,
-          hasAccessToken: !!response?.accessToken,
-          response: response
-        });
-
         // If OAuth redirect just completed, create session
         if (response && response.accessToken) {
           // Extract email and name from ID token (account object has ID token claims)
@@ -51,8 +45,6 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
           const providerUserId = account?.localAccountId || account?.idTokenClaims?.oid || '';
           const email = account?.idTokenClaims?.email || account?.username || '';
           const fullName = account?.name || account?.idTokenClaims?.name || 'User';
-
-          console.log('📧 From ID token:', { providerUserId, email, fullName });
 
           const sessionResponse = await fetch(`${API_URL}/api/auth/session`, {
             method: 'POST',

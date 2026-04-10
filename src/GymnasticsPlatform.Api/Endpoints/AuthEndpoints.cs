@@ -8,6 +8,7 @@ using GymnasticsPlatform.Api.Models;
 using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace GymnasticsPlatform.Api.Endpoints;
 
@@ -184,26 +185,39 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var tokenResponse = authResult.Value!;
 
-        // Decode JWT to get provider user ID from the 'sub' claim
-        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(tokenResponse.AccessToken);
-        var providerUserId = jwtToken.Subject; // 'sub' claim contains provider user ID
+        // Validate JWT token to get provider user ID from the 'sub' claim
+        var providerUserId = await ValidateAccessTokenAndExtractSubjectAsync(
+            tokenResponse.AccessToken,
+            httpContext.RequestServices.GetRequiredService<IConfiguration>(),
+            ct);
 
-        // Get or create user profile (ignore tenant filter since login is anonymous)
-        // Use case-insensitive email comparison
+        if (providerUserId is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                detail: "Invalid access token");
+        }
+
+        // Get user profile by provider_user_id (ignore tenant filter since login is anonymous)
         var userProfile = await db.UserProfiles
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, request.Email), ct);
+            .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
 
-        if (userProfile is not null)
+        if (userProfile is null)
         {
-            userProfile.RecordLogin(clock.GetUtcNow());
-            await db.SaveChangesAsync(ct);
+            // User exists in External ID but not in our database
+            // This should only happen if registration failed or user was manually created in Azure Portal
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                detail: "Account not found. Please register first or use OAuth login.");
         }
+
+        userProfile.RecordLogin(clock.GetUtcNow());
+        await db.SaveChangesAsync(ct);
 
         // Create server-side session with provider user ID
         var sessionId = await sessionService.CreateSessionAsync(
-            keycloakUserId: providerUserId,
+            providerUserId: providerUserId,
             accessToken: tokenResponse.AccessToken,
             refreshToken: tokenResponse.RefreshToken,
             expiry: TimeSpan.FromSeconds(tokenResponse.ExpiresIn),
@@ -396,15 +410,50 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var tokenResponse = tokenResult.Value!;
 
-        // Decode JWT to get user info
-        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(tokenResponse.AccessToken);
+        // Validate JWT to get user info
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<AuthEndpoints>>();
+        var validationResult = await ValidateAccessTokenAsync(
+            tokenResponse.AccessToken,
+            httpContext.RequestServices.GetRequiredService<IConfiguration>(),
+            ct);
 
-        var providerUserId = jwtToken.Subject; // 'sub' claim
-        var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                    ?? jwtToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
-        var name = jwtToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value
-                   ?? email?.Split('@')[0] ?? "User";
+        if (!validationResult.IsValid || validationResult.ClaimsPrincipal is null)
+        {
+            logger.LogWarning("OAuth Callback - Token validation failed");
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                detail: "Invalid access token");
+        }
+
+        var principal = validationResult.ClaimsPrincipal;
+
+        // Extract claims from validated token
+        var providerUserId = principal.FindFirst("sub")?.Value; // 'sub' claim
+        var email = principal.FindFirst("email")?.Value
+                    ?? principal.FindFirst("preferred_username")?.Value;
+
+        // Try multiple claim types for name (Google uses 'name', some providers use given_name + family_name)
+        var name = principal.FindFirst("name")?.Value;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            var givenName = principal.FindFirst("given_name")?.Value;
+            var familyName = principal.FindFirst("family_name")?.Value;
+
+            if (!string.IsNullOrWhiteSpace(givenName) || !string.IsNullOrWhiteSpace(familyName))
+            {
+                name = $"{givenName} {familyName}".Trim();
+            }
+        }
+
+        // Final fallback
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = email?.Split('@')[0] ?? "User";
+        }
+
+        logger.LogInformation("OAuth Callback - Extracted values: providerUserId={ProviderId}, email={Email}, name={Name}",
+            providerUserId, email, name);
 
         if (string.IsNullOrEmpty(email))
         {
@@ -439,7 +488,7 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         // Create server-side session
         var sessionId = await sessionService.CreateSessionAsync(
-            keycloakUserId: providerUserId,
+            providerUserId: providerUserId,
             accessToken: tokenResponse.AccessToken,
             refreshToken: tokenResponse.RefreshToken ?? string.Empty,
             expiry: TimeSpan.FromSeconds(tokenResponse.ExpiresIn),
@@ -466,6 +515,7 @@ public sealed class AuthEndpoints : IEndpointGroup
 
     private static async Task<IResult> CreateSession(
         CreateSessionRequest request,
+        IAuthenticationProvider authProvider,
         ISessionService sessionService,
         AuthDbContext db,
         HttpContext httpContext,
@@ -480,30 +530,61 @@ public sealed class AuthEndpoints : IEndpointGroup
                 detail: "Access token is required");
         }
 
+        if (string.IsNullOrWhiteSpace(request.ProviderUserId))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: "Provider user ID is required (from ID token)");
+        }
+
         try
         {
-            // Decode JWT to extract user info (without full validation - External ID already validated it)
-            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(request.AccessToken);
+            var logger = httpContext.RequestServices.GetRequiredService<ILogger<AuthEndpoints>>();
+            var providerUserId = request.ProviderUserId;
 
-            var providerUserId = jwtToken.Subject; // 'sub' claim
-            var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value
-                        ?? jwtToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
-            var name = jwtToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value
-                       ?? email?.Split('@')[0] ?? "User";
+            // Get email/name from ID token or Graph API fallback
+            var email = request.Email;
+            var name = request.FullName;
 
-            if (string.IsNullOrEmpty(providerUserId))
+            // Check if email is an internal UPN (not a real email address)
+            var isInternalUpn = !string.IsNullOrWhiteSpace(email) && email.Contains("@gymnasticsciam.onmicrosoft.com");
+
+            // If email/name is missing OR email is internal UPN, use Graph API
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(name) || isInternalUpn)
             {
-                return Results.Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    detail: "Invalid token - missing subject claim");
+                if (isInternalUpn)
+                {
+                    logger.LogInformation("Email is internal UPN ({Email}), calling Graph API for actual email: {ProviderId}", email, providerUserId);
+                }
+                else
+                {
+                    logger.LogInformation("Email or name missing from ID token, calling Graph API for user: {ProviderId}", providerUserId);
+                }
+
+                var graphResult = await authProvider.GetProviderUserInfoAsync(providerUserId, ct);
+
+                if (graphResult.IsSuccess && graphResult.Value is not null)
+                {
+                    var graphInfo = graphResult.Value;
+                    logger.LogInformation("Graph API returned email: {Email}, fullName: {FullName}", graphInfo.Email, graphInfo.FullName);
+
+                    // Use Graph API values (we only call Graph API when needed, so always trust it)
+                    email = graphInfo.Email;
+                    name = graphInfo.FullName ?? name; // Use Graph name, fallback to ID token if null
+
+                    logger.LogInformation("Using from Graph API: Email={Email}, Name={Name}", email, name);
+                }
+                else
+                {
+                    logger.LogWarning("Graph API call failed or returned null");
+                    return Results.Problem(
+                        statusCode: StatusCodes.Status500InternalServerError,
+                        detail: "Could not retrieve user information");
+                }
             }
-
-            if (string.IsNullOrEmpty(email))
+            else
             {
-                return Results.Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    detail: "Invalid token - missing email claim");
+                logger.LogInformation("Using from ID token: Email={Email}, Name={Name}", email, name);
             }
 
             // Get or create user profile
@@ -527,23 +608,31 @@ public sealed class AuthEndpoints : IEndpointGroup
                 {
                     await db.SaveChangesAsync(ct);
                 }
-                catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+                catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
                 {
-                    // Race condition: another request created the user between our check and save
-                    // Clear the tracked entity and query again
-                    db.ChangeTracker.Clear();
-                    userProfile = await db.UserProfiles
-                        .IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
-
-                    if (userProfile is null)
+                    // Check if this is a PostgreSQL unique constraint violation (SqlState 23505)
+                    if (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
                     {
-                        throw; // Unexpected - rethrow original exception
-                    }
+                        // Race condition: another request created the user between our check and save
+                        // Clear the tracked entity and query again
+                        db.ChangeTracker.Clear();
+                        userProfile = await db.UserProfiles
+                            .IgnoreQueryFilters()
+                            .FirstOrDefaultAsync(u => u.ProviderUserId == providerUserId, ct);
 
-                    // Update last login for the existing user
-                    userProfile.RecordLogin(clock.GetUtcNow());
-                    await db.SaveChangesAsync(ct);
+                        if (userProfile is null)
+                        {
+                            throw; // Unexpected - rethrow original exception
+                        }
+
+                        // Update last login for the existing user
+                        userProfile.RecordLogin(clock.GetUtcNow());
+                        await db.SaveChangesAsync(ct);
+                    }
+                    else
+                    {
+                        throw; // Not a race condition - rethrow
+                    }
                 }
             }
             else
@@ -554,7 +643,7 @@ public sealed class AuthEndpoints : IEndpointGroup
 
             // Create server-side session
             var sessionId = await sessionService.CreateSessionAsync(
-                keycloakUserId: providerUserId,
+                providerUserId: providerUserId,
                 accessToken: request.AccessToken,
                 refreshToken: "", // MSAL manages refresh tokens
                 expiry: TimeSpan.FromHours(1),
@@ -585,6 +674,59 @@ public sealed class AuthEndpoints : IEndpointGroup
                 detail: $"Failed to create session: {ex.Message}");
         }
     }
+
+    private static async Task<string?> ValidateAccessTokenAndExtractSubjectAsync(
+        string accessToken,
+        IConfiguration configuration,
+        CancellationToken ct)
+    {
+        var result = await ValidateAccessTokenAsync(accessToken, configuration, ct);
+        return result.IsValid ? result.ClaimsPrincipal?.FindFirst("sub")?.Value : null;
+    }
+
+    private static async Task<TokenValidationResult> ValidateAccessTokenAsync(
+        string accessToken,
+        IConfiguration configuration,
+        CancellationToken ct)
+    {
+        var externalIdConfig = configuration.GetSection("Authentication:ExternalId");
+        var authority = externalIdConfig["Authority"] ?? throw new InvalidOperationException("ExternalId Authority not configured");
+        var tenantId = externalIdConfig["TenantId"] ?? throw new InvalidOperationException("ExternalId TenantId not configured");
+
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+
+        // Fetch signing keys from OIDC discovery endpoint
+        var discoveryEndpoint = $"{authority}/v2.0/.well-known/openid-configuration";
+        var configManager = new Microsoft.IdentityModel.Protocols.ConfigurationManager<OpenIdConnectConfiguration>(
+            discoveryEndpoint,
+            new OpenIdConnectConfigurationRetriever(),
+            new Microsoft.IdentityModel.Protocols.HttpDocumentRetriever());
+
+        var oidcConfig = await configManager.GetConfigurationAsync(ct);
+
+        var validationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = $"{authority}/v2.0",
+            ValidateAudience = true,
+            ValidAudience = $"api://{tenantId}/gymnastics-api",
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKeys = oidcConfig.SigningKeys
+        };
+
+        try
+        {
+            var principal = handler.ValidateToken(accessToken, validationParameters, out var validatedToken);
+            return new TokenValidationResult(true, principal);
+        }
+        catch (Exception)
+        {
+            return new TokenValidationResult(false, null);
+        }
+    }
+
+    private sealed record TokenValidationResult(bool IsValid, System.Security.Claims.ClaimsPrincipal? ClaimsPrincipal);
 }
 
 public record CurrentUserResponse(
@@ -604,4 +746,9 @@ public record OAuthCallbackResponse(
     Guid TenantId,
     bool OnboardingCompleted);
 
-public record CreateSessionRequest(string AccessToken);
+public record CreateSessionRequest(
+    string AccessToken,
+    string ProviderUserId,  // From ID token (oid claim)
+    string? Email,          // From ID token (optional - will fallback to Graph API)
+    string? FullName        // From ID token (optional - will fallback to Graph API)
+);
