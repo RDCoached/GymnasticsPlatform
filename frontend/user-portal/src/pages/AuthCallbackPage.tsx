@@ -41,9 +41,7 @@ export function AuthCallbackPage() {
           throw new Error(errorData.detail || 'Failed to create session');
         }
 
-        const userData = await sessionResponse.json();
-
-        // Clear URL parameters
+        // Session created successfully - clear URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
 
         // Always redirect to onboarding after OAuth

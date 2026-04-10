@@ -1,5 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, type CurrentUserResponse } from '../lib/api-client';
 

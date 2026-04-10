@@ -100,8 +100,10 @@ describe('OnboardingScreen', () => {
 
   it('should call API and navigate to dashboard when Individual Mode is clicked', async () => {
     // Mock window.location.href assignment
-    delete (window as any).location;
-    window.location = { href: '' } as any;
+    Object.defineProperty(window, 'location', {
+      value: { href: '' },
+      writable: true,
+    });
 
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,

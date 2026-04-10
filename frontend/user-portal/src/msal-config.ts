@@ -3,7 +3,6 @@ import { Configuration, PopupRequest, RedirectRequest } from '@azure/msal-browse
 const externalIdTenantId = import.meta.env.VITE_EXTERNAL_ID_TENANT_ID || '';
 const clientId = import.meta.env.VITE_EXTERNAL_ID_CLIENT_ID || '';
 const authority = import.meta.env.VITE_EXTERNAL_ID_AUTHORITY || '';
-const apiClientId = import.meta.env.VITE_API_CLIENT_ID || '';
 
 export const msalConfig: Configuration = {
   auth: {

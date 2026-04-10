@@ -1,22 +1,15 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function SignInPage() {
   const location = useLocation();
-  const [email, setEmail] = useState('');
+  const state = location.state as { email?: string } | null;
+  const [email, setEmail] = useState(state?.email || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login, loginWithOAuth, isLoading } = useAuth();
   const navigate = useNavigate();
-
-  // Pre-fill email if passed from registration
-  useEffect(() => {
-    const state = location.state as { email?: string } | null;
-    if (state?.email) {
-      setEmail(state.email);
-    }
-  }, [location.state]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
