@@ -228,13 +228,17 @@ namespace Auth.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
-                        .HasColumnName("keycloak_user_id");
+                        .HasColumnName("provider_user_id");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProviderUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_profiles_provider_user_id");
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_user_profiles_tenant_id");
@@ -243,8 +247,7 @@ namespace Auth.Infrastructure.Migrations
                         .HasDatabaseName("ix_user_profiles_tenant_email");
 
                     b.HasIndex("TenantId", "ProviderUserId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_user_profiles_tenant_keycloak_user");
+                        .HasDatabaseName("ix_user_profiles_tenant_provider_user");
 
                     b.ToTable("user_profiles", (string)null);
                 });

@@ -57,6 +57,10 @@ export function RegisterPage() {
     try {
       await register(email, password, fullName);
       setSuccess(true);
+      // Redirect to sign-in page after 2 seconds with email pre-filled
+      setTimeout(() => {
+        navigate('/sign-in', { state: { email } });
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     }
@@ -84,27 +88,12 @@ export function RegisterPage() {
           <div className="success-message" role="alert">
             <strong>Registration successful!</strong>
             <p style={{ marginTop: '0.5rem' }}>
-              Please check your email to verify your account before signing in.
+              Redirecting you to{' '}
+              <Link to="/sign-in" state={{ email }} className="accent-link">
+                sign in
+              </Link>
+              ...
             </p>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', opacity: 0.9 }}>
-              In development: Open{' '}
-              <a
-                href="http://localhost:8025"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'inherit', textDecoration: 'underline' }}
-              >
-                MailHog
-              </a>
-              {' '}to view the verification email.
-            </p>
-            <Link
-              to="/sign-in"
-              className="accent-link"
-              style={{ display: 'inline-block', marginTop: '1rem' }}
-            >
-              Go to Sign In →
-            </Link>
           </div>
         )}
 

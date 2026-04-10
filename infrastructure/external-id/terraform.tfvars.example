@@ -1,0 +1,5 @@
+tenant_id                    = "YOUR_AZURE_TENANT_ID"
+google_client_id             = "YOUR_GOOGLE_CLIENT_ID"
+google_client_secret         = "YOUR_GOOGLE_CLIENT_SECRET"
+user_portal_production_url   = "https://app.gymnastics.example.com"
+admin_portal_production_url  = "https://admin.gymnastics.example.com"

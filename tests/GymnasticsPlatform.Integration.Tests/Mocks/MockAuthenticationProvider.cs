@@ -124,6 +124,40 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
         return Task.FromResult(Result.Success(authResult));
     }
 
+    public Task<Result<AuthenticationResult>> ExchangeCodeForTokensAsync(
+        string code,
+        string redirectUri,
+        string clientId,
+        string? codeVerifier = null,
+        CancellationToken ct = default)
+    {
+        // Mock implementation - simulate successful OAuth code exchange
+        // In tests, we'll use a format like "oauth-code-{email}" for the code
+        var email = code.Replace("oauth-code-", "");
+
+        if (!_registeredEmails.Contains(email))
+        {
+            return Task.FromResult(Result.Failure<AuthenticationResult>(
+                ErrorType.Unauthorized,
+                "Invalid authorization code"));
+        }
+
+        var userId = _emailToUserId[email];
+        var accessToken = GenerateValidJwtToken(userId, email);
+        var refreshToken = $"mock-refresh-token-{Guid.NewGuid()}";
+
+        _refreshTokens[refreshToken] = email;
+
+        var authResult = new AuthenticationResult(
+            AccessToken: accessToken,
+            RefreshToken: refreshToken,
+            ExpiresIn: 3600,
+            TokenType: "Bearer",
+            ProviderUserId: userId);
+
+        return Task.FromResult(Result.Success(authResult));
+    }
+
     public Task<Result<ProviderUserInfo?>> GetProviderUserInfoAsync(
         string providerUserId,
         CancellationToken ct = default)
@@ -162,21 +196,27 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
     }
 
     // Test helper methods
-    private static string GenerateValidJwtToken(string keycloakUserId, string email)
+    private static string GenerateValidJwtToken(string providerUserId, string email)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("test-secret-key-for-integration-tests-12345678"));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+        // Use the same tenant ID and audience as configured in appsettings.json
+        const string tenantId = "cdb93b0d-7905-4231-826b-ef17ec1e24aa";
+        const string issuer = $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0";
+        const string audience = $"api://{tenantId}/gymnastics-api";
+
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, keycloakUserId),
-            new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim("sub", providerUserId),
+            new Claim("oid", providerUserId),  // Azure uses 'oid' (object identifier)
+            new Claim("email", email),
+            new Claim("jti", Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(
-            issuer: "test-keycloak",
-            audience: "user-portal",
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: credentials);

@@ -73,7 +73,6 @@ describe('CreateClubForm', () => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${mockToken}`,
             'Content-Type': 'application/json',
           },
           credentials: 'include',

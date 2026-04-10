@@ -90,7 +90,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
 
         var userProfile = UserProfile.Create(
             Guid.Empty, // Will be overwritten
-            "keycloak-123",
+            Guid.NewGuid().ToString(),
             "test@example.com",
             "Test User",
             DateTimeOffset.UtcNow);
@@ -112,7 +112,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
 
         var userProfile = UserProfile.Create(
             Guid.Empty,
-            "keycloak-123",
+            Guid.NewGuid().ToString(),
             "test@example.com",
             "Test User",
             DateTimeOffset.UtcNow);
@@ -137,8 +137,8 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         await using (var db = CreateDbContext(tenant1Context))
         {
 
-            var user1 = UserProfile.Create(tenant1Id, "user1", "user1@tenant1.com", "User 1", DateTimeOffset.UtcNow);
-            var user2 = UserProfile.Create(tenant1Id, "user2", "user2@tenant1.com", "User 2", DateTimeOffset.UtcNow);
+            var user1 = UserProfile.Create(tenant1Id, Guid.NewGuid().ToString(), "user1@tenant1.com", "User 1", DateTimeOffset.UtcNow);
+            var user2 = UserProfile.Create(tenant1Id, Guid.NewGuid().ToString(), "user2@tenant1.com", "User 2", DateTimeOffset.UtcNow);
 
             db.UserProfiles.AddRange(user1, user2);
             await db.SaveChangesAsync();
@@ -148,7 +148,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant2Context = CreateTenantContext(tenant2Id);
         await using (var db = CreateDbContext(tenant2Context))
         {
-            var user3 = UserProfile.Create(tenant2Id, "user3", "user3@tenant2.com", "User 3", DateTimeOffset.UtcNow);
+            var user3 = UserProfile.Create(tenant2Id, Guid.NewGuid().ToString(), "user3@tenant2.com", "User 3", DateTimeOffset.UtcNow);
 
             db.UserProfiles.Add(user3);
             await db.SaveChangesAsync();
@@ -192,7 +192,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         await using (var db = CreateDbContext(tenant1Context))
         {
 
-            var user = UserProfile.Create(tenant1Id, "user1", "user1@tenant1.com", "User 1", DateTimeOffset.UtcNow);
+            var user = UserProfile.Create(tenant1Id, Guid.NewGuid().ToString(), "user1@tenant1.com", "User 1", DateTimeOffset.UtcNow);
             db.UserProfiles.Add(user);
             await db.SaveChangesAsync();
             userId = user.Id;
@@ -230,7 +230,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant1Context = CreateTenantContext(tenant1Id);
         await using (var db = CreateDbContext(tenant1Context))
         {
-            var user = UserProfile.Create(tenant1Id, "user1", "test@example.com", "Tenant 1 User", DateTimeOffset.UtcNow);
+            var user = UserProfile.Create(tenant1Id, Guid.NewGuid().ToString(), "test@example.com", "Tenant 1 User", DateTimeOffset.UtcNow);
             db.UserProfiles.Add(user);
             await db.SaveChangesAsync();
         }
@@ -238,7 +238,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         var tenant2Context = CreateTenantContext(tenant2Id);
         await using (var db = CreateDbContext(tenant2Context))
         {
-            var user = UserProfile.Create(tenant2Id, "user2", "test@example.com", "Tenant 2 User", DateTimeOffset.UtcNow);
+            var user = UserProfile.Create(tenant2Id, Guid.NewGuid().ToString(), "test@example.com", "Tenant 2 User", DateTimeOffset.UtcNow);
             db.UserProfiles.Add(user);
             await db.SaveChangesAsync();
         }
@@ -281,7 +281,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         {
             for (int i = 0; i < 3; i++)
             {
-                var user = UserProfile.Create(tenant1Id, $"user{i}", $"user{i}@tenant1.com", $"User {i}", DateTimeOffset.UtcNow);
+                var user = UserProfile.Create(tenant1Id, Guid.NewGuid().ToString(), $"user{i}@tenant1.com", $"User {i}", DateTimeOffset.UtcNow);
                 db.UserProfiles.Add(user);
             }
             await db.SaveChangesAsync();
@@ -293,7 +293,7 @@ public sealed class AuthDbContextTests : IAsyncLifetime
         {
             for (int i = 0; i < 5; i++)
             {
-                var user = UserProfile.Create(tenant2Id, $"user{i}", $"user{i}@tenant2.com", $"User {i}", DateTimeOffset.UtcNow);
+                var user = UserProfile.Create(tenant2Id, Guid.NewGuid().ToString(), $"user{i}@tenant2.com", $"User {i}", DateTimeOffset.UtcNow);
                 db.UserProfiles.Add(user);
             }
             await db.SaveChangesAsync();

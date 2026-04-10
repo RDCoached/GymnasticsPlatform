@@ -37,6 +37,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     private readonly TestEmailService _testEmailService = new();
     public TestEmailService TestEmailService => _testEmailService;
 
+    private readonly MockSessionService _mockSessionService = new();
+    public MockSessionService MockSessionService => _mockSessionService;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
@@ -66,6 +69,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             services.RemoveAll(typeof(IEmailService));
             services.AddSingleton<IEmailService>(_testEmailService);
 
+            // Replace ISessionService with mock
+            services.RemoveAll(typeof(GymnasticsPlatform.Api.Services.ISessionService));
+            services.AddSingleton<GymnasticsPlatform.Api.Services.ISessionService>(_mockSessionService);
+
             // Replace IEmbeddingService with mock
             services.RemoveAll(typeof(Training.Application.Services.IEmbeddingService));
             services.AddSingleton<Training.Application.Services.IEmbeddingService>(new MockEmbeddingService());
@@ -79,7 +86,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 return _testTenantContext;
             });
 
-            // Add test authentication scheme alongside existing JWT bearer
+            // Add test authentication scheme
             services.PostConfigure<AuthenticationOptions>(options =>
             {
                 // Make test scheme the default if it's registered
@@ -87,7 +94,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 {
                     options.DefaultScheme = TestAuthenticationHandler.AuthenticationScheme;
                     options.DefaultAuthenticateScheme = TestAuthenticationHandler.AuthenticationScheme;
-                    options.DefaultChallengeScheme = "Bearer"; // Keep Bearer for challenge to get WWW-Authenticate header
+                    options.DefaultChallengeScheme = TestAuthenticationHandler.AuthenticationScheme;
                 }
             });
 
@@ -186,6 +193,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     {
         _mockAuthProvider.Reset();
         _testEmailService.SentEmails.Clear();
+        _mockSessionService.Reset();
     }
 
     public async Task InitializeAsync()
@@ -196,6 +204,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public new async Task DisposeAsync()
     {
         _mockAuthProvider.Reset();
+        _mockSessionService.Reset();
         await _dbContainer.DisposeAsync();
         await base.DisposeAsync();
     }

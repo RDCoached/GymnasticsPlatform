@@ -1,9 +1,11 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function SignInPage() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const state = location.state as { email?: string } | null;
+  const [email, setEmail] = useState(state?.email || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login, loginWithOAuth, isLoading } = useAuth();
@@ -18,13 +20,9 @@ export function SignInPage() {
       navigate('/onboarding');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
-
-      // If it's an unauthorized error, suggest email verification
-      if (errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized') || errorMessage.toLowerCase().includes('invalid credentials')) {
-        setError('Login failed. Please check your credentials. If you just registered, make sure to verify your email first (check MailHog at http://localhost:8025 in development).');
-      } else {
-        setError(errorMessage);
-      }
+      setError(errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized')
+        ? 'Invalid email or password. Please try again.'
+        : errorMessage);
     }
   };
 
@@ -34,6 +32,15 @@ export function SignInPage() {
       await loginWithOAuth('google');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed');
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setError('');
+    try {
+      await loginWithOAuth('microsoft');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Microsoft sign-in failed');
     }
   };
 
@@ -98,6 +105,21 @@ export function SignInPage() {
               <path fill="none" d="M0 0h48v48H0z"/>
             </svg>
             Continue with Google
+          </button>
+
+          <button
+            type="button"
+            onClick={handleMicrosoftLogin}
+            className="oauth-button"
+            disabled={isLoading}
+          >
+            <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+            </svg>
+            Sign in with Microsoft
           </button>
 
           <p>

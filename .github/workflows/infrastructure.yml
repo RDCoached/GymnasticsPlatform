@@ -1,0 +1,81 @@
+name: Infrastructure Deployment
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/external-id/**'
+      - '.github/workflows/infrastructure.yml'
+  workflow_dispatch:
+
+env:
+  TF_VERSION: '1.5.0'
+  WORKING_DIR: infrastructure/external-id
+
+jobs:
+  terraform:
+    name: Provision External ID Infrastructure
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Init
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      run: terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      run: terraform plan -out=tfplan
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      run: terraform apply -auto-approve tfplan
+
+    - name: Extract Terraform Outputs
+      if: success()
+      id: terraform-outputs
+      env:
+        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      run: |
+        echo "EXTERNAL_ID_TENANT_ID=$(terraform output -raw external_id_tenant_id)" >> $GITHUB_OUTPUT
+        echo "API_CLIENT_ID=$(terraform output -raw api_client_id)" >> $GITHUB_OUTPUT
+        echo "USER_PORTAL_CLIENT_ID=$(terraform output -raw user_portal_client_id)" >> $GITHUB_OUTPUT
+        echo "ADMIN_PORTAL_CLIENT_ID=$(terraform output -raw admin_portal_client_id)" >> $GITHUB_OUTPUT
+        echo "AUTHORITY_URL=$(terraform output -raw authority_url)" >> $GITHUB_OUTPUT
+
+    outputs:
+      external_id_tenant_id: ${{ steps.terraform-outputs.outputs.EXTERNAL_ID_TENANT_ID }}
+      api_client_id: ${{ steps.terraform-outputs.outputs.API_CLIENT_ID }}
+      user_portal_client_id: ${{ steps.terraform-outputs.outputs.USER_PORTAL_CLIENT_ID }}
+      admin_portal_client_id: ${{ steps.terraform-outputs.outputs.ADMIN_PORTAL_CLIENT_ID }}
+      authority_url: ${{ steps.terraform-outputs.outputs.AUTHORITY_URL }}

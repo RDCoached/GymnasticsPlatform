@@ -30,8 +30,11 @@ builder.Services.AddScoped<ITenantContext, TenantContext>();
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
 
-// Add Distributed Cache (Memory cache for development, Redis for production)
-builder.Services.AddDistributedMemoryCache();
+// Add Distributed Cache (Redis for session storage)
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+});
 
 // Add Session Service
 builder.Services.AddScoped<ISessionService, SessionService>();
@@ -66,8 +69,8 @@ else
     builder.Services.AddScoped<Auth.Application.Services.IEmailService, Auth.Infrastructure.Services.ResendEmailService>();
 }
 
-// Add Authentication Provider (Microsoft Entra ID)
-builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.EntraIdAuthenticationProvider>();
+// Add Authentication Provider (Microsoft Entra External ID)
+builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.ExternalIdAuthenticationProvider>();
 // Add DbContext
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -110,28 +113,38 @@ builder.Services.AddOpenApi(options =>
     });
 });
 
-// Add Authentication (Microsoft Entra ID JWT)
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        var entraConfig = builder.Configuration.GetSection("Authentication:EntraId");
-        var tenantId = entraConfig["TenantId"];
-        var instance = entraConfig["Instance"] ?? "https://login.microsoftonline.com/";
-
-        options.Authority = $"{instance}{tenantId}/v2.0";
-        options.Audience = entraConfig["Audience"] ?? "api://gymnastics-api";
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-        options.MapInboundClaims = false; // Preserve original JWT claim names
-
-        options.TokenValidationParameters = new TokenValidationParameters
+// Add Authentication (Microsoft Entra External ID JWT)
+// Skip JWT configuration in Test environment - TestWebApplicationFactory provides its own auth scheme
+if (!builder.Environment.IsEnvironment("Test"))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = $"{instance}{tenantId}/v2.0"
-        };
-    });
+            var externalIdConfig = builder.Configuration.GetSection("Authentication:ExternalId");
+            var authority = externalIdConfig["Authority"] ?? throw new InvalidOperationException("ExternalId Authority not configured");
+            var apiClientId = externalIdConfig["ApiClientId"] ?? throw new InvalidOperationException("ExternalId ApiClientId not configured");
+
+            var tenantId = externalIdConfig["TenantId"] ?? throw new InvalidOperationException("ExternalId TenantId not configured");
+            options.Authority = $"{authority}/v2.0";
+            options.Audience = $"api://{tenantId}/gymnastics-api";
+            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+            options.MapInboundClaims = false; // Preserve original JWT claim names
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = $"{authority}/v2.0"
+            };
+        });
+}
+else
+{
+    // Test environment uses custom authentication scheme configured by TestWebApplicationFactory
+    builder.Services.AddAuthentication();
+}
 
 // Register Authorization Handler
 builder.Services.AddSingleton<IAuthorizationHandler, GymnasticsPlatform.Api.Authorization.TenantRoleAuthorizationHandler>();
@@ -261,9 +274,6 @@ if (app.Environment.IsDevelopment())
 // Configure the HTTP request pipeline
 app.UseExceptionHandler();
 
-// Enable HTTP request/response logging
-app.UseHttpLogging();
-
 app.MapOpenApi();
 
 if (app.Environment.IsDevelopment())
@@ -272,6 +282,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+
+// Enable HTTP request/response logging
+app.UseHttpLogging();
+    
+// Session authentication (reads session_id cookie and sets httpContext.User)
+app.UseMiddleware<SessionAuthenticationMiddleware>();
+
 app.UseAuthentication(); // JWT Bearer authentication for Entra ID
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();

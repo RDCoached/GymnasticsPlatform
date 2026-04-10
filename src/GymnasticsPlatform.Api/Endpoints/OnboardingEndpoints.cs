@@ -92,20 +92,28 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         db.Clubs.Add(club);
 
         // Update user profile onboarding status
+        // Use IgnoreQueryFilters because user is still in onboarding tenant
         var userProfile = await db.UserProfiles
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
-        if (userProfile is not null)
+        if (userProfile is null)
         {
-            userProfile.CompleteOnboarding("club");
+            return Results.Problem("User profile not found", statusCode: 404);
         }
+
+        userProfile.CompleteOnboarding("club");
 
         await db.SaveChangesAsync(ct);
 
         // Update user's tenant in database
-        var email = httpContext.User.FindFirst("email")?.Value;
-        var fullName = httpContext.User.FindFirst("name")?.Value;
-        await userTenantService.UpdateUserTenantAsync(userId, club.TenantId, email, fullName, ct);
+        // Get email and full name from the existing user profile (session auth doesn't have these claims)
+        await userTenantService.UpdateUserTenantAsync(
+            userId,
+            club.TenantId,
+            userProfile.Email,
+            userProfile.FullName,
+            ct);
 
         // Assign ClubAdmin and Coach roles
         var roles = new List<Role> { Role.ClubAdmin, Role.Coach }.AsReadOnly();
@@ -164,20 +172,28 @@ public sealed class OnboardingEndpoints : IEndpointGroup
             return Results.Problem("Club not found", statusCode: 404);
 
         // Update user profile onboarding status
+        // Use IgnoreQueryFilters because user is still in onboarding tenant
         var userProfile = await db.UserProfiles
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
-        if (userProfile is not null)
+        if (userProfile is null)
         {
-            userProfile.CompleteOnboarding("club");
+            return Results.Problem("User profile not found", statusCode: 404);
         }
+
+        userProfile.CompleteOnboarding("club");
 
         await db.SaveChangesAsync(ct);
 
         // Update user's tenant in database
-        var email = httpContext.User.FindFirst("email")?.Value;
-        var fullName = httpContext.User.FindFirst("name")?.Value;
-        await userTenantService.UpdateUserTenantAsync(userId, club.TenantId, email, fullName, ct);
+        // Get email and full name from the existing user profile (session auth doesn't have these claims)
+        await userTenantService.UpdateUserTenantAsync(
+            userId,
+            club.TenantId,
+            userProfile.Email,
+            userProfile.FullName,
+            ct);
 
         // Assign role based on invite type
         var role = invite.InviteType == InviteType.Coach ? Role.Coach : Role.Gymnast;
@@ -211,20 +227,28 @@ public sealed class OnboardingEndpoints : IEndpointGroup
         var newTenantId = Guid.NewGuid();
 
         // Update user profile onboarding status
+        // Use IgnoreQueryFilters because user is still in onboarding tenant
         var userProfile = await db.UserProfiles
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.ProviderUserId == userId, ct);
 
-        if (userProfile is not null)
+        if (userProfile is null)
         {
-            userProfile.CompleteOnboarding("individual");
+            return Results.Problem("User profile not found", statusCode: 404);
         }
+
+        userProfile.CompleteOnboarding("individual");
 
         await db.SaveChangesAsync(ct);
 
         // Update user's tenant in database
-        var email = httpContext.User.FindFirst("email")?.Value;
-        var fullName = httpContext.User.FindFirst("name")?.Value;
-        await userTenantService.UpdateUserTenantAsync(userId, newTenantId, email, fullName, ct);
+        // Get email and full name from the existing user profile (session auth doesn't have these claims)
+        await userTenantService.UpdateUserTenantAsync(
+            userId,
+            newTenantId,
+            userProfile.Email,
+            userProfile.FullName,
+            ct);
 
         // Assign IndividualAdmin and Coach roles
         var roles = new List<Role> { Role.IndividualAdmin, Role.Coach }.AsReadOnly();

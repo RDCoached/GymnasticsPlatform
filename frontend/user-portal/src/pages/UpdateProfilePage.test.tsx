@@ -63,7 +63,7 @@ describe('UpdateProfilePage', () => {
       expect(screen.getByDisplayValue('Test User')).toBeInTheDocument();
     });
 
-    expect(apiClient.getProfile).toHaveBeenCalledWith(mockToken);
+    expect(apiClient.getProfile).toHaveBeenCalled();
   });
 
   it('should display error message when profile load fails', async () => {
@@ -173,7 +173,7 @@ describe('UpdateProfilePage', () => {
       expect(screen.getByText('Profile updated successfully! Redirecting...')).toBeInTheDocument();
     });
 
-    expect(apiClient.updateProfile).toHaveBeenCalledWith(mockToken, { fullName: 'Updated Name' });
+    expect(apiClient.updateProfile).toHaveBeenCalledWith({ fullName: 'Updated Name' });
   });
 
   it('should trim whitespace from full name before submission', async () => {
@@ -202,7 +202,7 @@ describe('UpdateProfilePage', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(apiClient.updateProfile).toHaveBeenCalledWith(mockToken, { fullName: 'Updated Name' });
+      expect(apiClient.updateProfile).toHaveBeenCalledWith({ fullName: 'Updated Name' });
     });
   });
 
@@ -381,34 +381,30 @@ describe('UpdateProfilePage', () => {
     });
   });
 
-  it('should use token from getToken', async () => {
+  it('should load profile using session cookie', async () => {
     const mockProfile = {
       email: 'test@example.com',
       fullName: 'Test User',
       onboardingCompleted: true,
     };
 
-    localStorage.setItem('accessToken', 'stored-token');
-    mockGetToken.mockReturnValue('stored-token');
-
     vi.mocked(apiClient.getProfile).mockResolvedValueOnce(mockProfile);
 
     render(<UpdateProfilePage />);
 
     await waitFor(() => {
-      expect(apiClient.getProfile).toHaveBeenCalledWith('stored-token');
+      expect(apiClient.getProfile).toHaveBeenCalled();
+      expect(screen.getByDisplayValue('Test User')).toBeInTheDocument();
     }, { timeout: 10000 });
   });
 
-  it('should show error when no token is available', async () => {
-    mockGetToken.mockReturnValue(null);
-
-    vi.mocked(apiClient.getProfile).mockRejectedValueOnce(new Error('Not authenticated'));
+  it('should show error when session is invalid', async () => {
+    vi.mocked(apiClient.getProfile).mockRejectedValueOnce(new Error('Unauthorized'));
 
     render(<UpdateProfilePage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Not authenticated')).toBeInTheDocument();
+      expect(screen.getByText('Unauthorized')).toBeInTheDocument();
     }, { timeout: 10000 });
   });
 });

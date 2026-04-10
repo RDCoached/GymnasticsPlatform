@@ -27,3 +27,8 @@ regexes = [
   '''<YOUR_[A-Z_]+>''',
   '''Bearer\s+<[A-Z_]+>''',
 ]
+
+# Allowlist Azure/Entra ID Client IDs (public OAuth identifiers, not secrets)
+commits = [
+  "2310b1bac18f69bfc997703133f7904c305da19e",  # ApiClientId in appsettings.json (false positive)
+]

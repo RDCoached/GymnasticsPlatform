@@ -45,7 +45,7 @@ const AVAILABLE_SECTIONS: Section[] = [
 ];
 
 export function ProgrammeBuilderPage() {
-  const { getToken, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -77,10 +77,7 @@ export function ProgrammeBuilderPage() {
   useEffect(() => {
     const fetchGymnasts = async () => {
       try {
-        const token = getToken();
-        if (!token) return;
-
-        const data = await apiClient.listGymnasts(token);
+        const data = await apiClient.listGymnasts();
         setGymnasts(data);
       } catch (err) {
         console.error('Failed to fetch gymnasts:', err);
@@ -90,15 +87,12 @@ export function ProgrammeBuilderPage() {
     };
 
     fetchGymnasts();
-  }, [getToken]);
+  }, []);
 
   const handleStartSession = useCallback(async () => {
     setState(prev => ({ ...prev, mode: 'loading', error: null, isTyping: true }));
 
     try {
-      const token = getToken();
-      if (!token) throw new Error('No authentication token');
-
       const selectedGymnast = gymnasts.find(g => g.id === state.gymnastId);
 
       const request: StartProgrammeBuilderRequest = {
@@ -107,7 +101,7 @@ export function ProgrammeBuilderPage() {
         ragScope: state.ragScope,
       };
 
-      const result: BuilderSessionResult = await apiClient.startProgrammeBuilder(token, request);
+      const result: BuilderSessionResult = await apiClient.startProgrammeBuilder(request);
 
       setState(prev => ({
         ...prev,
@@ -127,7 +121,7 @@ export function ProgrammeBuilderPage() {
         isTyping: false,
       }));
     }
-  }, [state.gymnastId, state.goals, state.ragScope, getToken, gymnasts]);
+  }, [state.gymnastId, state.goals, state.ragScope, gymnasts]);
 
   const handleSelectSection = useCallback(async (section: Section) => {
     setState(prev => ({
@@ -143,11 +137,7 @@ export function ProgrammeBuilderPage() {
     }));
 
     try {
-      const token = getToken();
-      if (!token) throw new Error('No authentication token');
-
       const result = await apiClient.continueProgrammeBuilder(
-        token,
         state.sessionId!,
         { message: `Create a detailed training plan for ${section}. Include specific exercises, sets, reps, and progression notes.` }
       );
@@ -169,7 +159,7 @@ export function ProgrammeBuilderPage() {
         isTyping: false,
       }));
     }
-  }, [state.sessionId, getToken]);
+  }, [state.sessionId]);
 
   const handleCompleteSection = useCallback(() => {
     if (!state.currentSection) return;
@@ -216,11 +206,7 @@ export function ProgrammeBuilderPage() {
     }));
 
     try {
-      const token = getToken();
-      if (!token) throw new Error('No authentication token');
-
       const result = await apiClient.continueProgrammeBuilder(
-        token,
         state.sessionId!,
         { message: userMessage }
       );
@@ -242,7 +228,7 @@ export function ProgrammeBuilderPage() {
         isTyping: false,
       }));
     }
-  }, [state.currentMessage, state.sessionId, getToken]);
+  }, [state.currentMessage, state.sessionId]);
 
   const handlePreview = useCallback(() => {
     setState(prev => ({ ...prev, mode: 'preview' }));
@@ -255,10 +241,7 @@ export function ProgrammeBuilderPage() {
   const handleAcceptProgramme = useCallback(async () => {
     setState(prev => ({ ...prev, mode: 'loading', isTyping: true }));
     try {
-      const token = getToken();
-      if (!token) throw new Error('No authentication token');
-
-      const programmeId = await apiClient.acceptProgrammeBuilder(token, state.sessionId!);
+      const programmeId = await apiClient.acceptProgrammeBuilder(state.sessionId!);
 
       setState(prev => ({ ...prev, mode: 'success', programmeId, isTyping: false }));
 
@@ -271,7 +254,7 @@ export function ProgrammeBuilderPage() {
         isTyping: false,
       }));
     }
-  }, [state.sessionId, getToken, navigate]);
+  }, [state.sessionId, navigate]);
 
   const handleLogout = async () => {
     await logout();
