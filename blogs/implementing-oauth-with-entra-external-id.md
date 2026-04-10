@@ -189,6 +189,23 @@ Scopes:
 
 ### 2. Backend Implementation (ASP.NET Core)
 
+#### Options Classes
+
+Following the Options pattern for strongly-typed configuration:
+
+```csharp
+public sealed class ExternalIdOptions
+{
+    public const string SectionName = "Authentication:ExternalId";
+
+    public string TenantId { get; init; } = string.Empty;
+    public string Authority { get; init; } = string.Empty;
+    public string ApiClientId { get; init; } = string.Empty;
+    public string ApiClientSecret { get; init; } = string.Empty;
+    public string Scopes { get; init; } = string.Empty;
+}
+```
+
 #### appsettings.json Configuration
 
 ```json
@@ -215,31 +232,36 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
-var configuration = builder.Configuration;
+
+// Register options
+builder.Services.Configure<ExternalIdOptions>(
+    builder.Configuration.GetSection(ExternalIdOptions.SectionName));
 
 // JWT Bearer authentication for API endpoints
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(options =>
     {
-        configuration.Bind("Authentication:ExternalId", options);
+        var externalIdOptions = builder.Configuration
+            .GetSection(ExternalIdOptions.SectionName)
+            .Get<ExternalIdOptions>()!;
 
-        var tenantId = configuration["Authentication:ExternalId:TenantId"];
+        builder.Configuration.Bind(ExternalIdOptions.SectionName, options);
 
         // Accept both issuer formats (subdomain and path-based)
         options.TokenValidationParameters.ValidIssuers = new[]
         {
             $"{options.Authority}/v2.0",
-            $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0"
+            $"https://{externalIdOptions.TenantId}.ciamlogin.com/{externalIdOptions.TenantId}/v2.0"
         };
 
         // Accept API scope and client ID as audiences
         options.TokenValidationParameters.ValidAudiences = new[]
         {
-            $"api://{tenantId}/gymnastics-api",
-            configuration["Authentication:ExternalId:ApiClientId"]
+            $"api://{externalIdOptions.TenantId}/gymnastics-api",
+            externalIdOptions.ApiClientId
         };
     },
-    options => configuration.Bind("Authentication:ExternalId", options));
+    options => builder.Configuration.Bind(ExternalIdOptions.SectionName, options));
 
 // Redis-backed session store
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -472,6 +494,10 @@ public sealed record CreateSessionRequest(
 #### Graph API Integration
 
 ```csharp
+using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
 public interface IAuthenticationProvider
 {
     Task<Result<ProviderUserInfo?>> GetProviderUserInfoAsync(
@@ -481,7 +507,7 @@ public interface IAuthenticationProvider
 
 public sealed class ExternalIdAuthenticationProvider(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    IOptions<ExternalIdOptions> options,
     ILogger<ExternalIdAuthenticationProvider> logger) : IAuthenticationProvider
 {
     public async Task<Result<ProviderUserInfo?>> GetProviderUserInfoAsync(
@@ -545,22 +571,19 @@ public sealed class ExternalIdAuthenticationProvider(
 
     private async Task<Result<string>> GetAppOnlyAccessTokenAsync(CancellationToken ct)
     {
-        var config = configuration.GetSection("Authentication:ExternalId");
-        var tenantId = config["TenantId"];
-        var clientId = config["ApiClientId"];
-        var clientSecret = config["ApiClientSecret"];
+        var config = options.Value;
 
         var client = httpClientFactory.CreateClient();
         var content = new FormUrlEncodedContent(new[]
         {
-            new KeyValuePair<string, string>("client_id", clientId!),
-            new KeyValuePair<string, string>("client_secret", clientSecret!),
+            new KeyValuePair<string, string>("client_id", config.ApiClientId),
+            new KeyValuePair<string, string>("client_secret", config.ApiClientSecret),
             new KeyValuePair<string, string>("scope", "https://graph.microsoft.com/.default"),
             new KeyValuePair<string, string>("grant_type", "client_credentials")
         });
 
         var response = await client.PostAsync(
-            $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token",
+            $"https://login.microsoftonline.com/{config.TenantId}/oauth2/v2.0/token",
             content,
             ct);
 
@@ -890,11 +913,14 @@ if (string.IsNullOrWhiteSpace(email)
 **Solution**: Accept both issuer formats in your `TokenValidationParameters`:
 
 ```csharp
-var tenantId = configuration["Authentication:ExternalId:TenantId"];
+var externalIdOptions = builder.Configuration
+    .GetSection(ExternalIdOptions.SectionName)
+    .Get<ExternalIdOptions>()!;
+
 options.TokenValidationParameters.ValidIssuers = new[]
 {
     $"{authority}/v2.0",
-    $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0"
+    $"https://{externalIdOptions.TenantId}.ciamlogin.com/{externalIdOptions.TenantId}/v2.0"
 };
 ```
 
@@ -909,11 +935,14 @@ options.TokenValidationParameters.ValidIssuers = new[]
 **Solution**: Accept multiple audiences:
 
 ```csharp
-var tenantId = configuration["Authentication:ExternalId:TenantId"];
+var externalIdOptions = builder.Configuration
+    .GetSection(ExternalIdOptions.SectionName)
+    .Get<ExternalIdOptions>()!;
+
 options.TokenValidationParameters.ValidAudiences = new[]
 {
-    $"api://{tenantId}/gymnastics-api",
-    configuration["Authentication:ExternalId:ApiClientId"]
+    $"api://{externalIdOptions.TenantId}/gymnastics-api",
+    externalIdOptions.ApiClientId
 };
 ```
 
