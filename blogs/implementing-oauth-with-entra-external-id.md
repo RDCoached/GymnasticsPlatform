@@ -150,15 +150,41 @@ Scopes:
 
 #### Configure Google as Identity Provider
 
+**In Google Cloud Console** (console.cloud.google.com):
+
 ```bash
-# External Identities → Identity providers → Google
-1. Create Google OAuth app at console.cloud.google.com
-2. Configure consent screen
-3. Add authorized redirect URIs:
+# Create OAuth 2.0 Client ID
+1. Navigate to APIs & Services → Credentials
+2. Create OAuth 2.0 Client ID → Web application
+3. Configure OAuth consent screen (External)
+   - Add scopes: email, profile, openid
+   - Add test users if needed
+4. Add ALL these authorized redirect URIs:
    - https://{tenantId}.ciamlogin.com/{tenantId}/oauth2/authresp
-4. Copy Client ID and Client Secret to Entra
-5. Map claims: email → email, name → displayName
+   - https://{tenantId}.ciamlogin.com/{tenantId}/federation/oauth2
+   - https://{tenantId}.ciamlogin.com/oauth2/authresp
+   - https://{tenantId}.ciamlogin.com/federation/oauth2
+   (Entra uses different formats for different flows - add all to be safe)
+5. Copy Client ID and Client Secret
 ```
+
+**In Microsoft Entra External ID**:
+
+```bash
+# Add Google as Identity Provider
+1. Navigate to External Identities → Identity providers
+2. Click "+ Google"
+3. Paste Google Client ID and Client Secret
+4. Configure claim mapping:
+   - email → email
+   - name → name
+   - given_name → givenName
+   - family_name → surname
+   (Mapping happens in Entra, NOT in Google Console)
+5. Save and test
+```
+
+**Note**: Even with proper claim mapping, you may still get internal UPNs for some users. Always implement the Graph API fallback as shown in the code examples.
 
 ### 2. Backend Implementation (ASP.NET Core)
 
