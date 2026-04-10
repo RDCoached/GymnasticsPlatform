@@ -46,12 +46,9 @@ export function AuthCallbackPage() {
         // Clear URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        // Check if user needs onboarding
-        if (!userData.tenantId || userData.tenantId === '00000000-0000-0000-0000-000000000001') {
-          navigate('/onboarding');
-        } else {
-          navigate('/dashboard');
-        }
+        // Always redirect to onboarding after OAuth
+        // OnboardingScreen will decide whether to redirect to dashboard
+        navigate('/onboarding');
       } catch (error) {
         console.error('Authentication callback failed:', error);
         navigate('/sign-in', {

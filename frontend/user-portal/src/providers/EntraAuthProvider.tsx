@@ -44,11 +44,26 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
 
         // If OAuth redirect just completed, create session
         if (response && response.accessToken) {
+          // Extract email and name from ID token (account object has ID token claims)
+          const account = response.account;
+
+          // Extract user info from ID token
+          const providerUserId = account?.localAccountId || account?.idTokenClaims?.oid || '';
+          const email = account?.idTokenClaims?.email || account?.username || '';
+          const fullName = account?.name || account?.idTokenClaims?.name || 'User';
+
+          console.log('📧 From ID token:', { providerUserId, email, fullName });
+
           const sessionResponse = await fetch(`${API_URL}/api/auth/session`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ accessToken: response.accessToken }),
+            body: JSON.stringify({
+              accessToken: response.accessToken,
+              providerUserId: providerUserId,
+              email: email,
+              fullName: fullName
+            }),
           });
 
           if (sessionResponse.ok) {
@@ -60,12 +75,9 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
               onboardingCompleted: userData.onboardingCompleted,
             });
 
-            // Navigate based on onboarding status
-            if (!userData.tenantId || userData.tenantId === '00000000-0000-0000-0000-000000000001') {
-              window.location.href = '/onboarding';
-            } else {
-              window.location.href = '/dashboard';
-            }
+            // Always redirect to onboarding after OAuth
+            // OnboardingScreen will decide whether to redirect to dashboard
+            window.location.href = '/onboarding';
           } else {
             console.error('Failed to create session:', await sessionResponse.text());
           }
@@ -101,15 +113,8 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
               fullName: data.fullName || account.name || 'User',
               onboardingCompleted: data.onboardingCompleted,
             });
-          } else {
-            // User has MSAL account but no backend session - might be new OAuth user
-            setUser({
-              id: account.localAccountId,
-              email: account.username,
-              fullName: account.name || 'User',
-              onboardingCompleted: false,
-            });
           }
+          // If 401, don't set user - OAuth flow will handle session creation
         } else {
           // Check for session-based auth (email/password)
           const response = await fetch(`${API_URL}/api/auth/me`, {
