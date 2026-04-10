@@ -196,21 +196,27 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
     }
 
     // Test helper methods
-    private static string GenerateValidJwtToken(string keycloakUserId, string email)
+    private static string GenerateValidJwtToken(string providerUserId, string email)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("test-secret-key-for-integration-tests-12345678"));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+        // Use the same tenant ID and audience as configured in appsettings.json
+        const string tenantId = "cdb93b0d-7905-4231-826b-ef17ec1e24aa";
+        const string issuer = $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0";
+        const string audience = $"api://{tenantId}/gymnastics-api";
+
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, keycloakUserId),
-            new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim("sub", providerUserId),
+            new Claim("oid", providerUserId),  // Azure uses 'oid' (object identifier)
+            new Claim("email", email),
+            new Claim("jti", Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(
-            issuer: "test-keycloak",
-            audience: "user-portal",
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: credentials);

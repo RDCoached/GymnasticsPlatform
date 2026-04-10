@@ -1,3 +1,4 @@
+using System.Text;
 using Auth.Application.Services;
 using Auth.Domain.Entities;
 using Auth.Infrastructure.Persistence;
@@ -191,6 +192,7 @@ public sealed class AuthEndpoints : IEndpointGroup
             tokenResponse.AccessToken,
             httpContext.RequestServices.GetRequiredService<IConfiguration>(),
             logger,
+            env,
             ct);
 
         if (providerUserId is null)
@@ -421,6 +423,7 @@ public sealed class AuthEndpoints : IEndpointGroup
             tokenResponse.AccessToken,
             httpContext.RequestServices.GetRequiredService<IConfiguration>(),
             logger,
+            env,
             ct);
 
         if (!validationResult.IsValid || validationResult.ClaimsPrincipal is null)
@@ -685,10 +688,11 @@ public sealed class AuthEndpoints : IEndpointGroup
         string accessToken,
         IConfiguration configuration,
         ILogger logger,
+        IHostEnvironment env,
         CancellationToken ct)
     {
         logger.LogWarning("🔍 STARTING JWT VALIDATION");
-        var result = await ValidateAccessTokenAsync(accessToken, configuration, logger, ct);
+        var result = await ValidateAccessTokenAsync(accessToken, configuration, logger, env, ct);
 
         logger.LogWarning("VALIDATION RESULT: IsValid={IsValid}, HasPrincipal={HasPrincipal}",
             result.IsValid, result.ClaimsPrincipal != null);
@@ -717,6 +721,7 @@ public sealed class AuthEndpoints : IEndpointGroup
         string accessToken,
         IConfiguration configuration,
         ILogger logger,
+        IHostEnvironment env,
         CancellationToken ct)
     {
         var externalIdConfig = configuration.GetSection("Authentication:ExternalId");
@@ -725,20 +730,11 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
 
-        // Fetch signing keys from OIDC discovery endpoint
-        var discoveryEndpoint = $"{authority}/v2.0/.well-known/openid-configuration";
-        var configManager = new Microsoft.IdentityModel.Protocols.ConfigurationManager<OpenIdConnectConfiguration>(
-            discoveryEndpoint,
-            new OpenIdConnectConfigurationRetriever(),
-            new Microsoft.IdentityModel.Protocols.HttpDocumentRetriever());
-
-        var oidcConfig = await configManager.GetConfigurationAsync(ct);
-
         // Accept both issuer formats (subdomain and path-based)
         var validIssuers = new[]
         {
-            $"{authority}/v2.0",  // Path-based: https://gymnasticsciam.ciamlogin.com/{tenantId}/v2.0
-            $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0"  // Subdomain: https://{tenantId}.ciamlogin.com/{tenantId}/v2.0
+            $"{authority}/v2.0",  // Path-based
+            $"https://{tenantId}.ciamlogin.com/{tenantId}/v2.0"  // Subdomain
         };
 
         // Accept multiple audiences (API identifier for OAuth, client ID for ROPC/email-password)
@@ -749,7 +745,49 @@ public sealed class AuthEndpoints : IEndpointGroup
             validAudiences.Add(clientId);
         }
 
-        var validationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        Microsoft.IdentityModel.Tokens.TokenValidationParameters validationParameters;
+
+        // In test environment, validate with test signing key (must match MockAuthenticationProvider key)
+        if (env.EnvironmentName == "Test")
+        {
+            var testSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes("test-secret-key-for-integration-tests-12345678"));
+
+            validationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuers = validIssuers,
+                ValidateAudience = true,
+                ValidAudiences = validAudiences,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = testSigningKey
+            };
+
+            try
+            {
+                var principal = handler.ValidateToken(accessToken, validationParameters, out var validatedToken);
+                logger.LogInformation("✅ Test JWT validated successfully");
+                return new TokenValidationResult(true, principal);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "❌ Test JWT Validation Failed: {Message}", ex.Message);
+                return new TokenValidationResult(false, null);
+            }
+        }
+
+        // Production validation with OIDC discovery
+        // Fetch signing keys from OIDC discovery endpoint
+        var discoveryEndpoint = $"{authority}/v2.0/.well-known/openid-configuration";
+        var configManager = new Microsoft.IdentityModel.Protocols.ConfigurationManager<OpenIdConnectConfiguration>(
+            discoveryEndpoint,
+            new OpenIdConnectConfigurationRetriever(),
+            new Microsoft.IdentityModel.Protocols.HttpDocumentRetriever());
+
+        var oidcConfig = await configManager.GetConfigurationAsync(ct);
+
+        validationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuers = validIssuers,

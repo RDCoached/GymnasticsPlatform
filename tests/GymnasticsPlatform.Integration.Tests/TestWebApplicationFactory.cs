@@ -37,6 +37,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     private readonly TestEmailService _testEmailService = new();
     public TestEmailService TestEmailService => _testEmailService;
 
+    private readonly MockSessionService _mockSessionService = new();
+    public MockSessionService MockSessionService => _mockSessionService;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
@@ -65,6 +68,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             // Replace IEmailService with test implementation
             services.RemoveAll(typeof(IEmailService));
             services.AddSingleton<IEmailService>(_testEmailService);
+
+            // Replace ISessionService with mock
+            services.RemoveAll(typeof(GymnasticsPlatform.Api.Services.ISessionService));
+            services.AddSingleton<GymnasticsPlatform.Api.Services.ISessionService>(_mockSessionService);
 
             // Replace IEmbeddingService with mock
             services.RemoveAll(typeof(Training.Application.Services.IEmbeddingService));
@@ -186,6 +193,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     {
         _mockAuthProvider.Reset();
         _testEmailService.SentEmails.Clear();
+        _mockSessionService.Reset();
     }
 
     public async Task InitializeAsync()
@@ -196,6 +204,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public new async Task DisposeAsync()
     {
         _mockAuthProvider.Reset();
+        _mockSessionService.Reset();
         await _dbContainer.DisposeAsync();
         await base.DisposeAsync();
     }
