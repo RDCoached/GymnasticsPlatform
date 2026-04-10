@@ -117,7 +117,7 @@ sequenceDiagram
 1. Navigate to "Microsoft Entra External ID"
 2. Create new tenant → Choose "External ID (CIAM)"
 3. Note your tenant ID: {your-tenant-id}
-4. Your authority will be: https://{tenantId}.ciamlogin.com/{tenantId}
+4. Your authority will be: https://{your-tenant-id}.ciamlogin.com/{your-tenant-id}
 ```
 
 #### Register Your Application
@@ -143,7 +143,7 @@ Microsoft Graph:
 Create client secret: <store in Azure Key Vault>
 
 # Expose an API
-Application ID URI: api://{tenantId}/gymnastics-api
+Application ID URI: api://{your-tenant-id}/gymnastics-api
 Scopes:
   - user.access (Admin and users) - "Access the API as the user"
 ```
@@ -159,11 +159,11 @@ Scopes:
 3. Configure OAuth consent screen (External)
    - Add scopes: email, profile, openid
    - Add test users if needed
-4. Add ALL these authorized redirect URIs:
-   - https://{tenantId}.ciamlogin.com/{tenantId}/oauth2/authresp
-   - https://{tenantId}.ciamlogin.com/{tenantId}/federation/oauth2
-   - https://{tenantId}.ciamlogin.com/oauth2/authresp
-   - https://{tenantId}.ciamlogin.com/federation/oauth2
+4. Add ALL these authorized redirect URIs (replace {your-tenant-id} with your actual tenant ID):
+   - https://{your-tenant-id}.ciamlogin.com/{your-tenant-id}/oauth2/authresp
+   - https://{your-tenant-id}.ciamlogin.com/{your-tenant-id}/federation/oauth2
+   - https://{your-tenant-id}.ciamlogin.com/oauth2/authresp
+   - https://{your-tenant-id}.ciamlogin.com/federation/oauth2
    (Entra uses different formats for different flows - add all to be safe)
 5. Copy Client ID and Client Secret
 ```
@@ -211,16 +211,19 @@ Scopes:
 #### Program.cs - Authentication Setup
 
 ```csharp
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
 // JWT Bearer authentication for API endpoints
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(options =>
     {
-        builder.Configuration.Bind("Authentication:ExternalId", options);
+        configuration.Bind("Authentication:ExternalId", options);
+
+        var tenantId = configuration["Authentication:ExternalId:TenantId"];
 
         // Accept both issuer formats (subdomain and path-based)
         options.TokenValidationParameters.ValidIssuers = new[]
@@ -236,7 +239,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             configuration["Authentication:ExternalId:ApiClientId"]
         };
     },
-    options => builder.Configuration.Bind("Authentication:ExternalId", options));
+    options => configuration.Bind("Authentication:ExternalId", options));
 
 // Redis-backed session store
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -373,7 +376,7 @@ public sealed class AuthEndpoints : IEndpointGroup
 
         // Check if email is an internal UPN (not a real email address)
         var isInternalUpn = !string.IsNullOrWhiteSpace(email)
-            && email.Contains("@gymnasticsciam.onmicrosoft.com");
+            && email.Contains(".onmicrosoft.com");
 
         // If email/name is missing OR email is internal UPN, use Graph API
         if (string.IsNullOrWhiteSpace(email)
@@ -688,8 +691,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const result = await msalInstance.loginPopup(loginRequest);
 
-      // Extract user info from ID token
-      const idToken = result.idToken;
+      // Extract user info from account
       const account = result.account;
 
       // Get access token for API
@@ -853,7 +855,7 @@ export function SignInPage() {
 
 ```csharp
 var isInternalUpn = !string.IsNullOrWhiteSpace(email)
-    && email.Contains("@gymnasticsciam.onmicrosoft.com");
+    && email.Contains(".onmicrosoft.com");
 
 if (string.IsNullOrWhiteSpace(email)
     || string.IsNullOrWhiteSpace(name)
@@ -880,12 +882,15 @@ if (string.IsNullOrWhiteSpace(email)
 **Problem**: JWT validation was failing because the `iss` claim format varied depending on how the user authenticated.
 
 **Why it happens**: Entra External ID can issue tokens with two different issuer formats:
-- Path-based: `https://gymnasticsciam.ciamlogin.com/{tenantId}/v2.0`
-- Subdomain: `https://{tenantId}.ciamlogin.com/{tenantId}/v2.0`
+- Path-based: `https://{your-tenant-id}.ciamlogin.com/{your-tenant-id}/v2.0`
+- Subdomain: `https://{your-tenant-id}.ciamlogin.com/{your-tenant-id}/v2.0`
+
+(Note: Both formats may actually use the tenant ID in the subdomain - the difference is in internal routing)
 
 **Solution**: Accept both issuer formats in your `TokenValidationParameters`:
 
 ```csharp
+var tenantId = configuration["Authentication:ExternalId:TenantId"];
 options.TokenValidationParameters.ValidIssuers = new[]
 {
     $"{authority}/v2.0",
@@ -904,6 +909,7 @@ options.TokenValidationParameters.ValidIssuers = new[]
 **Solution**: Accept multiple audiences:
 
 ```csharp
+var tenantId = configuration["Authentication:ExternalId:TenantId"];
 options.TokenValidationParameters.ValidAudiences = new[]
 {
     $"api://{tenantId}/gymnastics-api",
