@@ -17,12 +17,15 @@ case "$1" in
     echo "   3. Run Admin Portal:  cd frontend/admin-portal && npm install && npm run dev"
     echo ""
     echo "🌐 Services:"
-    echo "   API:              http://localhost:5001"
-    echo "   User Portal:      http://localhost:3001"
-    echo "   Admin Portal:     http://localhost:3002"
-    echo "   Database Admin:   http://localhost:8081"
-    echo "   MailHog:          http://localhost:8025"
-    echo "   Grafana:          http://localhost:3000"
+    echo "   API:              http://api.gymnastics.localhost"
+    echo "   User Portal:      http://app.gymnastics.localhost"
+    echo "   Admin Portal:     http://admin.gymnastics.localhost"
+    echo "   Grafana:          http://grafana.gymnastics.localhost"
+    echo "   Prometheus:       http://prometheus.gymnastics.localhost"
+    echo "   Database Admin:   http://db.gymnastics.localhost"
+    echo "   MailHog:          http://mail.gymnastics.localhost"
+    echo "   CouchDB:          http://couchdb.gymnastics.localhost"
+    echo "   Traefik:          http://traefik.gymnastics.localhost"
     ;;
 
   down)
