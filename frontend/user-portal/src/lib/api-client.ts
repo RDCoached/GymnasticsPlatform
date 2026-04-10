@@ -214,7 +214,7 @@ export class ApiClient {
     return response.json();
   }
 
-  async updateProfile(token: string | null | undefined, request: UpdateProfileRequest): Promise<ProfileResponse> {
+  async updateProfile(request: UpdateProfileRequest, token?: string | null): Promise<ProfileResponse> {
     const response = await fetch(`${this.baseUrl}/api/profile`, {
       method: 'PUT',
       headers: this.getAuthHeaders(token),

@@ -91,7 +91,7 @@ describe('Dashboard', () => {
       expect(screen.getByText(/"userId": "user-123"/)).toBeInTheDocument();
     });
 
-    expect(apiClient.getCurrentUser).toHaveBeenCalledWith(mockToken);
+    expect(apiClient.getCurrentUser).toHaveBeenCalled();
   });
 
   it('should display loading state while calling API', async () => {
@@ -156,8 +156,16 @@ describe('Dashboard', () => {
     });
   });
 
-  it('should show error when no token is available for API call', async () => {
-    mockGetToken.mockReturnValue(null);
+  it('should show error when no session is available for API call', async () => {
+    vi.mocked(apiClient.getCurrentUser).mockResolvedValueOnce({
+      userId: 'user-123',
+      email: 'test@example.com',
+      fullName: 'Test User',
+      onboardingCompleted: true,
+      tenantId: '00000000-0000-0000-0000-000000000000',
+      roles: [],
+    });
+    vi.mocked(apiClient.getCurrentUser).mockRejectedValueOnce(new Error('Unauthorized'));
 
     render(<Dashboard />);
 
@@ -166,7 +174,7 @@ describe('Dashboard', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Error:')).toBeInTheDocument();
-      expect(screen.getByText('No authentication token available')).toBeInTheDocument();
+      expect(screen.getByText('Unauthorized')).toBeInTheDocument();
     });
   });
 
