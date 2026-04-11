@@ -40,6 +40,10 @@ artifacts/
 # Docker
 .dockerignore
 
+# SSL/TLS Certificates
+*.key
+*.pem
+
 # Local Development
 *.local.*
 appsettings.Development.json

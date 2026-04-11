@@ -44,10 +44,16 @@ public sealed class ExternalIdAuthenticationProvider(
 
     private GraphServiceClient CreateGraphClient()
     {
+        var options = new ClientSecretCredentialOptions
+        {
+            AuthorityHost = new Uri(_authority)
+        };
+
         var credential = new ClientSecretCredential(
             _tenantId,
             _apiClientId,
-            _apiClientSecret);
+            _apiClientSecret,
+            options);
 
         return new GraphServiceClient(credential);
     }

@@ -8,6 +8,7 @@ using GymnasticsPlatform.Api.Middleware;
 using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Resend;
@@ -185,6 +186,14 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AuthDbContext>("database");
 
+// Configure forwarded headers for reverse proxy (Traefik)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.All;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
@@ -274,24 +283,31 @@ if (app.Environment.IsDevelopment())
 // Configure the HTTP request pipeline
 app.UseExceptionHandler();
 
-app.MapOpenApi();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapScalarApiReference();
-}
-
-app.UseCors();
+// Forward headers from reverse proxy (Traefik) - must be early in pipeline
+app.UseForwardedHeaders();
 
 // Enable HTTP request/response logging
 app.UseHttpLogging();
-    
+
+// Routing must come before CORS for endpoint-based CORS to work
+app.UseRouting();
+
+app.UseCors();
+
 // Session authentication (reads session_id cookie and sets httpContext.User)
 app.UseMiddleware<SessionAuthenticationMiddleware>();
 
 app.UseAuthentication(); // JWT Bearer authentication for Entra ID
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
+
+// Map OpenAPI and endpoints - all Map* calls must come after middleware setup
+app.MapOpenApi();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapScalarApiReference();
+}
 
 // Auto-discover and register all endpoint groups
 app.MapEndpoints();

@@ -242,15 +242,17 @@ GitHub Actions workflow runs on every push to `main` or PR:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| API | http://api.gymnastics.localhost | N/A |
-| User Portal | http://app.gymnastics.localhost | (OAuth SSO) |
-| Admin Portal | http://admin.gymnastics.localhost | (OAuth SSO) |
-| Grafana | http://grafana.gymnastics.localhost | Anonymous (admin) |
-| Adminer (DB UI) | http://db.gymnastics.localhost | gymadmin / local_dev_password_123 |
-| MailHog | http://mail.gymnastics.localhost | N/A |
-| CouchDB | http://couchdb.gymnastics.localhost | admin / changeme |
-| Ollama | http://ollama.gymnastics.localhost | N/A |
-| Traefik Dashboard | http://traefik.gymnastics.localhost (or http://localhost:8080/dashboard/) | N/A |
+| API | https://api.gymnastics.localhost | N/A |
+| User Portal | https://app.gymnastics.localhost | (OAuth SSO) |
+| Admin Portal | https://admin.gymnastics.localhost | (OAuth SSO) |
+| Grafana | https://grafana.gymnastics.localhost | Anonymous (admin) |
+| Adminer (DB UI) | https://db.gymnastics.localhost | gymadmin / local_dev_password_123 |
+| MailHog | https://mail.gymnastics.localhost | N/A |
+| CouchDB | https://couchdb.gymnastics.localhost | admin / changeme |
+| Ollama | https://ollama.gymnastics.localhost | N/A |
+| Traefik Dashboard | https://traefik.gymnastics.localhost (or http://localhost:8080/dashboard/) | N/A |
+
+**Note**: HTTPS uses self-signed certificates for local development. You'll need to accept the certificate warnings in your browser on first visit. See `docs/TRAEFIK_HTTPS_TROUBLESHOOTING.md` for setup details.
 
 ## Phase 1 Status
 
@@ -260,7 +262,7 @@ GitHub Actions workflow runs on every push to `main` or PR:
 ✅ Redis-backed session management
 ✅ OpenTelemetry observability
 ✅ Docker Compose for local development
-✅ Traefik reverse proxy with clean domain routing
+✅ Traefik reverse proxy with HTTPS and clean domain routing
 ✅ Code coverage infrastructure
 ✅ CI/CD pipeline with GitHub Actions
 ✅ React SPAs with authentication flows
