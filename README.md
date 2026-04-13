@@ -42,6 +42,46 @@ A modular monolith application for gymnastics session planning with multi-tenanc
 - Docker Desktop
 - Node.js 20+ (for frontend)
 
+### Configuration
+
+**Azure Entra External ID Credentials** (required for authentication):
+
+1. Copy the template files:
+   ```bash
+   cp .azure-entra.env.example .azure-entra.env  # If template exists
+   cp frontend/user-portal/.env.example frontend/user-portal/.env
+   cp frontend/admin-portal/.env.example frontend/admin-portal/.env  # If needed
+   ```
+
+2. **For Docker deployments**: Update `.azure-entra.env` with your Azure credentials:
+   ```bash
+   TENANT_ID=your-tenant-id
+   API_CLIENT_ID=your-api-client-id
+   API_CLIENT_SECRET=your-api-client-secret
+   CIAM_DOMAIN=your-ciam-domain.onmicrosoft.com
+   AUTHORITY=https://your-ciam-domain.ciamlogin.com/your-tenant-id
+   ```
+
+3. **For local development** (`dotnet run`): Use one of these methods:
+
+   **Option A: User Secrets (Recommended)**
+   ```bash
+   cd src/GymnasticsPlatform.Api
+   dotnet user-secrets set "Authentication:ExternalId:TenantId" "your-tenant-id"
+   dotnet user-secrets set "Authentication:ExternalId:ApiClientId" "your-api-client-id"
+   dotnet user-secrets set "Authentication:ExternalId:ApiClientSecret" "your-api-client-secret"
+   dotnet user-secrets set "Authentication:ExternalId:Authority" "https://your-ciam-domain.ciamlogin.com"
+   dotnet user-secrets set "Authentication:ExternalId:CiamDomain" "your-ciam-domain.onmicrosoft.com"
+   ```
+
+   **Option B: appsettings.Development.json (Gitignored)**
+
+   Create `src/GymnasticsPlatform.Api/appsettings.Development.json` with your credentials (this file is gitignored).
+
+4. **Frontend configuration**: Update the `.env` files in frontend directories with your Azure app registration client IDs.
+
+See [ENTRA_ID_SETUP.md](docs/ENTRA_ID_SETUP.md) for detailed Azure configuration steps.
+
 ### Development Mode (Recommended)
 
 For local development with hot reload, run infrastructure in Docker and applications locally:

@@ -1,0 +1,8 @@
+# Gitleaks ignore file
+# Suppress false positives from security scans
+
+# Blog post documentation - mentions "Client Secret" in text but contains no actual secrets
+blogs/implementing-oauth-with-entra-external-id.md:generic-api-key:173
+
+# Placeholder values in appsettings.json - not real credentials
+src/GymnasticsPlatform.Api/appsettings.json:generic-api-key:16
