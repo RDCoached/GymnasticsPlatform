@@ -117,12 +117,15 @@ public sealed class UserTenantUpdatedIntegrationTests : IClassFixture<TestWebApp
         var mockAuthProvider = _factory.GetMockAuthProvider();
         mockAuthProvider.Reset();
 
-        // Act - Create club via onboarding endpoint
-        _client.DefaultRequestHeaders.Add("X-User-Id", providerUserId);
-        _client.DefaultRequestHeaders.Add("X-User-Email", email);
+        // Act - Create club via onboarding endpoint with authenticated client
+        var authenticatedClient = _factory.CreateAuthenticatedClient(
+            providerUserId,
+            onboardingTenantId.ToString(),
+            email,
+            fullName);
 
         var createClubRequest = new { Name = clubName };
-        var response = await _client.PostAsJsonAsync("/api/onboarding/create-club", createClubRequest);
+        var response = await authenticatedClient.PostAsJsonAsync("/api/onboarding/create-club", createClubRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

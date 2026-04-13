@@ -206,9 +206,16 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
         var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
 
-        // Delete all data from test database
+        // Delete all data from test database (only truncate tables that exist)
         await authDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE user_roles, user_profiles, club_invites, clubs RESTART IDENTITY CASCADE");
-        await trainingDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE skills, programmes RESTART IDENTITY CASCADE");
+
+        // Check if skills table exists before truncating
+        var skillsTableExists = await trainingDb.Database.ExecuteSqlRawAsync(
+            "SELECT 1 FROM information_schema.tables WHERE table_name = 'skills' LIMIT 1");
+        if (skillsTableExists > 0)
+        {
+            await trainingDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE skills RESTART IDENTITY CASCADE");
+        }
     }
 
     public async Task InitializeAsync()
