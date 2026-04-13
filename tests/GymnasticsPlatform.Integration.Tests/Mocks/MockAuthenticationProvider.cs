@@ -19,9 +19,16 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
     private readonly Dictionary<string, string> _refreshTokens = new();
     private readonly Dictionary<string, string> _emailToUserId = new(StringComparer.OrdinalIgnoreCase);
 
+    // Domain event handler tracking
+    public int UpdateTenantIdCallCount { get; private set; }
+    public string? LastUpdatedProviderUserId { get; private set; }
+    public Guid? LastUpdatedTenantId { get; private set; }
+
     public Task<Result> UpdateUserTenantIdAsync(string providerUserId, Guid newTenantId, CancellationToken ct = default)
     {
-        // For testing, just succeed
+        UpdateTenantIdCallCount++;
+        LastUpdatedProviderUserId = providerUserId;
+        LastUpdatedTenantId = newTenantId;
         return Task.FromResult(Result.Success());
     }
 
@@ -239,5 +246,8 @@ public sealed class MockAuthenticationProvider : IAuthenticationProvider
         _emailVerificationStatus.Clear();
         _refreshTokens.Clear();
         _emailToUserId.Clear();
+        UpdateTenantIdCallCount = 0;
+        LastUpdatedProviderUserId = null;
+        LastUpdatedTenantId = null;
     }
 }

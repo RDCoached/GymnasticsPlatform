@@ -11,18 +11,15 @@ public sealed class UserTenantService : IUserTenantService
     private readonly AuthDbContext _db;
     private readonly TimeProvider _clock;
     private readonly ILogger<UserTenantService> _logger;
-    private readonly IAuthenticationProvider _authProvider;
 
     public UserTenantService(
         AuthDbContext db,
         TimeProvider clock,
-        ILogger<UserTenantService> logger,
-        IAuthenticationProvider authProvider)
+        ILogger<UserTenantService> logger)
     {
         _db = db;
         _clock = clock;
         _logger = logger;
-        _authProvider = authProvider;
     }
 
     public async Task<Guid?> GetUserTenantIdAsync(string providerUserId, CancellationToken ct = default)
@@ -53,7 +50,7 @@ public sealed class UserTenantService : IUserTenantService
         {
             // Update existing profile's tenant
             var oldTenantId = userProfile.TenantId;
-            userProfile.UpdateTenant(newTenantId);
+            userProfile.UpdateTenant(newTenantId, _clock);
 
             _logger.LogInformation(
                 "Updated user {UserId} tenant from {OldTenant} to {NewTenant}",
@@ -84,7 +81,6 @@ public sealed class UserTenantService : IUserTenantService
 
         await _db.SaveChangesAsync(ct);
 
-        // Update auth provider (Entra ID) user attributes so future JWT tokens have correct tenant_id
-        await _authProvider.UpdateUserTenantIdAsync(providerUserId, newTenantId, ct);
+        // Event is published automatically by DomainEventInterceptor
     }
 }

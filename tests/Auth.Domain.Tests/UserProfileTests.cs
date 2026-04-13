@@ -1,4 +1,6 @@
 using Auth.Domain.Entities;
+using Auth.Domain.Events;
+using Common.Core.DomainEvents;
 using FluentAssertions;
 
 namespace Auth.Domain.Tests;
@@ -256,5 +258,101 @@ public sealed class UserProfileTests
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*already*");
+    }
+
+    [Fact]
+    public void UpdateTenant_RaisesDomainEvent_WithCorrectValues()
+    {
+        // Arrange
+        var oldTenantId = Guid.NewGuid();
+        var newTenantId = Guid.NewGuid();
+        var providerUserId = "entra-user-123";
+        var email = "test@example.com";
+        var fullName = "Test User";
+        var clock = TimeProvider.System;
+        var userProfile = UserProfile.Create(
+            oldTenantId,
+            providerUserId,
+            email,
+            fullName,
+            DateTimeOffset.UtcNow);
+
+        // Act
+        userProfile.UpdateTenant(newTenantId, clock);
+
+        // Assert
+        userProfile.TenantId.Should().Be(newTenantId);
+        userProfile.DomainEvents.Should().HaveCount(1);
+        var domainEvent = userProfile.DomainEvents.Single();
+        domainEvent.Should().BeOfType<UserTenantUpdatedEvent>();
+        var tenantUpdatedEvent = (UserTenantUpdatedEvent)domainEvent;
+        tenantUpdatedEvent.UserId.Should().Be(userProfile.Id);
+        tenantUpdatedEvent.ProviderUserId.Should().Be(providerUserId);
+        tenantUpdatedEvent.OldTenantId.Should().Be(oldTenantId);
+        tenantUpdatedEvent.NewTenantId.Should().Be(newTenantId);
+        tenantUpdatedEvent.Email.Should().Be(email);
+        tenantUpdatedEvent.FullName.Should().Be(fullName);
+        tenantUpdatedEvent.OccurredAt.Should().BeCloseTo(clock.GetUtcNow(), TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void UpdateTenant_WithEmptyTenantId_ThrowsArgumentException_AndDoesNotRaiseEvent()
+    {
+        // Arrange
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "entra-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+        var clock = TimeProvider.System;
+
+        // Act
+        var act = () => userProfile.UpdateTenant(Guid.Empty, clock);
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*Tenant ID*");
+        userProfile.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UserProfile_ImplementsIHasDomainEvents()
+    {
+        // Arrange
+        var userProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            "entra-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+
+        // Assert
+        userProfile.Should().BeAssignableTo<IHasDomainEvents>();
+        userProfile.DomainEvents.Should().NotBeNull();
+        userProfile.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ClearDomainEvents_RemovesAllEvents()
+    {
+        // Arrange
+        var oldTenantId = Guid.NewGuid();
+        var newTenantId = Guid.NewGuid();
+        var clock = TimeProvider.System;
+        var userProfile = UserProfile.Create(
+            oldTenantId,
+            "entra-user-123",
+            "test@example.com",
+            "Test User",
+            DateTimeOffset.UtcNow);
+        userProfile.UpdateTenant(newTenantId, clock);
+        userProfile.DomainEvents.Should().HaveCount(1);
+
+        // Act
+        userProfile.ClearDomainEvents();
+
+        // Assert
+        userProfile.DomainEvents.Should().BeEmpty();
     }
 }
