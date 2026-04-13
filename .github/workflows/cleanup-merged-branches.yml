@@ -1,0 +1,78 @@
+name: Cleanup Merged Branches
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:  # Allow manual trigger
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight
+
+jobs:
+  cleanup:
+    # Only run if PR was merged (not closed without merge) or if scheduled/manual
+    if: |
+      github.event.pull_request.merged == true ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to delete branches
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches
+
+      - name: Delete the merged branch
+        if: github.event.pull_request.merged == true
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          echo "Deleting merged branch: $BRANCH_NAME"
+          git push origin --delete "$BRANCH_NAME" || echo "Branch already deleted"
+
+      - name: Clean up all merged branches (scheduled run)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Finding branches merged into main..."
+          git fetch origin
+
+          # Get list of merged branches
+          MERGED_BRANCHES=$(git branch -r --merged origin/main | \
+            grep -v "main" | \
+            grep -v "HEAD" | \
+            sed 's/origin\///' || true)
+
+          if [ -z "$MERGED_BRANCHES" ]; then
+            echo "No merged branches to clean up"
+            exit 0
+          fi
+
+          echo "Found merged branches:"
+          echo "$MERGED_BRANCHES"
+
+          # Delete each merged branch
+          echo "$MERGED_BRANCHES" | while read -r branch; do
+            if [ -n "$branch" ]; then
+              echo "Deleting: $branch"
+              git push origin --delete "$branch" || echo "Failed to delete $branch"
+            fi
+          done
+
+          echo "✨ Cleanup complete!"
+
+      - name: Summary
+        run: |
+          echo "### Branch Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "✅ Deleted branch: ${{ github.event.pull_request.head.ref }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Cleaned up all merged branches" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Current remote branches:" >> $GITHUB_STEP_SUMMARY
+          git branch -r | sed 's/origin\///' | grep -v HEAD >> $GITHUB_STEP_SUMMARY || echo "Only main branch remains" >> $GITHUB_STEP_SUMMARY

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Gymnastics Session Planner** - A multi-tenant SaaS platform for gymnastics session planning with Microsoft Entra External ID authentication, React SPAs, and OpenTelemetry observability.
 
-**Current Branch**: `feature-traefik` - Traefik reverse proxy integration for clean domain routing. Uses Microsoft Entra External ID (CIAM) for OAuth 2.0 authentication with session cookies, Redis-backed sessions, and automated Azure infrastructure provisioning.
+**Current State**: Production-ready main branch with Microsoft Entra External ID (CIAM) for OAuth 2.0 authentication with JWT tokens, Traefik reverse proxy for clean domain routing, Redis-backed sessions, and automated Azure infrastructure provisioning.
 
 **Architecture**: Hybrid Modular Monolith with Onion Architecture per module
 - Each module (Auth, Sessions) follows Domain → Application → Infrastructure → API layers
