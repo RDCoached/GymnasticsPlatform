@@ -50,6 +50,7 @@ appsettings.Development.json
 appsettings.*.local.json
 .env
 .env.local
+.env.backup
 .azure-entra.env
 
 # Node.js (for frontend)
