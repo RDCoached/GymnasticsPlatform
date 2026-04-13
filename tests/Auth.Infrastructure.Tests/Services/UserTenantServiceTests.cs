@@ -1,4 +1,3 @@
-using Auth.Application.Services;
 using Auth.Domain.Entities;
 using Auth.Infrastructure.Persistence;
 using Auth.Infrastructure.Services;
@@ -53,9 +52,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         db.UserProfiles.Add(userProfile);
         await db.SaveChangesAsync();
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         var result = await service.GetUserTenantIdAsync(userId);
@@ -75,9 +73,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         var result = await service.GetUserTenantIdAsync(userId);
@@ -96,9 +93,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         var result = await service.GetUserTenantIdAsync(string.Empty);
@@ -128,9 +124,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         db.UserProfiles.Add(userProfile);
         await db.SaveChangesAsync();
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         await service.UpdateUserTenantAsync(userId, newTenantId);
@@ -140,8 +135,7 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
             .IgnoreQueryFilters()
             .FirstAsync(u => u.ProviderUserId == userId);
         updated.TenantId.Should().Be(newTenantId);
-
-        await authProvider.Received(1).UpdateUserTenantIdAsync(userId, newTenantId, Arg.Any<CancellationToken>());
+        // Note: AuthProvider call now happens via domain event handler
     }
 
     [Fact]
@@ -157,9 +151,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         await service.UpdateUserTenantAsync(userId, tenantId, email, fullName);
@@ -173,8 +166,7 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         created!.TenantId.Should().Be(tenantId);
         created.Email.Should().Be(email);
         created.FullName.Should().Be(fullName);
-
-        await authProvider.Received(1).UpdateUserTenantIdAsync(userId, tenantId, Arg.Any<CancellationToken>());
+        // Note: AuthProvider call now happens via domain event handler
     }
 
     [Fact]
@@ -188,9 +180,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         var act = async () => await service.UpdateUserTenantAsync(userId, tenantId, null, "Name");
@@ -211,9 +202,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         var act = async () => await service.UpdateUserTenantAsync(userId, tenantId, "email@test.com", null);
@@ -234,9 +224,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenantContext = CreateTenantContext(tenantId);
         await using var db = CreateDbContext(tenantContext);
 
-        var authProvider = Substitute.For<IAuthenticationProvider>();
         var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
+        var service = new UserTenantService(db, clock, logger);
 
         // Act
         var act = async () => await service.UpdateUserTenantAsync(userId, tenantId, string.Empty, "Name");
@@ -246,40 +235,9 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
             .WithMessage("*Email*required*");
     }
 
-    [Fact]
-    public async Task UpdateUserTenantAsync_UpdatesKeycloakService()
-    {
-        // Arrange
-        var oldTenantId = Guid.NewGuid();
-        var newTenantId = Guid.NewGuid();
-        var userId = "keycloak-user-123";
-        var clock = TimeProvider.System;
-
-        var tenantContext = CreateTenantContext(oldTenantId);
-        await using var db = CreateDbContext(tenantContext);
-
-        var userProfile = UserProfile.Create(
-            oldTenantId,
-            userId,
-            "test@example.com",
-            "Test User",
-            clock.GetUtcNow());
-        db.UserProfiles.Add(userProfile);
-        await db.SaveChangesAsync();
-
-        var authProvider = Substitute.For<IAuthenticationProvider>();
-        var logger = Substitute.For<ILogger<UserTenantService>>();
-        var service = new UserTenantService(db, clock, logger, authProvider);
-
-        // Act
-        await service.UpdateUserTenantAsync(userId, newTenantId);
-
-        // Assert
-        await authProvider.Received(1).UpdateUserTenantIdAsync(
-            userId,
-            newTenantId,
-            Arg.Any<CancellationToken>());
-    }
+    // Test removed: UpdateUserTenantAsync_UpdatesKeycloakService
+    // Reason: AuthProvider is no longer called directly - it's now handled by UserTenantUpdatedHandler
+    // This behavior is tested in integration tests with the full event pipeline
 
     [Fact]
     public async Task GetUserTenantIdAsync_IgnoresQueryFilters_CanFindUserInAnyTenant()
@@ -308,9 +266,8 @@ public sealed class UserTenantServiceTests : IAsyncLifetime
         var tenant2Context = CreateTenantContext(tenant2Id);
         await using (var db = CreateDbContext(tenant2Context))
         {
-            var authProvider = Substitute.For<IAuthenticationProvider>();
             var logger = Substitute.For<ILogger<UserTenantService>>();
-            var service = new UserTenantService(db, clock, logger, authProvider);
+            var service = new UserTenantService(db, clock, logger);
 
             // Act
             var result = await service.GetUserTenantIdAsync(userId);

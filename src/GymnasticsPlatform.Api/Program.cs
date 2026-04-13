@@ -4,6 +4,7 @@ using Pgvector.EntityFrameworkCore;
 using GymnasticsPlatform.Api;
 using GymnasticsPlatform.Api.Authorization;
 using GymnasticsPlatform.Api.Extensions;
+using GymnasticsPlatform.Api.Infrastructure;
 using GymnasticsPlatform.Api.Middleware;
 using GymnasticsPlatform.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,8 +20,17 @@ using OpenTelemetry.Trace;
 using Common.Core;
 using Scalar.AspNetCore;
 using FluentValidation;
+using Wolverine;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Wolverine for domain events
+builder.Host.UseWolverine(opts =>
+{
+    opts.LocalQueue("domain-events").Sequential();
+    opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
+    opts.Discovery.IncludeAssembly(typeof(Auth.Infrastructure.Handlers.UserTenantUpdatedHandler).Assembly);
+});
 
 // Add HTTP Context Accessor
 builder.Services.AddHttpContextAccessor();
@@ -72,9 +82,17 @@ else
 
 // Add Authentication Provider (Microsoft Entra External ID)
 builder.Services.AddScoped<Auth.Application.Services.IAuthenticationProvider, Auth.Infrastructure.Services.ExternalIdAuthenticationProvider>();
+
+// Register Domain Event Interceptor
+builder.Services.AddScoped<DomainEventInterceptor>();
+
 // Add DbContext
-builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AuthDbContext>((sp, options) =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    var interceptor = sp.GetRequiredService<DomainEventInterceptor>();
+    options.AddInterceptors(interceptor);
+});
 
 builder.Services.AddDbContext<TrainingDbContext>(options =>
     options.UseNpgsql(
@@ -181,6 +199,10 @@ builder.Services.AddProblemDetails();
 
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+// Add SignalR for real-time notifications
+builder.Services.AddSignalR();
+builder.Services.AddScoped<GymnasticsPlatform.Api.Services.INotificationService, GymnasticsPlatform.Api.Services.SignalRNotificationService>();
 
 // Add Health Checks
 builder.Services.AddHealthChecks()
@@ -311,6 +333,9 @@ if (app.Environment.IsDevelopment())
 
 // Auto-discover and register all endpoint groups
 app.MapEndpoints();
+
+// Map SignalR hub for real-time notifications
+app.MapHub<GymnasticsPlatform.Api.Hubs.NotificationHub>("/hubs/notifications");
 
 // Health check endpoints (anonymous)
 app.MapHealthChecks("/health");

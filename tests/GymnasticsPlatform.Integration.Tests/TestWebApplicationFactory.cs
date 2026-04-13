@@ -196,6 +196,21 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         _mockSessionService.Reset();
     }
 
+    public MockAuthenticationProvider GetMockAuthProvider() => _mockAuthProvider;
+
+    public void ResetMockAuthProvider() => _mockAuthProvider.Reset();
+
+    public async Task ResetDatabaseAsync()
+    {
+        using var scope = Services.CreateScope();
+        var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+        var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
+
+        // Delete all data from test database
+        await authDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE user_roles, user_profiles, club_invites, clubs RESTART IDENTITY CASCADE");
+        await trainingDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE skills, programmes RESTART IDENTITY CASCADE");
+    }
+
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();

@@ -1,8 +1,10 @@
+using Auth.Domain.Events;
 using Common.Core;
+using Common.Core.DomainEvents;
 
 namespace Auth.Domain.Entities;
 
-public sealed class UserProfile : IMultiTenant
+public sealed class UserProfile : EntityBase, IMultiTenant
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -54,12 +56,22 @@ public sealed class UserProfile : IMultiTenant
         OnboardingChoice = choice;
     }
 
-    public void UpdateTenant(Guid newTenantId)
+    public void UpdateTenant(Guid newTenantId, TimeProvider clock)
     {
         if (newTenantId == Guid.Empty)
             throw new ArgumentException("Tenant ID cannot be empty.", nameof(newTenantId));
 
+        var oldTenantId = TenantId;
         TenantId = newTenantId;
+
+        RaiseEvent(new UserTenantUpdatedEvent(
+            UserId: Id,
+            ProviderUserId: ProviderUserId,
+            OldTenantId: oldTenantId,
+            NewTenantId: newTenantId,
+            OccurredAt: clock.GetUtcNow(),
+            Email: Email,
+            FullName: FullName));
     }
 
     public void UpdateProfile(string fullName)

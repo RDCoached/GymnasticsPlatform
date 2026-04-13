@@ -95,16 +95,25 @@ Here's the high-level architecture of our domain events implementation:
                          │   (In-process event routing)           │
                          └────────────┬───────────────────────────┘
                                       │
-                ┌─────────────────────┴─────────────────────┐
-                │                                           │
-                ▼                                           ▼
-┌───────────────────────────────┐       ┌───────────────────────────────┐
-│  UserTenantUpdatedHandler     │       │  AuditLogHandler              │
-│                               │       │                               │
-│  - Log tenant change          │       │  - Write audit entry          │
-│  - Invalidate cached sessions │       │  - Record timestamp           │
-│  - Publish analytics event    │       │  - Track user action          │
-└───────────────────────────────┘       └───────────────────────────────┘
+                ┌─────────────────────┴─────────────────────────────────┐
+                │                                                       │
+                ▼                                                       ▼
+┌──────────────────────────────────────┐       ┌──────────────────────────────────────┐
+│  UserTenantUpdatedHandler            │       │  UserTenantUpdatedNotificationHandler│
+│  (Auth.Infrastructure)               │       │  (GymnasticsPlatform.Api)            │
+│                                      │       │                                      │
+│  - Update external auth provider     │       │  - Send SignalR notification         │
+│  - Log tenant change                 │       │  - Push to user's browser            │
+│  - Retry on failure (3x)             │       │  - Non-blocking (errors logged)      │
+└──────────────────────────────────────┘       └──────────────────────────────────────┘
+                                                             │
+                                                             ▼
+                                               ┌──────────────────────────┐
+                                               │   SignalR Hub            │
+                                               │   /hubs/notifications    │
+                                               │                          │
+                                               │   → Connected browsers   │
+                                               └──────────────────────────┘
 ```
 
 **Key Components**:
@@ -544,10 +553,22 @@ public sealed class UserTenantUpdatedHandler
 
 **Handler Conventions**:
 - Class name ends with `Handler` (Wolverine convention, not required but recommended)
-- Method named `Handle` (Wolverine looks for this by convention)
+- Method named `Handle` or `HandleAsync` (Wolverine looks for these by convention)
 - Takes the event as a parameter
 - Returns `Task` (async) or `void` (sync)
 - Dependencies injected via constructor
+
+**Multiple Handlers Pattern**:
+Wolverine allows multiple handlers to process the same event independently. In our implementation, `UserTenantUpdatedEvent` is handled by TWO handlers:
+
+1. **UserTenantUpdatedHandler** - Updates the external authentication provider (critical)
+2. **UserTenantUpdatedNotificationHandler** - Sends SignalR notification (non-critical)
+
+This separation of concerns is powerful:
+- Auth provider updates are retried on failure (critical path)
+- SignalR notifications fail gracefully (nice-to-have, not critical)
+- Each handler can evolve independently
+- Easy to add more handlers (audit log, analytics, webhooks) without modifying existing code
 
 **Advanced Handler Example** (future enhancement):
 ```csharp
@@ -823,6 +844,119 @@ public sealed class DomainEventIntegrationTests : IAsyncLifetime
 
 **Note**: Wolverine's `TrackActivity()` API is incredibly powerful for testing. It captures all messages published during a test and lets you assert on them.
 
+## Real-Time Notifications with SignalR
+
+One of the most powerful benefits of domain events is the ability to push real-time notifications to connected clients. When a user's tenant changes, their frontend session is now out of sync. We can use SignalR to immediately notify them.
+
+### Step 9: Add SignalR Notification Handler
+
+Create a second handler for `UserTenantUpdatedEvent` that sends SignalR notifications:
+
+**UserTenantUpdatedNotificationHandler.cs** (in `GymnasticsPlatform.Api/Handlers`):
+```csharp
+using Auth.Domain.Events;
+using GymnasticsPlatform.Api.Services;
+using Microsoft.Extensions.Logging;
+
+namespace GymnasticsPlatform.Api.Handlers;
+
+public sealed class UserTenantUpdatedNotificationHandler(
+    INotificationService notificationService,
+    ILogger<UserTenantUpdatedNotificationHandler> logger)
+{
+    public async Task HandleAsync(UserTenantUpdatedEvent evt, CancellationToken ct)
+    {
+        logger.LogInformation(
+            "Sending SignalR notification for tenant update: User {UserId}",
+            evt.UserId);
+
+        try
+        {
+            await notificationService.SendTenantUpdatedNotificationAsync(
+                evt.UserId,
+                evt.NewTenantId);
+
+            logger.LogInformation(
+                "Successfully sent tenant update notification to user {UserId}",
+                evt.UserId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "Failed to send SignalR notification for user {UserId}",
+                evt.UserId);
+            // Don't rethrow - notification failure shouldn't break the domain event
+        }
+    }
+}
+```
+
+**NotificationHub.cs** (in `GymnasticsPlatform.Api/Hubs`):
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+namespace GymnasticsPlatform.Api.Hubs;
+
+[Authorize]
+public sealed class NotificationHub : Hub
+{
+    public override async Task OnConnectedAsync()
+    {
+        var userId = Context.User?.FindFirst("sub")?.Value
+            ?? Context.User?.FindFirst("oid")?.Value;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
+        }
+
+        await base.OnConnectedAsync();
+    }
+}
+```
+
+**Program.cs** (add SignalR registration):
+```csharp
+// Add SignalR
+builder.Services.AddSignalR();
+builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
+
+// ... after app.MapEndpoints()
+app.MapHub<NotificationHub>("/hubs/notifications");
+```
+
+### Frontend Integration
+
+In your React frontend, connect to the SignalR hub:
+
+```typescript
+import * as signalR from "@microsoft/signalr";
+
+const connection = new signalR.HubConnectionBuilder()
+  .withUrl("http://localhost:5001/hubs/notifications", {
+    accessTokenFactory: () => localStorage.getItem("access_token") || ""
+  })
+  .withAutomaticReconnect()
+  .build();
+
+connection.on("TenantUpdated", (notification) => {
+  console.log("Tenant updated:", notification);
+
+  // Prompt user to sign out and back in
+  toast.info(notification.Message, {
+    action: {
+      label: "Sign Out",
+      onClick: () => signOut()
+    }
+  });
+});
+
+await connection.start();
+```
+
+Now when a user completes onboarding, they receive an immediate notification in their browser—no polling required!
+
 ## Running the Application
 
 Start the application and test the onboarding flow:
@@ -928,11 +1062,27 @@ Wolverine's performance, MIT license, and first-class support for distributed me
 
 The code is available on [GitHub](https://github.com/your-repo) on the `feature/domain-events-wolverine` branch. Feel free to explore, experiment, and adapt this pattern to your own applications.
 
-**Next Steps**:
-- Implement `SessionInvalidationHandler` to force re-authentication after tenant changes
-- Add `AuditLogHandler` to record all tenant updates
-- Integrate SignalR to push real-time notifications to the frontend
+**What We've Achieved**:
+✅ Decoupled domain logic from infrastructure concerns
+✅ Eliminated race conditions with event-after-commit pattern
+✅ Added real-time SignalR notifications for immediate user feedback
+✅ Multiple handlers processing the same event independently
+✅ Comprehensive test coverage (unit + integration)
+✅ Foundation for audit logs, analytics, and other event-driven features
+
+**Next Steps** (Future Enhancements):
+- Implement `AuditLogHandler` to record all tenant updates in an audit table
+- Add `AnalyticsHandler` to track user behavior for insights
 - Explore Wolverine's Saga pattern for multi-step workflows
-- Upgrade to RabbitMQ for distributed event publishing
+- Upgrade to RabbitMQ or Azure Service Bus for distributed event publishing
+- Implement the Transactional Outbox pattern for guaranteed event delivery
+
+**Complete Implementation**: The full source code with all phases (domain events + SignalR) is available on the `feature/domain-events-wolverine` branch. The implementation includes:
+- Domain event infrastructure (IDomainEvent, EntityBase)
+- EF Core interceptor for event publishing
+- Two Wolverine handlers (auth provider update + SignalR notifications)
+- SignalR hub with authenticated connections
+- Complete integration tests with polling pattern
+- Frontend documentation with TypeScript examples
 
 Happy eventing!
